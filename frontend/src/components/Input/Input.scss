@@ -1,0 +1,77 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.input,
+.textarea {
+  width: 100%;
+  height: 42px;
+  padding: 0 v.$space-3;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: v.$radius-lg;
+  font-size: v.$font-size-base;
+  color: v.$color-text-primary;
+  transition: border-color v.$transition-fast, box-shadow v.$transition-fast, background-color v.$transition-fast;
+
+  &::placeholder {
+    color: v.$color-text-muted;
+  }
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.86);
+    background: rgba(255, 255, 255, 0.64);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: v.$color-primary-400;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 0 0 4px rgba(125, 92, 246, 0.14), v.$shadow-sm;
+  }
+
+  &:disabled {
+    background: rgba(239, 237, 247, 0.58);
+    color: v.$color-text-muted;
+    cursor: not-allowed;
+  }
+
+  &--error {
+    border-color: v.$color-danger-500;
+
+    &:focus {
+      box-shadow: 0 0 0 4px rgba(209, 85, 101, 0.14);
+    }
+  }
+}
+
+.textarea {
+  height: auto;
+  min-height: 88px;
+  padding: v.$space-3;
+  resize: vertical;
+}
+
+.input-group {
+  position: relative;
+
+  &__icon {
+    position: absolute;
+    left: v.$space-3;
+    top: 50%;
+    transform: translateY(-50%);
+    color: v.$color-text-muted;
+    display: flex;
+    pointer-events: none;
+  }
+
+  .input {
+    padding-left: v.$space-8;
+  }
+
+  &__suffix {
+    position: absolute;
+    right: v.$space-2;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}

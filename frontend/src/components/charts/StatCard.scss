@@ -1,0 +1,82 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: v.$space-4;
+  margin-bottom: v.$space-6;
+}
+
+// KPI cards are few-per-screen and high-value, so they get true glass.
+.stat-card {
+  @include m.glass-panel($blur: v.$glass-blur-sm, $bg: rgba(255, 255, 255, 0.58));
+  @include m.flex(center, flex-start, v.$space-4);
+  padding: v.$space-5;
+
+  &__icon {
+    @include m.flex(center, center);
+    position: relative;
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    border-radius: v.$radius-md;
+    flex-shrink: 0;
+
+    &--primary {
+      background: linear-gradient(135deg, v.$color-primary-500, v.$color-primary-600);
+      color: v.$color-white;
+    }
+    &--success {
+      background: linear-gradient(135deg, v.$color-success-500, v.$color-success-700);
+      color: v.$color-white;
+    }
+    &--warning {
+      background: linear-gradient(135deg, v.$color-warning-500, v.$color-warning-700);
+      color: v.$color-white;
+    }
+    &--info {
+      background: linear-gradient(135deg, v.$color-info-500, v.$color-info-700);
+      color: v.$color-white;
+    }
+    &--gold {
+      background: linear-gradient(135deg, v.$color-gold-300, v.$color-gold-500);
+      color: v.$color-white;
+    }
+    &--danger {
+      background: linear-gradient(135deg, v.$color-danger-500, v.$color-danger-700);
+      color: v.$color-white;
+    }
+  }
+
+  &__body {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-secondary;
+    font-weight: v.$font-weight-medium;
+  }
+
+  &__value {
+    margin-top: 2px;
+    font-size: v.$font-size-2xl;
+  }
+
+  &__trend {
+    @include m.flex(center, flex-start, 4px);
+    margin-top: v.$space-1;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-medium;
+
+    &--up {
+      color: v.$color-success-700;
+    }
+    &--down {
+      color: v.$color-danger-700;
+    }
+  }
+}

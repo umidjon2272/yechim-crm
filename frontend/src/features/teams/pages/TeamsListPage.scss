@@ -1,0 +1,44 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: v.$space-4;
+}
+
+.team-card {
+  @include m.card-surface;
+  @include m.surface-hover;
+  padding: v.$space-5;
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-3;
+  cursor: pointer;
+
+  &__header {
+    @include m.flex(flex-start, space-between);
+  }
+
+  &__name {
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+  }
+
+  &__description {
+    font-size: v.$font-size-sm;
+    color: v.$color-text-secondary;
+  }
+
+  &__footer {
+    @include m.flex(center, space-between);
+    padding-top: v.$space-2;
+    border-top: 1px solid v.$color-border;
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+  }
+
+  &__members {
+    @include m.flex(center, flex-start, v.$space-1);
+  }
+}

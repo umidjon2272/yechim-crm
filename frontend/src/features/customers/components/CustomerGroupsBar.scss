@@ -1,0 +1,60 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.customer-groups-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: v.$space-2;
+  margin-bottom: v.$space-3;
+
+  &__chip {
+    display: flex;
+    align-items: center;
+    gap: v.$space-1;
+    min-height: 32px;
+    padding: 2px v.$space-1 2px v.$space-3;
+    border-radius: v.$radius-full;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    background: rgba(255, 255, 255, 0.46);
+    font-size: v.$font-size-xs;
+    color: v.$color-text-secondary;
+    transition: border-color v.$transition-fast, color v.$transition-fast;
+
+    &--active {
+      border-color: rgba(125, 92, 246, 0.34);
+      color: v.$color-primary-700;
+      background: rgba(235, 231, 255, 0.72);
+    }
+  }
+
+  &__chip-label {
+    padding: v.$space-1 0;
+  }
+
+  &__chip-menu {
+    @include m.flex(center, center);
+    width: 20px;
+    height: 20px;
+    border-radius: v.$radius-full;
+    color: inherit;
+    opacity: 0.6;
+    &:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  &__add {
+    min-height: 32px;
+    padding: 2px v.$space-3;
+    border-radius: v.$radius-full;
+    border: 1px dashed rgba(125, 92, 246, 0.28);
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    &:hover {
+      color: v.$color-primary-700;
+      border-color: v.$color-primary-500;
+    }
+  }
+}

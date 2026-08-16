@@ -1,0 +1,41 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.avatar {
+  border-radius: v.$radius-full;
+  flex-shrink: 0;
+  object-fit: cover;
+
+  &--fallback {
+    @include m.flex(center, center);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0)),
+      linear-gradient(135deg, v.$color-primary-100, #d7e7ff 54%, #ffd8ea);
+    color: v.$color-primary-700;
+    font-weight: v.$font-weight-semibold;
+    border: 1px solid rgba(255, 255, 255, 0.68);
+  }
+
+  &--sm {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+  &--md {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  &--lg {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+  &--xl {
+    width: 72px;
+    height: 72px;
+    font-size: 24px;
+    box-shadow: v.$shadow-md;
+    border: 3px solid v.$color-white;
+  }
+}

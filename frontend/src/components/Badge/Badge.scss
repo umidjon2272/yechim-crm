@@ -1,0 +1,57 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.badge {
+  @include m.flex(center, center, v.$space-1);
+  display: inline-flex;
+  height: 24px;
+  padding: 0 v.$space-3;
+  border-radius: v.$radius-full;
+  font-size: v.$font-size-xs;
+  font-weight: v.$font-weight-semibold;
+  white-space: nowrap;
+  letter-spacing: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: v.$radius-full;
+    background: currentColor;
+  }
+
+  &--gray {
+    background: rgba(255, 255, 255, 0.54);
+    color: v.$color-gray-600;
+  }
+
+  &--success {
+    background: rgba(234, 250, 241, 0.76);
+    color: v.$color-success-700;
+  }
+
+  &--warning {
+    background: rgba(255, 246, 231, 0.78);
+    color: v.$color-warning-700;
+  }
+
+  &--danger {
+    background: rgba(255, 240, 242, 0.78);
+    color: v.$color-danger-700;
+  }
+
+  &--info {
+    background: rgba(238, 246, 255, 0.78);
+    color: v.$color-info-700;
+  }
+
+  &--primary {
+    background: rgba(245, 243, 255, 0.82);
+    color: v.$color-primary-700;
+  }
+
+  &--no-dot::before {
+    display: none;
+  }
+}

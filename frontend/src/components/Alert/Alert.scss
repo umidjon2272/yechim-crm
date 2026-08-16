@@ -1,0 +1,67 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.alert {
+  @include m.flex(flex-start, flex-start, v.$space-3);
+  padding: v.$space-4;
+  border-radius: v.$radius-md;
+  border: 1px solid transparent;
+  font-size: v.$font-size-sm;
+  margin-bottom: v.$space-4;
+
+  &__icon {
+    @include m.flex(center, center);
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: v.$radius-full;
+    font-size: 12px;
+    font-weight: v.$font-weight-bold;
+    color: v.$color-white;
+  }
+
+  &__content {
+    flex: 1;
+  }
+
+  &__title {
+    font-weight: v.$font-weight-semibold;
+    margin-bottom: 2px;
+  }
+
+  &--info {
+    background: v.$color-info-50;
+    border-color: rgba(47, 137, 174, 0.2);
+    color: v.$color-info-700;
+    .alert__icon {
+      background: v.$color-info-500;
+    }
+  }
+
+  &--success {
+    background: v.$color-success-50;
+    border-color: rgba(34, 160, 107, 0.2);
+    color: v.$color-success-700;
+    .alert__icon {
+      background: v.$color-success-500;
+    }
+  }
+
+  &--warning {
+    background: v.$color-warning-50;
+    border-color: rgba(217, 154, 43, 0.2);
+    color: v.$color-warning-700;
+    .alert__icon {
+      background: v.$color-warning-500;
+    }
+  }
+
+  &--danger {
+    background: v.$color-danger-50;
+    border-color: rgba(209, 85, 79, 0.2);
+    color: v.$color-danger-700;
+    .alert__icon {
+      background: v.$color-danger-500;
+    }
+  }
+}

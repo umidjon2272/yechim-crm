@@ -1,0 +1,62 @@
+@use '../../styles/abstracts/variables' as v;
+
+.timeline__group {
+  margin-bottom: v.$space-5;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.timeline__date {
+  font-size: v.$font-size-xs;
+  font-weight: v.$font-weight-semibold;
+  color: v.$color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: v.$space-3;
+}
+
+.timeline__items {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-3;
+  padding-left: v.$space-4;
+  border-left: 2px solid v.$color-primary-100;
+}
+
+.timeline__item {
+  position: relative;
+  padding-left: v.$space-4;
+}
+
+.timeline__dot {
+  position: absolute;
+  left: calc(-1 * v.$space-4 - 5px);
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: v.$radius-full;
+  background: linear-gradient(135deg, v.$color-primary-600, v.$color-primary-400);
+  box-shadow: 0 0 0 3px v.$color-primary-50;
+}
+
+.timeline__title {
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-medium;
+}
+
+.timeline__type {
+  color: v.$color-primary-600;
+}
+
+.timeline__subject {
+  font-size: v.$font-size-sm;
+  margin-top: 2px;
+}
+
+.timeline__description {
+  font-size: v.$font-size-sm;
+  color: v.$color-text-secondary;
+  margin-top: 2px;
+}

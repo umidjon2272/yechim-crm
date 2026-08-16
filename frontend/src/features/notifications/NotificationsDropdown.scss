@@ -1,0 +1,72 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.notifications-dropdown {
+  width: 320px;
+  max-width: 80vw;
+}
+
+.notifications-dropdown__list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  @include m.custom-scrollbar;
+}
+
+.notifications-dropdown__item {
+  @include m.flex(flex-start, flex-start, v.$space-2);
+  width: 100%;
+  text-align: left;
+  padding: v.$space-2 v.$space-3;
+  border-radius: v.$radius-sm;
+  transition: background-color v.$transition-fast;
+
+  &:hover {
+    background: v.$color-gray-100;
+  }
+
+  &--unread {
+    background: v.$color-primary-50;
+    &:hover {
+      background: v.$color-primary-100;
+    }
+  }
+}
+
+.notifications-dropdown__icon {
+  @include m.flex(center, center);
+  width: 28px;
+  height: 28px;
+  border-radius: v.$radius-full;
+  background: v.$color-gray-100;
+  color: v.$color-primary-600;
+  flex-shrink: 0;
+}
+
+.notifications-dropdown__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.notifications-dropdown__title {
+  display: block;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-medium;
+  color: v.$color-text-primary;
+}
+
+.notifications-dropdown__message {
+  display: block;
+  font-size: v.$font-size-xs;
+  color: v.$color-text-secondary;
+  margin-top: 2px;
+}
+
+.notifications-dropdown__date {
+  display: block;
+  font-size: v.$font-size-xs;
+  color: v.$color-text-muted;
+  margin-top: 2px;
+}

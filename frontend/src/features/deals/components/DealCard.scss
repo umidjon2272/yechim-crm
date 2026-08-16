@@ -1,0 +1,50 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.deal-card {
+  @include m.card-surface;
+  @include m.surface-hover;
+  padding: v.$space-4;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-2;
+}
+
+.deal-card__name {
+  font-size: v.$font-size-base;
+  font-weight: v.$font-weight-semibold;
+  color: v.$color-text-primary;
+  @include m.truncate;
+}
+
+.deal-card__customer {
+  font-size: v.$font-size-sm;
+  color: v.$color-text-secondary;
+  @include m.truncate;
+}
+
+.deal-card__business {
+  font-size: v.$font-size-xs;
+  color: v.$color-text-muted;
+  @include m.truncate;
+}
+
+.deal-card__footer {
+  @include m.flex(center, space-between);
+  margin-top: v.$space-1;
+  padding-top: v.$space-2;
+  border-top: 1px dashed v.$color-border;
+}
+
+.deal-card__value {
+  font-size: v.$font-size-md;
+  font-weight: v.$font-weight-bold;
+  color: v.$color-primary-700;
+}
+
+.deal-card__meta {
+  @include m.flex(center, space-between);
+  font-size: v.$font-size-xs;
+  color: v.$color-text-muted;
+}

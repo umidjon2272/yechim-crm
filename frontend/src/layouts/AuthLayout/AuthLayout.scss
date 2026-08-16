@@ -1,0 +1,68 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.auth-layout {
+  min-height: 100vh;
+  @include m.flex(center, center);
+  padding: v.$space-4;
+  position: relative;
+
+  &__panel {
+    width: 100%;
+    max-width: 408px;
+    animation: page-fade-in v.$transition-slow;
+  }
+
+  &__brand {
+    @include m.flex(center, center, v.$space-3);
+    margin-bottom: v.$space-8;
+  }
+
+  &__logo-mark {
+    @include m.flex(center, center);
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.04)),
+      linear-gradient(135deg, v.$color-primary-700, v.$color-primary-400 58%, #f0a3cc);
+    color: v.$color-white;
+    font-weight: v.$font-weight-bold;
+    font-size: v.$font-size-lg;
+    box-shadow: 0 14px 30px -16px rgba(86, 48, 184, 0.68), inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  }
+
+  &__brand-name {
+    font-size: v.$font-size-lg;
+    font-weight: v.$font-weight-bold;
+    letter-spacing: 0;
+  }
+
+  &__card {
+    @include m.glass-panel($blur: v.$glass-blur-lg, $bg: rgba(255, 255, 255, 0.62), $radius: v.$radius-xl);
+    padding: v.$space-8;
+  }
+
+  &__title {
+    font-size: v.$font-size-xl;
+    font-weight: v.$font-weight-bold;
+    margin-bottom: v.$space-1;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__subtitle {
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-sm;
+    margin-bottom: v.$space-6;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__footer {
+    text-align: center;
+    margin-top: v.$space-6;
+    font-size: v.$font-size-sm;
+    color: v.$color-text-muted;
+  }
+}

@@ -1,0 +1,54 @@
+@use 'variables' as v;
+@use 'mixins' as m;
+
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 24%, rgba(162, 196, 255, 0.48) 0%, rgba(162, 196, 255, 0.18) 28%, rgba(162, 196, 255, 0) 58%),
+    radial-gradient(ellipse at 78% 18%, rgba(216, 188, 255, 0.42) 0%, rgba(216, 188, 255, 0.16) 30%, rgba(216, 188, 255, 0) 58%),
+    radial-gradient(ellipse at 88% 76%, rgba(255, 204, 226, 0.46) 0%, rgba(255, 204, 226, 0.14) 32%, rgba(255, 204, 226, 0) 62%),
+    linear-gradient(135deg, #fffefa 0%, #f8f6ff 38%, #eef6ff 72%, #fff7fb 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    background:
+      linear-gradient(115deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0) 34%),
+      linear-gradient(25deg, rgba(236, 244, 255, 0) 20%, rgba(236, 244, 255, 0.48) 54%, rgba(255, 245, 251, 0.5));
+    filter: blur(42px);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.18), transparent 70%);
+  }
+}
+
+.ambient-background__accent {
+  position: absolute;
+  inset: auto 10% 8% 18%;
+  height: 22vh;
+  border-radius: 999px;
+  filter: blur(70px);
+  background: linear-gradient(90deg, rgba(164, 200, 255, 0.22), rgba(255, 205, 232, 0.24));
+  pointer-events: none;
+}
+
+.glass-panel {
+  @include m.glass-panel;
+}
+
+.surface-card {
+  @include m.card-surface;
+}

@@ -1,0 +1,30 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.card {
+  @include m.card-surface;
+  padding: v.$space-6;
+  border-radius: v.$radius-xl;
+
+  &--no-padding {
+    padding: 0;
+  }
+
+  &__header {
+    @include m.flex(center, space-between);
+    margin-bottom: v.$space-4;
+  }
+
+  &__title {
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+  }
+
+  &__footer {
+    margin-top: v.$space-5;
+    padding-top: v.$space-4;
+    border-top: 1px solid rgba(255, 255, 255, 0.58);
+    @include m.flex(center, flex-end, v.$space-3);
+  }
+}

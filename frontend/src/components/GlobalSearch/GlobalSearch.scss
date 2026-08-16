@@ -1,0 +1,83 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.global-search {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+  margin: 0 v.$space-4;
+
+  @include m.respond-down(v.$breakpoint-md) {
+    display: none;
+  }
+
+  &__icon {
+    position: absolute;
+    left: v.$space-3;
+    top: 50%;
+    transform: translateY(-50%);
+    color: v.$color-text-muted;
+    display: flex;
+    pointer-events: none;
+  }
+
+  &__input {
+    width: 100%;
+    height: 42px;
+    padding: 0 v.$space-3 0 v.$space-8;
+    background: rgba(255, 255, 255, 0.44);
+    border: 1px solid rgba(255, 255, 255, 0.64);
+    border-radius: v.$radius-full;
+    font-size: v.$font-size-sm;
+    transition: border-color v.$transition-fast, background-color v.$transition-fast, box-shadow v.$transition-fast;
+
+    &:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.78);
+      border-color: v.$color-primary-400;
+      box-shadow: 0 0 0 4px rgba(125, 92, 246, 0.14), v.$shadow-sm;
+    }
+  }
+
+  &__results {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    @include m.glass-panel($blur: v.$glass-blur-md, $bg: v.$glass-bg-strong, $radius: v.$radius-lg);
+    z-index: v.$z-dropdown;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: v.$space-2;
+    @include m.custom-scrollbar;
+  }
+
+  &__result {
+    @include m.flex(center, flex-start, v.$space-2);
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: v.$space-2 v.$space-3;
+    border-radius: v.$radius-sm;
+    text-align: left;
+    font-size: v.$font-size-sm;
+    transition: background-color v.$transition-fast;
+
+    &:hover {
+      background: rgba(125, 92, 246, 0.1);
+    }
+  }
+
+  &__result-type {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    background: rgba(255, 255, 255, 0.62);
+    border-radius: v.$radius-full;
+    padding: 1px v.$space-2;
+    flex-shrink: 0;
+  }
+
+  &__result-label {
+    @include m.truncate;
+  }
+}

@@ -1,0 +1,33 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.toast-container {
+  position: fixed;
+  top: v.$space-5;
+  right: v.$space-5;
+  z-index: v.$z-toast;
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-2;
+  width: 340px;
+  max-width: calc(100vw - #{v.$space-8});
+}
+
+// Reuses .alert/.alert--variant/.alert__icon/.alert__content classes from
+// Alert.scss for the tinted body — just adds its own glass chrome + motion.
+.toast {
+  @include m.glass-panel($blur: v.$glass-blur-sm, $bg: v.$glass-bg-strong, $radius: v.$radius-md);
+  padding: v.$space-4;
+  animation: toast-in v.$transition-slow;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

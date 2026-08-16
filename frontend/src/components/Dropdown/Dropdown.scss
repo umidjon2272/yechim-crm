@@ -1,0 +1,74 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 210px;
+    @include m.glass-panel($blur: v.$glass-blur-md, $bg: v.$glass-bg-strong, $radius: v.$radius-lg);
+    z-index: v.$z-dropdown;
+    padding: v.$space-2;
+    animation: dropdown-in v.$transition-fast;
+
+    &--left {
+      right: auto;
+      left: 0;
+    }
+  }
+
+  &__item {
+    @include m.flex(center, flex-start, v.$space-2);
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: v.$space-2 v.$space-3;
+    border-radius: v.$radius-md;
+    font-size: v.$font-size-sm;
+    color: v.$color-text-primary;
+    text-align: left;
+    transition: background-color v.$transition-fast;
+
+    &:hover {
+      background: rgba(125, 92, 246, 0.1);
+    }
+
+    &--danger {
+      color: v.$color-danger-500;
+      &:hover {
+        background: v.$color-danger-50;
+      }
+    }
+  }
+
+  &__divider {
+    position: relative;
+    z-index: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.58);
+    margin: v.$space-2 0;
+  }
+
+  &__label {
+    position: relative;
+    z-index: 1;
+    padding: v.$space-2 v.$space-3;
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+  }
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

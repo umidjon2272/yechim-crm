@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# Logs
+*.log
+logs/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+
+# Local tooling
+.claude/
+
+# Prisma/local db if applicable
+*.db
+*.db-journal

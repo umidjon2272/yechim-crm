@@ -1,0 +1,32 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.donut-chart {
+  @include m.flex(center, flex-start, v.$space-6);
+  flex-wrap: wrap;
+
+  &__legend {
+    display: flex;
+    flex-direction: column;
+    gap: v.$space-2;
+    font-size: v.$font-size-sm;
+
+    li {
+      @include m.flex(center, flex-start, v.$space-2);
+    }
+  }
+
+  &__swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: v.$radius-full;
+    flex-shrink: 0;
+  }
+
+  &__legend-value {
+    margin-left: auto;
+    font-weight: v.$font-weight-semibold;
+    padding-left: v.$space-4;
+    font-variant-numeric: tabular-nums;
+  }
+}

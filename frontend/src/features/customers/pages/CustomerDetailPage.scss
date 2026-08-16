@@ -1,0 +1,18 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.customer-detail-header {
+  align-items: flex-start;
+  padding: v.$space-4;
+  border-radius: v.$radius-xl;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.46);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), v.$shadow-sm;
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    gap: v.$space-4;
+    min-width: 0;
+  }
+}

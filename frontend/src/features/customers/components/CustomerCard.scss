@@ -1,0 +1,79 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.customer-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: v.$space-4;
+}
+
+.customer-card {
+  @include m.glass-panel;
+  @include m.glass-hover;
+  padding: v.$space-5;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-3;
+
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: v.$space-3;
+  }
+
+  &__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: v.$font-size-base;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+    @include m.truncate;
+  }
+
+  &__phone {
+    font-size: v.$font-size-sm;
+    color: v.$color-text-secondary;
+  }
+
+  &__business {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    @include m.truncate;
+  }
+
+  &__programs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: v.$space-1;
+  }
+
+  &__program-tag {
+    font-size: v.$font-size-xs;
+    padding: 2px v.$space-2;
+    border-radius: v.$radius-full;
+    background: v.$color-primary-100;
+    color: v.$color-primary-700;
+  }
+
+  &__footer {
+    margin-top: v.$space-1;
+    padding-top: v.$space-3;
+    border-top: 1px dashed v.$color-border;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: v.$space-2;
+  }
+
+  &__assignee {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    @include m.truncate;
+  }
+}

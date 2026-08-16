@@ -1,0 +1,47 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.employee-form__section-title {
+  font-size: v.$font-size-xs;
+  font-weight: v.$font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: v.$color-text-muted;
+  margin: v.$space-5 0 v.$space-2;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.employee-form__password-hint {
+  margin-bottom: v.$space-4;
+}
+
+.employee-form__permissions-toggle {
+  @include m.flex(center, flex-start, v.$space-2);
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: v.$space-2 0;
+  margin-top: v.$space-4;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-semibold;
+  color: v.$color-text-primary;
+  border-top: 1px solid rgba(255, 255, 255, 0.58);
+
+  svg {
+    transition: transform v.$transition-fast;
+    color: v.$color-text-muted;
+  }
+}
+
+.employee-form__permissions {
+  padding-top: v.$space-3;
+}
+
+.employee-form__permissions-actions {
+  @include m.flex(center, flex-end);
+  margin-bottom: v.$space-2;
+}
