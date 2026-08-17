@@ -8,5 +8,7 @@ npm run dev
 npm run build
 ```
 
-Local development uses `/api` through the Vite proxy. Start the mock API from
-`../backend/mock-server` when server-backed demo behavior is needed.
+By default, API requests go to the Render backend:
+`https://yechim-backend.onrender.com/api`.
+
+You can override this with `VITE_API_URL` when needed.

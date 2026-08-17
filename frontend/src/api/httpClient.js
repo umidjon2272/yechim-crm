@@ -1,7 +1,11 @@
 import { ApiError } from './ApiError'
 import { formatError } from '../utils/formatError'
 
-const BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api'
+const BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://yechim-backend.onrender.com/api'
+).replace(/\/$/, '')
 
 export { ApiError }
 

@@ -15,11 +15,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Dev-only: proxies to backend/mock-server so cookies stay same-origin.
-      // Point this at a real backend later by changing the target, or remove
-      // the proxy and set VITE_API_BASE_URL to the real API's absolute URL.
+      // Dev-only fallback for relative /api calls.
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'https://yechim-backend.onrender.com',
         changeOrigin: true,
       },
     },
