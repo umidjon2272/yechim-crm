@@ -134,7 +134,14 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="crm/businesses/:id" element={<BusinessDetailPage />} />
+          <Route
+            path="crm/businesses/:id"
+            element={
+              <RequirePermission permission="businesses.view">
+                <BusinessDetailPage />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="crm/leads"
@@ -144,7 +151,14 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="crm/leads/:id" element={<LeadDetailPage />} />
+          <Route
+            path="crm/leads/:id"
+            element={
+              <RequirePermission permission="leads.view">
+                <LeadDetailPage />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="crm/deals"
@@ -154,7 +168,14 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="crm/deals/:id" element={<DealDetailPage />} />
+          <Route
+            path="crm/deals/:id"
+            element={
+              <RequirePermission permission="deals.view">
+                <DealDetailPage />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="crm/quotations"
@@ -164,7 +185,14 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="crm/quotations/:id" element={<QuotationDetailPage />} />
+          <Route
+            path="crm/quotations/:id"
+            element={
+              <RequirePermission permission="quotations.view">
+                <QuotationDetailPage />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="crm/payments"
@@ -202,7 +230,14 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
-          <Route path="crm/installations/:id" element={<InstallationDetailPage />} />
+          <Route
+            path="crm/installations/:id"
+            element={
+              <RequirePermission permission="installations.view">
+                <InstallationDetailPage />
+              </RequirePermission>
+            }
+          />
         </Route>
       </Route>
 

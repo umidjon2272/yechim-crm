@@ -11,4 +11,13 @@ npm run build
 By default, API requests go to the Render backend:
 `https://yechim-backend.onrender.com/api`.
 
-You can override this with `VITE_API_URL` when needed.
+Set the Vercel environment variable below to the Render API origin, including
+the `/api` prefix:
+
+```env
+VITE_API_URL=https://yechim-backend.onrender.com/api
+```
+
+Authentication is cookie-based; the browser must be allowed to send
+cross-origin credentials to the Render API. No access or refresh token is
+stored in localStorage/sessionStorage.

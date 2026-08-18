@@ -42,6 +42,17 @@ async function refreshSession() {
 async function request(path, { method = 'GET', body, params, headers, signal, skipRefresh = false } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
+  // A refresh response can set a fresh access cookie. Complete it before
+  // logout is sent, otherwise a slow refresh may recreate the access cookie
+  // immediately after logout clears it.
+  if (path === '/auth/logout' && refreshPromise) {
+    try {
+      await refreshPromise
+    } catch {
+      // Logout still clears the browser/server cookies when refresh failed.
+    }
+  }
+
   let res
   try {
     res = await fetch(buildUrl(path, params), {
