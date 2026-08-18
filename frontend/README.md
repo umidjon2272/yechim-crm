@@ -18,6 +18,7 @@ the `/api` prefix:
 VITE_API_URL=https://yechim-backend.onrender.com/api
 ```
 
-Authentication is cookie-based; the browser must be allowed to send
-cross-origin credentials to the Render API. No access or refresh token is
-stored in localStorage/sessionStorage.
+Authentication is tab-scoped: each tab keeps its access and refresh token in
+its own `sessionStorage` and sends the access token as a Bearer header. The
+frontend restores the current tab by calling `/api/auth/me`; it does not use a
+localStorage user object or browser-wide auth cookies.

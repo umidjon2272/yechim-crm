@@ -1,5 +1,6 @@
 import { ApiError } from './ApiError'
 import { formatError } from '../utils/formatError'
+import { getAccessToken, getRefreshToken, writeAuthTokens } from '../features/auth/authStorage'
 
 const BASE_URL = (
   import.meta.env.VITE_API_URL ||
@@ -32,35 +33,49 @@ const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logou
 
 async function refreshSession() {
   if (!refreshPromise) {
-    refreshPromise = request('/auth/refresh', { method: 'POST', skipRefresh: true }).finally(() => {
-      refreshPromise = null
+    const refreshToken = getRefreshToken()
+    if (!refreshToken) {
+      throw new ApiError('Sessiya muddati tugagan', { status: 401 })
+    }
+    refreshPromise = request('/auth/refresh', {
+      method: 'POST',
+      body: { refreshToken },
+      skipRefresh: true,
+      skipAuth: true,
     })
+      .then((data) => {
+        if (!data?.accessToken) {
+          throw new ApiError('Refresh token noto\'g\'ri javob qaytardi', { status: 401 })
+        }
+        writeAuthTokens({ accessToken: data.accessToken })
+        return data
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
   }
   return refreshPromise
 }
 
-async function request(path, { method = 'GET', body, params, headers, signal, skipRefresh = false } = {}) {
+async function request(
+  path,
+  { method = 'GET', body, params, headers, signal, skipRefresh = false, skipAuth = false, accessToken } = {},
+) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
-  // A refresh response can set a fresh access cookie. Complete it before
-  // logout is sent, otherwise a slow refresh may recreate the access cookie
-  // immediately after logout clears it.
-  if (path === '/auth/logout' && refreshPromise) {
-    try {
-      await refreshPromise
-    } catch {
-      // Logout still clears the browser/server cookies when refresh failed.
-    }
-  }
+  const token = accessToken === undefined ? getAccessToken() : accessToken
 
   let res
   try {
     res = await fetch(buildUrl(path, params), {
       method,
-      credentials: 'include',
+      // Auth is explicitly carried by this tab's sessionStorage token. Do not
+      // send origin-wide cookies that could belong to another tab/session.
+      credentials: 'omit',
       headers: {
         ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
         Accept: 'application/json',
+        ...(!skipAuth && token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
@@ -76,7 +91,7 @@ async function request(path, { method = 'GET', body, params, headers, signal, sk
   if (res.status === 401 && !skipRefresh && !AUTH_PATHS_WITHOUT_REFRESH.includes(path)) {
     try {
       await refreshSession()
-      return request(path, { method, body, params, headers, signal, skipRefresh: true })
+      return request(path, { method, body, params, headers, signal, skipRefresh: true, accessToken: undefined })
     } catch (refreshError) {
       // Only an invalid/expired refresh session is an auth failure. A network
       // outage must not turn a temporary API error into an automatic logout.
