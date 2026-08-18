@@ -12,6 +12,7 @@ const TITLE_MAP = [
   { prefix: '/admin/profile', title: 'Profil' },
   { prefix: '/admin/my-work', title: 'Mening ishlarim' },
   { prefix: '/admin/tasks', title: 'Vazifalar' },
+  { prefix: '/admin/notifications', title: 'Bildirishnomalar' },
   { prefix: '/admin/crm/customers', title: 'Mijozlar' },
   { prefix: '/admin/crm/businesses', title: 'Bizneslar' },
   { prefix: '/admin/crm/leads', title: 'Murojaatlar' },

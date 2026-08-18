@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { isPartner } from './access';
 
 export const STAGE_STALE_DAYS = Number(process.env.STAGE_STALE_DAYS || 7);
 
@@ -11,7 +12,7 @@ export function toNumber(value: any) {
 
 export function publicUser(user: any) {
   if (!user) return null;
-  const isPartner = Boolean(user.partnerGroupId) && !['SUPER_ADMIN', 'ADMIN'].includes(String(user.role || '').toUpperCase());
+  const partner = isPartner(user);
   return {
     id: user.id,
     name: user.name,
@@ -19,11 +20,11 @@ export function publicUser(user: any) {
     username: user.username,
     phone: user.phone,
     role: user.role,
-    permissions: isPartner ? ['customers.view'] : user.permissions || [],
+    permissions: partner ? ['customers.view'] : user.permissions || [],
     status: user.status,
     isActive: user.isActive !== false,
     avatarUrl: user.avatarUrl,
-    isPartner,
+    isPartner: partner,
     partnerGroupId: user.partnerGroupId || null,
     partnerGroup: user.partnerGroup ? { id: user.partnerGroup.id, name: user.partnerGroup.name } : null,
     team: user.team ? { id: user.team.id, name: user.team.name } : null,

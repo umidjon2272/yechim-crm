@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { isAdmin, isPartner } from '../common/access';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { PERMISSIONS_KEY } from './permissions.decorator';
 
@@ -48,11 +49,8 @@ export class PermissionsGuard implements CanActivate {
     req.user = user;
 
     const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [context.getHandler(), context.getClass()]) || [];
-    const role = String(user.role || '').toUpperCase();
-    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(role);
-    if (!required.length || isAdmin) return true;
-    const isPartner = Boolean(user.partnerGroupId) && !isAdmin;
-    if (isPartner && required.some((permission) => permission !== 'customers.view')) {
+    if (!required.length || isAdmin(user)) return true;
+    if (isPartner(user) && required.some((permission) => permission !== 'customers.view')) {
       throw new ForbiddenException('Partner faqat biriktirilgan guruh mijozlarini ko\'rishi mumkin');
     }
     const own = user.permissions || [];

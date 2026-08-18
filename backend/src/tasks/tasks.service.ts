@@ -74,6 +74,9 @@ export class TasksService {
     if (!current) throw new NotFoundException('Vazifa topilmadi');
     const canEdit = this.isAdmin(user) || user.permissions?.includes('tasks.edit');
     const nextStatus = body.status ? this.normalizeStatus(body.status) : undefined;
+    if (nextStatus === 'CANCELLED' && !this.isAdmin(user)) {
+      throw new ForbiddenException('Vazifani faqat admin bekor qila oladi');
+    }
     const ownStatusOnly =
       (current.assignedToId === user.id || current.assignedEmployeeId === user.id) &&
       Object.keys(body).every((key) => key === 'status') &&
@@ -121,7 +124,7 @@ export class TasksService {
       include: { assignedTo: { include: { team: true } }, createdBy: { include: { team: true } }, customer: true, deal: true },
     });
     if (task.assignedToId && task.assignedToId !== user.id) {
-      await this.notifyAssignee(task.assignedToId, task.title, task.id, task.dueDate, 'Vazifa bekor qilindi');
+      await this.notifyAssignee(task.assignedToId, task.title, task.id, task.dueDate, 'Vazifa bekor qilindi', 'task_cancelled');
     }
     return taskDto(task);
   }
@@ -150,11 +153,18 @@ export class TasksService {
     if (!assignee) throw new BadRequestException('Mas\'ul xodim topilmadi yoki faol emas');
   }
 
-  private notifyAssignee(userId: string, title: string, taskId: string, dueDate?: string | null, notificationTitle = 'Yangi vazifa') {
+  private notifyAssignee(
+    userId: string,
+    title: string,
+    taskId: string,
+    dueDate?: string | null,
+    notificationTitle = 'Yangi vazifa',
+    notificationType = 'task_assigned',
+  ) {
     return this.prisma.notification.create({
       data: {
         userId,
-        type: 'task_assigned',
+        type: notificationType,
         title: notificationTitle,
         message: `${title}${dueDate ? `\nDeadline: ${dueDate}` : ''}`,
         entityType: 'task',

@@ -8,13 +8,20 @@ export class NotificationsService {
 
   async list(query: any, user: any) {
     await this.reminders.ensureDueNotifications(user);
-    const items = await this.prisma.notification.findMany({
-      where: { userId: user.id },
-      include: { reminder: { select: { remindAt: true, customer: { select: { id: true, name: true } } } } },
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(Math.max(Number(query.pageSize || 50), 1), 200),
-    });
-    return { items: items.map((item) => this.dto(item)), total: items.length };
+    const page = Math.max(Number(query.page || 1), 1);
+    const pageSize = Math.min(Math.max(Number(query.pageSize || 50), 1), 200);
+    const where = { userId: user.id };
+    const [total, items] = await Promise.all([
+      this.prisma.notification.count({ where }),
+      this.prisma.notification.findMany({
+        where,
+        include: { reminder: { select: { remindAt: true, customer: { select: { id: true, name: true } } } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+    return { items: items.map((item) => this.dto(item)), total, page, pageSize };
   }
 
   async unreadCount(user: any) {

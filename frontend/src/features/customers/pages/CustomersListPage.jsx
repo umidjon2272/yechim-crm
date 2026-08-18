@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useCustomer, useCustomers } from '../customers.hooks'
-import { customersService, customerGroupsService } from '../../../services/customers.service'
+import { customersService, customerGroupsService, partnersService } from '../../../services/customers.service'
 import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
 import { CustomerTable } from '../components/CustomerTable'
@@ -34,6 +34,7 @@ import { useDisclosure } from '../../../hooks/useDisclosure'
 import { EditIcon, InboxIcon, PlusIcon, SearchIcon, TrashIcon } from '../../../components/icons/Icons'
 import { CustomerWorkPanel, QuickActionModal, ReminderModal } from '../components/CustomerWorkActions'
 import { TodayWorkPanel } from '../components/TodayWorkPanel'
+import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { classNames } from '../../../utils/classNames'
 import './CustomersListPage.scss'
 
@@ -119,6 +120,9 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
             onCancel={onClose}
             onDelete={handleDelete}
           />
+          <Card title="Guruhlar" className="customer-edit-modal__groups-card">
+            <CustomerGroupsField customer={customer} onChanged={async () => { await refetch(); onChanged?.() }} />
+          </Card>
           <CustomerWorkPanel customer={customer} onChanged={refetch} />
         </>
       )}
@@ -262,10 +266,10 @@ function InstallationPromptModal({ move, employees, loading, onClose, onSubmit }
   </Modal>
 }
 
-function PartnerSummaryCard({ groupId }) {
+function PartnerSummaryCard() {
   const now = new Date()
   const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
-  const { data, loading, error } = useAsync(() => customerGroupsService.partnerSummary(groupId, { period }), [groupId, period])
+  const { data, loading, error } = useAsync(() => partnersService.myStatistics({ period }), [period])
 
   if (error) return <Alert variant="danger" title="Partner statistikasini yuklab bo'lmadi">{error.message}</Alert>
   if (loading || !data) return null
@@ -273,7 +277,7 @@ function PartnerSummaryCard({ groupId }) {
   return (
     <Card title={`${data.group?.name || 'Partner'} — ${formatPartnerPeriod(data.period)}`}>
       <div className="detail-grid">
-        <div className="detail-field"><div className="detail-field__label">Shu oy topilgan mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Kelgan mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
         <div className="detail-field"><div className="detail-field__label">Yakunlanganlar</div><div className="detail-field__value">{data.completedCustomers}</div></div>
         <div className="detail-field"><div className="detail-field__label">To'lanadigan summa</div><div className="detail-field__value">${Number(data.payableAmount || 0).toLocaleString('en-US')}</div></div>
       </div>
@@ -748,7 +752,7 @@ export function CustomersListPage() {
           canDelete={can('customers.delete')}
         />
       )}
-      {isPartner && <PartnerSummaryCard groupId={user.partnerGroupId} />}
+      {isPartner && <PartnerSummaryCard />}
 
       <div className="filters-row customers-filter-row">
         <div className="input-group filters-row__search customers-filter-row__search">

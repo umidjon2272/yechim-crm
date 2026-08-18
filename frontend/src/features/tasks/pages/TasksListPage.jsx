@@ -26,6 +26,7 @@ export function TasksListPage() {
   const { tasks, total, params, canViewAll, setStatus, setPriority, setAssignedToMe, setPage, loading, error, refetch } = useTasks()
   const { user } = useAuth()
   const { can } = usePermissions()
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
   const { isOpen, open, close } = useDisclosure()
   const [employees, setEmployees] = useState([])
   const toast = useToast()
@@ -181,8 +182,8 @@ export function TasksListPage() {
             canEditStatus={canEditTaskStatus}
             getStatusOptions={getStatusOptions}
             statusLoadingId={statusLoadingId}
-            onCancel={canViewAll ? handleCancel : undefined}
-            onDelete={canViewAll ? handleDelete : undefined}
+            onCancel={isAdmin ? handleCancel : undefined}
+            onDelete={isAdmin ? handleDelete : undefined}
           />
           <Pagination page={params.page} pageSize={params.pageSize} total={total} onPageChange={setPage} />
         </>

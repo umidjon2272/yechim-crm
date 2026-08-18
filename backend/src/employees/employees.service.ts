@@ -46,7 +46,7 @@ export class EmployeesService {
           phone,
           username,
           passwordHash: await bcrypt.hash(password, 12),
-          role: role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE',
+          role: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES', 'SUPPORT', 'INSTALLER', 'DEVELOPER', 'EMPLOYEE'].includes(role) ? role : 'EMPLOYEE',
           permissions: this.sanitizePermissions(body.permissions ?? ROLE_DEFAULT_PERMISSIONS[role] ?? ROLE_DEFAULT_PERMISSIONS.EMPLOYEE),
           status: body.status || 'active',
           isActive: body.isActive !== false && body.status !== 'inactive',
@@ -88,7 +88,7 @@ export class EmployeesService {
           };
       Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);
       if (data.permissions) data.permissions = this.sanitizePermissions(data.permissions);
-      if (data.role !== undefined && !['ADMIN', 'EMPLOYEE'].includes(String(data.role).toUpperCase())) delete data.role;
+      if (data.role !== undefined && !['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SALES', 'SUPPORT', 'INSTALLER', 'DEVELOPER', 'EMPLOYEE'].includes(String(data.role).toUpperCase())) delete data.role;
       const user = await this.prisma.user.update({ where: { id }, data, include: { team: true, partnerGroup: true } });
       if (data.status === 'inactive' || data.isActive === false) await this.revokeSessions(id);
       return publicUser(user);

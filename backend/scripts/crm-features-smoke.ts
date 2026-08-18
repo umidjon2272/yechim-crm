@@ -90,8 +90,11 @@ await scopedCustomerService.list({}, { id: 'partner-1', role: 'PARTNER', partner
 assert.deepEqual(scopedCustomerWhere.groups, { some: { id: 'group-1' } }, 'partner customer list is group-scoped');
 await scopedCustomerService.list({ groupId: 'other-group' }, { id: 'admin-1', role: 'ADMIN' });
 assert.deepEqual(scopedCustomerWhere.groups, { some: { id: 'other-group' } }, 'admin can choose any group filter');
+await scopedCustomerService.list({ groupId: 'other-group' }, { id: 'admin-1', role: 'ADMIN', partnerGroupId: 'group-1' });
+assert.deepEqual(scopedCustomerWhere.groups, { some: { id: 'other-group' } }, 'admin is never narrowed by a stale partner group');
 
 let adminCustomerCreatePayload: any;
+let adminCustomerUpdatePayload: any;
 const adminCustomerRecord: any = {
   id: 'admin-customer-1', name: 'Admin client', phone: '+998901111111', stageId: 'NEW',
   stage: { id: 'NEW', label: 'Yangi', isFinal: false }, groups: [], activities: [],
@@ -102,13 +105,17 @@ const adminCustomerService = new CustomersService({
   stage: { findUnique: async () => ({ id: 'NEW', label: 'Yangi', isFinal: false }), findMany: async () => [] },
   customer: {
     create: async ({ data }: any) => { adminCustomerCreatePayload = data; return adminCustomerRecord; },
+    findFirst: async () => adminCustomerRecord,
     findUnique: async () => ({ ...adminCustomerRecord, groups: [], stage: { id: 'NEW', isFinal: false } }),
+    update: async ({ data }: any) => { adminCustomerUpdatePayload = data; return { ...adminCustomerRecord, groups: [{ id: 'group-2' }] }; },
   },
   activity: { create: async ({ data }: any) => data },
   task: { create: async () => ({ id: 'automation-task-1' }) },
 } as any);
-await adminCustomerService.create({ name: 'Admin client', groupId: 'group-1' }, { id: 'admin-1', role: 'ADMIN', permissions: [] });
+await adminCustomerService.create({ name: 'Admin client', groupId: 'group-1' }, { id: 'admin-1', role: 'ADMIN', partnerGroupId: 'stale-partner-group', permissions: [] });
 assert.deepEqual(adminCustomerCreatePayload.groups, { connect: [{ id: 'group-1' }] }, 'admin can assign a customer to any group');
+await adminCustomerService.update('admin-customer-1', { groupIds: ['group-2'] }, { id: 'admin-1', role: 'ADMIN', partnerGroupId: 'stale-partner-group', permissions: [] });
+assert.deepEqual(adminCustomerUpdatePayload.groups, { set: [{ id: 'group-2' }] }, 'admin can change the customer group relation');
 
 let reminderCreatePayload: any;
 let customerUpdatePayload: any;
@@ -178,6 +185,11 @@ assert.equal(taskNotifications[0].entityType, 'task', 'task notification links t
 const cancelledTask = await tasksService.cancel('task-1', adminUser);
 assert.equal(cancelledTask.status, 'CANCELLED', 'admin can cancel task');
 assert.equal(taskNotifications[1].title, 'Vazifa bekor qilindi', 'cancel notification is explicit');
+await assert.rejects(
+  () => tasksService.update('task-1', { status: 'CANCELLED' }, { id: 'employee-1', role: 'EMPLOYEE', permissions: ['tasks.edit'] }),
+  /faqat admin/,
+  'employees cannot cancel through the generic task update endpoint',
+);
 
 const notificationItem: any = {
   id: 'notification-1', userId: 'employee-1', type: 'task_assigned', title: 'Yangi vazifa', message: 'Ali mijozga qo\'ng\'iroq qilish',
