@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { classNames } from '../../utils/classNames'
 import { useUI } from '../../store/UIContext'
 import { usePermissions } from '../../features/roles/usePermissions'
-import { BuildingIcon, SettingsIcon, ChevronLeftIcon, InboxIcon, UsersIcon } from '../../components/icons/Icons'
+import { BuildingIcon, SettingsIcon, ChevronLeftIcon, InboxIcon, UsersIcon, BellIcon } from '../../components/icons/Icons'
 import { UserMenu } from './UserMenu'
 import './Sidebar.scss'
 
@@ -67,6 +67,19 @@ export function Sidebar() {
                 <InboxIcon />
               </span>
               <span className="sidebar__link-label">Vazifalar</span>
+            </NavLink>
+          )}
+
+          {can('tasks.view') && (
+            <NavLink
+              to="/admin/notifications"
+              className={({ isActive }) => classNames('sidebar__link', isActive && 'sidebar__link--active')}
+              onClick={closeMobileSidebar}
+            >
+              <span className="sidebar__link-icon">
+                <BellIcon />
+              </span>
+              <span className="sidebar__link-label">Bildirishnomalar</span>
             </NavLink>
           )}
 

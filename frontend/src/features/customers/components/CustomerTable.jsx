@@ -63,8 +63,13 @@ export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, 
     },
     {
       key: 'completed',
-      header: 'Holat',
-      render: (row) => <Badge variant={row.isCompleted ? 'success' : 'gray'}>{row.isCompleted ? 'Yakunlangan' : 'Yakunlanmagan'}</Badge>,
+      header: 'Jarayon',
+      render: (row) => <Badge variant={row.isCompleted ? 'success' : row.stage === 'NEW' ? 'gray' : 'info'}>{row.isCompleted ? 'Yakunlangan' : row.stage === 'NEW' ? 'Yangi' : 'Jarayonda'}</Badge>,
+    },
+    {
+      key: 'installed',
+      header: 'O‘rnatish',
+      render: (row) => <Badge variant={row.isInstalled ? 'success' : 'gray'}>{row.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</Badge>,
     },
     {
       key: 'rewardAmount',
@@ -120,6 +125,6 @@ export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, 
     },
   ]
 
-  const visibleColumns = partner ? columns.filter((column) => ['name', 'phone', 'stage', 'completed', 'rewardAmount'].includes(column.key)) : columns
+  const visibleColumns = partner ? columns.filter((column) => ['name', 'phone', 'stage', 'completed', 'installed'].includes(column.key)) : columns
   return <Table columns={visibleColumns} data={customers} onRowClick={(row) => onOpen(row.id)} />
 }

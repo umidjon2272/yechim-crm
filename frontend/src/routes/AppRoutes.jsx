@@ -26,6 +26,7 @@ import { TasksListPage } from '../features/tasks/pages/TasksListPage'
 import { ActivitiesListPage } from '../features/activities/pages/ActivitiesListPage'
 import { InstallationsListPage } from '../features/installations/pages/InstallationsListPage'
 import { InstallationDetailPage } from '../features/installations/pages/InstallationDetailPage'
+import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { Spinner } from '../components/Spinner/Spinner'
 
 function RootRedirect() {
@@ -92,6 +93,15 @@ export function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
 
           <Route path="my-work" element={<MyWorkPage />} />
+
+          <Route
+            path="notifications"
+            element={
+              <RequirePermission permission="tasks.view">
+                <NotificationsPage />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="settings"

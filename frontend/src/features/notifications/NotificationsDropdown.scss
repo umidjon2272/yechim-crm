@@ -40,6 +40,10 @@
       background: v.$color-primary-100;
     }
   }
+
+  &--overdue {
+    border-left: 3px solid v.$color-danger-500;
+  }
 }
 
 .notifications-dropdown__icon {

@@ -63,7 +63,7 @@ export class EmployeesService {
   }
 
   async update(id: string, body: any, actor?: any) {
-    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(actor?.role);
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(String(actor?.role || '').toUpperCase());
     if (!isAdmin && actor?.id !== id) throw new ForbiddenException('Faqat admin boshqa xodimlarni boshqarishi mumkin');
     try {
       const data: any = isAdmin
@@ -99,7 +99,7 @@ export class EmployeesService {
   }
 
   async setStatus(id: string, status: string, actor?: any) {
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(actor?.role)) throw new ForbiddenException('Xodim holatini faqat admin o\'zgartiradi');
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(String(actor?.role || '').toUpperCase())) throw new ForbiddenException('Xodim holatini faqat admin o\'zgartiradi');
     const user = await this.prisma.user.update({
       where: { id },
       data: { status, isActive: status === 'active' },
@@ -110,7 +110,7 @@ export class EmployeesService {
   }
 
   async resetPassword(id: string, password: string, actor?: any) {
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(actor?.role)) throw new ForbiddenException('Parolni faqat admin almashtiradi');
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(String(actor?.role || '').toUpperCase())) throw new ForbiddenException('Parolni faqat admin almashtiradi');
     if (!password || String(password).length < 6) throw new ConflictException('Parol kamida 6 belgidan iborat bo\'lishi kerak');
     const user = await this.prisma.user.update({
       where: { id },
@@ -122,7 +122,7 @@ export class EmployeesService {
   }
 
   async remove(id: string, actor?: any) {
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(actor?.role)) throw new ForbiddenException('Xodimni faqat admin o\'chirishi mumkin');
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(String(actor?.role || '').toUpperCase())) throw new ForbiddenException('Xodimni faqat admin o\'chirishi mumkin');
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Xodim topilmadi');
     if (actor?.id === id) throw new ForbiddenException('O\'zingizni o\'chira olmaysiz');

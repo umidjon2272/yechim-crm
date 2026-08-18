@@ -16,6 +16,7 @@ import { PermissionGate } from '../../roles/PermissionGate'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../roles/usePermissions'
 import { useToast } from '../../../store/ToastContext'
+import { useConfirm } from '../../../store/ConfirmContext'
 import { useAction } from '../../../hooks/useAction'
 import { useDisclosure } from '../../../hooks/useDisclosure'
 import { classNames } from '../../../utils/classNames'
@@ -28,9 +29,12 @@ export function TasksListPage() {
   const { isOpen, open, close } = useDisclosure()
   const [employees, setEmployees] = useState([])
   const toast = useToast()
+  const confirm = useConfirm()
 
   const createAction = useAction(tasksService.create)
   const updateStatusAction = useAction(({ id, status }) => tasksService.update(id, { status }))
+  const cancelAction = useAction((id) => tasksService.cancel(id))
+  const deleteAction = useAction((id) => tasksService.remove(id))
   const [statusLoadingId, setStatusLoadingId] = useState(null)
 
   useEffect(() => {
@@ -65,6 +69,40 @@ export function TasksListPage() {
       toast.error(err.message || 'Vazifa holatini yangilashda xatolik yuz berdi')
     } finally {
       setStatusLoadingId(null)
+    }
+  }
+
+  const handleCancel = async (task) => {
+    const ok = await confirm({
+      title: 'Vazifani bekor qilish',
+      description: `“${task.title}” vazifasini bekor qilmoqchimisiz?`,
+      confirmLabel: 'Bekor qilish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await cancelAction.run(task.id)
+      toast.success('Vazifa bekor qilindi')
+      await refetch()
+    } catch (err) {
+      toast.error(err.message || 'Vazifani bekor qilishda xatolik yuz berdi')
+    }
+  }
+
+  const handleDelete = async (task) => {
+    const ok = await confirm({
+      title: 'Vazifani o‘chirish',
+      description: `“${task.title}” vazifasini butunlay o‘chirmoqchimisiz?`,
+      confirmLabel: 'O‘chirish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAction.run(task.id)
+      toast.success('Vazifa o‘chirildi')
+      await refetch()
+    } catch (err) {
+      toast.error(err.message || 'Vazifani o‘chirishda xatolik yuz berdi')
     }
   }
 
@@ -143,6 +181,8 @@ export function TasksListPage() {
             canEditStatus={canEditTaskStatus}
             getStatusOptions={getStatusOptions}
             statusLoadingId={statusLoadingId}
+            onCancel={canViewAll ? handleCancel : undefined}
+            onDelete={canViewAll ? handleDelete : undefined}
           />
           <Pagination page={params.page} pageSize={params.pageSize} total={total} onPageChange={setPage} />
         </>

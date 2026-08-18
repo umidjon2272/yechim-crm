@@ -48,8 +48,10 @@ export class PermissionsGuard implements CanActivate {
     req.user = user;
 
     const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [context.getHandler(), context.getClass()]) || [];
-    if (!required.length || ['SUPER_ADMIN', 'ADMIN'].includes(user.role)) return true;
-    const isPartner = Boolean(user.partnerGroupId) && !['SUPER_ADMIN', 'ADMIN'].includes(user.role);
+    const role = String(user.role || '').toUpperCase();
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(role);
+    if (!required.length || isAdmin) return true;
+    const isPartner = Boolean(user.partnerGroupId) && !isAdmin;
     if (isPartner && required.some((permission) => permission !== 'customers.view')) {
       throw new ForbiddenException('Partner faqat biriktirilgan guruh mijozlarini ko\'rishi mumkin');
     }

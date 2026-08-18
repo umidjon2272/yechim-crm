@@ -28,11 +28,14 @@ export class CustomersService {
     const { page, pageSize } = pagination(query);
     const search = String(query.search || '').trim().toLowerCase();
     const baseWhere: any = { deletedAt: null };
-    if (!this.canViewAll(actor)) baseWhere.assignedEmployeeId = actor?.id;
+    const partnerGroupId = this.partnerGroupId(actor);
+    // A partner is scoped by the assigned group, never by employee ownership.
+    // Applying both filters made group customers disappear unless they were
+    // also assigned to the partner account.
+    if (!this.canViewAll(actor) && !partnerGroupId) baseWhere.assignedEmployeeId = actor?.id;
     if (query.status) baseWhere.status = query.status;
     if (query.stage) baseWhere.stageId = query.stage;
     if (query.assignedEmployeeId && (this.canViewAll(actor) || query.assignedEmployeeId === actor?.id)) baseWhere.assignedEmployeeId = query.assignedEmployeeId;
-    const partnerGroupId = this.partnerGroupId(actor);
     if (partnerGroupId) baseWhere.groups = { some: { id: partnerGroupId } };
     else if (query.groupId) baseWhere.groups = { some: { id: query.groupId } };
     if (query.createdFrom || query.createdTo) {
@@ -293,7 +296,7 @@ export class CustomersService {
   }
 
   private canViewAll(actor?: any) {
-    return Boolean(actor && (['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(actor.role) || actor.permissions?.includes('customers.viewAll')));
+    return Boolean(actor && (['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(String(actor.role || '').toUpperCase()) || actor.permissions?.includes('customers.viewAll')));
   }
 
   private ownershipWhere(actor?: any) {
@@ -424,7 +427,7 @@ export class CustomersService {
   }
 
   private partnerGroupId(actor?: any) {
-    if (!actor?.partnerGroupId || ['SUPER_ADMIN', 'ADMIN'].includes(actor.role)) return null;
+    if (!actor?.partnerGroupId || ['SUPER_ADMIN', 'ADMIN'].includes(String(actor.role || '').toUpperCase())) return null;
     return actor.partnerGroupId;
   }
 
@@ -435,7 +438,7 @@ export class CustomersService {
     await Promise.all(
       customer.groups.map((group) =>
         this.prisma.partnerReward.upsert({
-          where: { groupId_customerId_period: { groupId: group.id, customerId, period } },
+          where: { groupId_customerId: { groupId: group.id, customerId } },
           update: {},
           create: {
             groupId: group.id,

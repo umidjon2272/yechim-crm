@@ -199,7 +199,11 @@ model PartnerReward {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  @@unique([groupId, customerId, period])
+  // A customer can earn a partner reward only once for a group. `period`
+  // remains the month in which that one reward was earned, so monthly history
+  // is retained without allowing a second payout after leaving/re-entering the
+  // final stage.
+  @@unique([groupId, customerId])
   @@index([groupId, period])
 }
 
@@ -434,20 +438,21 @@ model Reminder {
 }
 
 model Notification {
-  id                String    @id @default(cuid())
-  userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reminderId        String?   @unique
-  reminder          Reminder? @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-  type              String
-  title             String
-  message           String
-  read              Boolean   @default(false)
-  relatedEntityType String?
-  relatedEntityId   String?
-  createdAt         DateTime  @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminderId String?   @unique
+  reminder   Reminder? @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  message    String
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  entityType String?
+  entityId   String?
+  createdAt  DateTime  @default(now())
 
-  @@index([userId, read, createdAt])
+  @@index([userId, isRead, createdAt])
 }
 
 model Message {

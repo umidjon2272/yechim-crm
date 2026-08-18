@@ -1,5 +1,5 @@
 import { httpClient } from '../api/httpClient'
-import { CUSTOMERS, CUSTOMER_GROUPS, CUSTOMER_FIELD_DEFS, PROGRAM_CATALOG, MESSAGES, BUSINESSES, LEADS, DEALS, PAYMENTS, INSTALLATIONS, ACTIVITIES, TASKS } from '../api/endpoints'
+import { CUSTOMERS, CUSTOMER_GROUPS, PARTNERS, CUSTOMER_FIELD_DEFS, PROGRAM_CATALOG, MESSAGES, BUSINESSES, LEADS, DEALS, PAYMENTS, INSTALLATIONS, ACTIVITIES, TASKS } from '../api/endpoints'
 
 export const customersService = {
   list: (params) => httpClient.get(CUSTOMERS.LIST, { params }),
@@ -52,6 +52,11 @@ export const customerGroupsService = {
   update: (id, payload) => httpClient.patch(CUSTOMER_GROUPS.UPDATE(id), payload),
   remove: (id) => httpClient.delete(CUSTOMER_GROUPS.DELETE(id)),
   partnerSummary: (id, params) => httpClient.get(CUSTOMER_GROUPS.PARTNER_SUMMARY(id), { params }),
+}
+
+export const partnersService = {
+  myCustomers: (params) => httpClient.get(PARTNERS.ME_CUSTOMERS, { params }),
+  myStatistics: (params) => httpClient.get(PARTNERS.ME_STATISTICS, { params }),
 }
 
 export const customerFieldDefsService = {

@@ -36,7 +36,8 @@ export function NotificationsProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated || user?.partnerGroupId) {
+    const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+    if (!isAuthenticated || isPartner) {
       setNotifications([])
       setUnreadCount(0)
       setLoading(false)
@@ -46,10 +47,10 @@ export function NotificationsProvider({ children }) {
     fetchNotifications()
     const interval = setInterval(fetchNotifications, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [isAuthenticated, user?.partnerGroupId, fetchNotifications])
+  }, [isAuthenticated, user?.partnerGroupId, user?.role, fetchNotifications])
 
   const markRead = useCallback(async (id) => {
-    setNotifications((current) => current.map((n) => (n.id === id ? { ...n, read: true } : n)))
+    setNotifications((current) => current.map((n) => (n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n)))
     setUnreadCount((count) => Math.max(0, count - 1))
     try {
       await notificationsService.markRead(id)
@@ -60,7 +61,7 @@ export function NotificationsProvider({ children }) {
   }, [])
 
   const markAllRead = useCallback(async () => {
-    setNotifications((current) => current.map((n) => ({ ...n, read: true })))
+    setNotifications((current) => current.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() })))
     setUnreadCount(0)
     try {
       await notificationsService.markAllRead()

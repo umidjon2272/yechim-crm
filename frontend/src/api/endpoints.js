@@ -78,6 +78,11 @@ export const CUSTOMER_GROUPS = {
   PARTNER_SUMMARY: (id) => `/customer-groups/${id}/partner-summary`,
 }
 
+export const PARTNERS = {
+  ME_CUSTOMERS: '/partners/me/customers',
+  ME_STATISTICS: '/partners/me/statistics',
+}
+
 export const CUSTOMER_FIELD_DEFS = {
   LIST: '/customer-field-defs',
   DETAIL: (id) => `/customer-field-defs/${id}`,
@@ -150,6 +155,8 @@ export const TASKS = {
   DETAIL: (id) => `/tasks/${id}`,
   CREATE: '/tasks',
   UPDATE: (id) => `/tasks/${id}`,
+  CANCEL: (id) => `/tasks/${id}/cancel`,
+  DELETE: (id) => `/tasks/${id}`,
 }
 
 export const ACTIVITIES = {
@@ -186,7 +193,7 @@ export const NOTIFICATIONS = {
   LIST: '/notifications',
   UNREAD_COUNT: '/notifications/unread-count',
   MARK_READ: (id) => `/notifications/${id}/read`,
-  MARK_ALL_READ: '/notifications/mark-all-read',
+  MARK_ALL_READ: '/notifications/read-all',
 }
 
 export const REMINDERS = {

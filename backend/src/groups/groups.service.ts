@@ -84,7 +84,7 @@ export class GroupsService {
   }
 
   private partnerGroupId(actor?: any) {
-    if (!actor?.partnerGroupId || ['SUPER_ADMIN', 'ADMIN'].includes(actor.role)) return null;
+    if (!actor?.partnerGroupId || ['SUPER_ADMIN', 'ADMIN'].includes(String(actor.role || '').toUpperCase())) return null;
     return actor.partnerGroupId;
   }
 

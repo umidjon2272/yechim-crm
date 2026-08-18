@@ -4,6 +4,8 @@ import { TaskPriorityBadge, TaskStatusBadge } from './TaskBadges'
 import { Select } from '../../../components/Select/Select'
 import { formatDate } from '../../../utils/formatDate'
 import { TASK_STATUSES, TASK_STATUS_LABELS } from '../tasks.constants'
+import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
+import { MoreIcon } from '../../../components/icons/Icons'
 
 function relatedLabel(row) {
   if (row.program?.name) return `Dastur: ${row.program.name}`
@@ -14,7 +16,7 @@ function relatedLabel(row) {
   return '—'
 }
 
-export function TaskTable({ tasks, onStatusChange, canEditStatus, getStatusOptions, statusLoadingId }) {
+export function TaskTable({ tasks, onStatusChange, canEditStatus, getStatusOptions, statusLoadingId, onCancel, onDelete }) {
   const navigate = useNavigate()
 
   const columns = [
@@ -46,6 +48,25 @@ export function TaskTable({ tasks, onStatusChange, canEditStatus, getStatusOptio
           <TaskStatusBadge status={row.status} />
         ),
     },
+    ...((onCancel || onDelete) ? [{
+      key: 'actions',
+      header: '',
+      width: 56,
+      render: (row) => (
+        <div className="table__actions" onClick={(event) => event.stopPropagation()}>
+          <Dropdown
+            trigger={(toggle) => (
+              <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Vazifa amallari">
+                <MoreIcon width={16} height={16} />
+              </button>
+            )}
+          >
+            {onCancel && row.status !== 'CANCELLED' && <DropdownItem danger onClick={() => onCancel(row)}>Bekor qilish</DropdownItem>}
+            {onDelete && <DropdownItem danger onClick={() => onDelete(row)}>O‘chirish</DropdownItem>}
+          </Dropdown>
+        </div>
+      ),
+    }] : []),
   ]
 
   // Vazifani bosganda bog'langan mijozga o'tish (mijoz ish oynasi ochiladi).

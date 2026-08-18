@@ -104,6 +104,7 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
           <div className="detail-field"><div className="detail-field__label">Telefon</div><div className="detail-field__value">{customer.phone || '—'}</div></div>
           <div className="detail-field"><div className="detail-field__label">Bosqich</div><div className="detail-field__value">{customer.stageLabel || customer.stage}</div></div>
           <div className="detail-field"><div className="detail-field__label">Holat</div><div className="detail-field__value">{customer.isCompleted ? 'Yakunlangan' : 'Jarayonda'}</div></div>
+          <div className="detail-field"><div className="detail-field__label">O‘rnatish</div><div className="detail-field__value">{customer.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</div></div>
         </div>
       )}
       {!loading && !error && customer && !readOnly && (
@@ -121,12 +122,6 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
           <CustomerWorkPanel customer={customer} onChanged={refetch} />
         </>
       )}
-       {!loading && !error && customer && readOnly && (
-         <div className="detail-field" style={{ marginTop: 16 }}>
-           <div className="detail-field__label">Hisoblangan haq</div>
-           <div className="detail-field__value">${Number(customer.rewardAmount || 0).toLocaleString('en-US')}</div>
-         </div>
-       )}
     </Modal>
   )
 }

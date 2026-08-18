@@ -21,7 +21,8 @@ export function UserMenu({ variant = 'header' }) {
     }
   }
 
-  const roleLabel = user?.partnerGroupId ? 'Partner' : ROLE_LABELS[user?.role] || user?.role
+  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+  const roleLabel = isPartner ? 'Partner' : ROLE_LABELS[user?.role] || user?.role
 
   return (
     <Dropdown

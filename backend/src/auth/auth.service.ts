@@ -143,7 +143,7 @@ export class AuthService {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string, actor?: any) {
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(actor?.role)) throw new ForbiddenException('Parolni faqat admin almashtiradi');
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(String(actor?.role || '').toUpperCase())) throw new ForbiddenException('Parolni faqat admin almashtiradi');
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     const ok = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!ok) throw new UnauthorizedException("Joriy parol noto'g'ri");

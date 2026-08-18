@@ -3,6 +3,12 @@ import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
 
 export { getCustomerAmount }
 
+function partnerProgressLabel(customer) {
+  if (customer.isCompleted) return 'Yakunlangan'
+  if (customer.stage === 'NEW') return 'Yangi'
+  return 'Jarayonda'
+}
+
 export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen, onQuickAction, partner = false, stageLabel }) {
   const primaryProgram = customer.programs?.[0]?.name
   const product = primaryProgram || customer.business?.name || '-'
@@ -40,7 +46,8 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
       {partner ? (
         <>
           <span className="customer-kanban-card__stage">{stageLabel || customer.stageLabel || customer.stage}</span>
-          <span className="customer-kanban-card__stage">{customer.isCompleted ? 'Yakunlangan' : 'Yakunlanmagan'} · ${Number(customer.rewardAmount || 0).toLocaleString('en-US')}</span>
+          <span className="customer-kanban-card__stage">{partnerProgressLabel(customer)}</span>
+          <span className="customer-kanban-card__stage">{customer.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</span>
         </>
       ) : (
         <>

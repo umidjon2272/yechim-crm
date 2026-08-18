@@ -11,7 +11,7 @@ export function toNumber(value: any) {
 
 export function publicUser(user: any) {
   if (!user) return null;
-  const isPartner = Boolean(user.partnerGroupId) && !['SUPER_ADMIN', 'ADMIN'].includes(user.role);
+  const isPartner = Boolean(user.partnerGroupId) && !['SUPER_ADMIN', 'ADMIN'].includes(String(user.role || '').toUpperCase());
   return {
     id: user.id,
     name: user.name,
@@ -45,8 +45,6 @@ export function customerDto(customer: any, options: { partner?: boolean; partner
   const latestNote = customer.activities?.[0] || null;
   const groups = customer.groups || [];
   if (options.partner) {
-    const partnerGroup = groups.find((group: any) => group.id === options.partnerGroupId) || groups[0];
-    const partnerRewardAmount = customer.stage?.isFinal ? toNumber(partnerGroup?.partnerRewardPerCustomer) : 0;
     return {
       id: customer.id,
       name: customer.name,
@@ -55,8 +53,7 @@ export function customerDto(customer: any, options: { partner?: boolean; partner
       stageId: customer.stageId,
       stageLabel: customer.stage?.label || customer.stageId,
       isCompleted: Boolean(customer.stage?.isFinal),
-      status: customer.status,
-      rewardAmount: partnerRewardAmount,
+      isInstalled: Boolean(customer.stage?.isFinal),
     };
   }
   return {
