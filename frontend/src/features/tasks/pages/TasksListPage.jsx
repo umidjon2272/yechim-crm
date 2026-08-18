@@ -22,6 +22,13 @@ import { useDisclosure } from '../../../hooks/useDisclosure'
 import { classNames } from '../../../utils/classNames'
 import { InboxIcon, PlusIcon } from '../../../components/icons/Icons'
 
+function getTaskActionError(error, fallback) {
+  if (error?.status === 401) return 'Sessiya muddati tugagan'
+  if (error?.status === 403) return 'Bu amalni bajarishga ruxsat yo‘q'
+  if (error?.status === 404) return 'Vazifa topilmadi'
+  return fallback
+}
+
 export function TasksListPage() {
   const { tasks, total, params, canViewAll, setStatus, setPriority, setAssignedToMe, setPage, loading, error, refetch } = useTasks()
   const { user } = useAuth()
@@ -86,7 +93,7 @@ export function TasksListPage() {
       toast.success('Vazifa bekor qilindi')
       await refetch()
     } catch (err) {
-      toast.error(err.message || 'Vazifani bekor qilishda xatolik yuz berdi')
+      toast.error(getTaskActionError(err, 'Vazifani bekor qilib bo‘lmadi'))
     }
   }
 
@@ -103,7 +110,7 @@ export function TasksListPage() {
       toast.success('Vazifa o‘chirildi')
       await refetch()
     } catch (err) {
-      toast.error(err.message || 'Vazifani o‘chirishda xatolik yuz berdi')
+      toast.error(getTaskActionError(err, 'Vazifani o‘chirib bo‘lmadi'))
     }
   }
 
