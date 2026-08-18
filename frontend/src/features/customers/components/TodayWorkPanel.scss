@@ -1,0 +1,28 @@
+.today-work-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 12px 0 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(125, 92, 246, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .58);
+  color: #4b5563;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-work-panel:hover { border-color: rgba(125, 92, 246, .35); }
+.today-work-panel__title { color: #5b43ca; font-weight: 700; }
+.today-work-panel__arrow { margin-left: auto; color: #7b61ff; font-size: 12px; }
+
+.today-work-list { display: grid; gap: 18px; }
+.today-work-list section { display: grid; gap: 7px; }
+.today-work-list__item { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(246, 244, 255, .7); font-size: 13px; }
+.today-work-list__item small { color: #6b7280; }
+
+@media (max-width: 680px) {
+  .today-work-panel { flex-wrap: wrap; gap: 7px 12px; }
+  .today-work-panel__arrow { width: 100%; margin-left: 0; }
+}

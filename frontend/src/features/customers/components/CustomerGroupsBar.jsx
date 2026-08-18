@@ -15,7 +15,7 @@ import './CustomerGroupsBar.scss'
 // Papka-style tags: a customer can belong to any number of groups
 // (customer.groupIds), admin manages the group list itself right here —
 // no separate Settings page, this is a Mijozlar-page-local concept.
-export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
+export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = true, canEdit = true, canDelete = true }) {
   const { data, loading, refetch } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
   const [editingGroup, setEditingGroup] = useState(null)
   const groupModal = useDisclosure()
@@ -83,7 +83,7 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
           <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id)}>
             {group.name}
           </button>
-          <Dropdown
+          {(canEdit || canDelete) && <Dropdown
             trigger={(toggle) => (
               <button type="button" className="customer-groups-bar__chip-menu" onClick={toggle} aria-label="Guruh amallari">
                 <MoreIcon width={12} height={12} />
@@ -94,16 +94,16 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
             <DropdownItem danger onClick={() => handleDelete(group)}>
               O‘chirish
             </DropdownItem>
-          </Dropdown>
+          </Dropdown>}
         </div>
       ))}
-      <button type="button" className="customer-groups-bar__add" onClick={openCreate}>
+      {canCreate && <button type="button" className="customer-groups-bar__add" onClick={openCreate}>
         + Guruh yaratish
-      </button>
+      </button>}
 
       <Modal open={groupModal.isOpen} title={editingGroup ? 'Guruhni tahrirlash' : 'Yangi guruh'} onClose={groupModal.close}>
         <CustomerGroupForm
-          initialValues={editingGroup ? { name: editingGroup.name } : undefined}
+          initialValues={editingGroup ? { name: editingGroup.name, partnerRewardPerCustomer: editingGroup.partnerRewardPerCustomer ?? '' } : undefined}
           submitLabel={editingGroup ? 'Saqlash' : 'Yaratish'}
           loading={saveAction.loading}
           onSubmit={handleSave}

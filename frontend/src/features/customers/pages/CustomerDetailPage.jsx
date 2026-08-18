@@ -6,7 +6,7 @@ import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
 import { paymentsService } from '../../../services/payments.service'
 import { installationsService } from '../../../services/installations.service'
-import { CustomerForm } from '../components/CustomerForm'
+import { CustomerForm, CustomerLocationPreview, formatAddress } from '../components/CustomerForm'
 import { ProgramsPanel } from '../components/ProgramsPanel'
 import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { CUSTOMER_STATUS_LABELS } from '../customers.constants'
@@ -30,6 +30,7 @@ import { AttachmentsSection } from '../../attachments/AttachmentsSection'
 import { HistorySection } from '../../timeline/HistorySection'
 import { ScheduleFollowUpButton } from '../../tasks/components/ScheduleFollowUpButton'
 import { MessagesPanel } from '../../messages/MessagesPanel'
+import { CustomerWorkPanel } from '../components/CustomerWorkActions'
 import { PaymentForm } from '../../payments/components/PaymentForm'
 import { InstallationForm } from '../../installations/components/InstallationForm'
 import { useAction } from '../../../hooks/useAction'
@@ -241,11 +242,7 @@ export function CustomerDetailPage() {
                   </div>
                   <div className="detail-field">
                     <div className="detail-field__label">Manzil</div>
-                    <div className="detail-field__value">
-                      {[customer.address?.region, customer.address?.city, customer.address?.district, customer.address?.street, customer.address?.house]
-                        .filter(Boolean)
-                        .join(', ') || '—'}
-                    </div>
+                    <div className="detail-field__value">{formatAddress(customer.address) || '—'}</div>
                   </div>
                   <div className="detail-field">
                     <div className="detail-field__label">Mas'ul xodim</div>
@@ -260,6 +257,7 @@ export function CustomerDetailPage() {
                     <div className="detail-field__value">{formatDate(customer.createdAt)}</div>
                   </div>
                 </div>
+                <CustomerLocationPreview customer={customer} />
                 {customer.notes && (
                   <div className="detail-field" style={{ marginTop: 16 }}>
                     <div className="detail-field__label">Izoh</div>
@@ -270,6 +268,7 @@ export function CustomerDetailPage() {
               <Card title="Guruhlar">
                 <CustomerGroupsField customer={customer} onChanged={refetch} />
               </Card>
+              <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />
               <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
             </div>
           )}

@@ -72,6 +72,16 @@
   font-weight: v.$font-weight-semibold;
   border-bottom: 1px solid rgba(255, 255, 255, 0.54);
   border-radius: 24px 24px 0 0;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &--drag-over {
+    outline: 2px dashed rgba(125, 92, 246, 0.46);
+    outline-offset: -6px;
+  }
 }
 
 .kanban__column-header-default {
@@ -89,6 +99,73 @@
 
 .kanban__column-summary-top {
   @include m.flex(center, space-between, v.$space-2);
+}
+
+.stage-inline-title {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+.stage-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: v.$radius-full;
+  color: v.$color-text-muted;
+  opacity: 0;
+  cursor: pointer;
+
+  .kanban__column-header:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: v.$color-primary-700;
+    background: rgba(255, 255, 255, 0.58);
+  }
+}
+
+.stage-inline-input {
+  width: min(180px, 100%);
+  height: 30px;
+  padding: 0 8px;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-semibold;
+}
+
+.stage-inline-title--editing {
+  gap: 4px;
+}
+
+.stage-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #b42318;
+  background: rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    background: rgba(255, 232, 229, 0.9);
+  }
+}
+
+.stage-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  color: v.$color-text-muted;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .kanban__column-title {

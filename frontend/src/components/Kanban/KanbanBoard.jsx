@@ -20,9 +20,12 @@ export function KanbanBoard({
   renderColumnGap,
   afterColumns,
   onCardMove,
+  onColumnMove,
 }) {
   const [dragItemId, setDragItemId] = useState(null)
   const [dragOverColumn, setDragOverColumn] = useState(null)
+  const [dragColumnId, setDragColumnId] = useState(null)
+  const [dragOverColumnId, setDragOverColumnId] = useState(null)
 
   const itemsByColumn = columns.reduce((acc, column) => {
     acc[column.id] = items.filter((item) => getColumnId(item) === column.id)
@@ -37,6 +40,14 @@ export function KanbanBoard({
     const fromColumnId = getColumnId(item)
     if (fromColumnId === columnId) return
     onCardMove?.(item, fromColumnId, columnId)
+  }
+
+  const handleColumnDrop = (columnId) => {
+    const fromColumnId = dragColumnId
+    setDragColumnId(null)
+    setDragOverColumnId(null)
+    if (!fromColumnId || fromColumnId === columnId) return
+    onColumnMove?.(fromColumnId, columnId)
   }
 
   return (
@@ -55,7 +66,32 @@ export function KanbanBoard({
               handleDrop(column.id)
             }}
           >
-            <div className="kanban__column-header">
+            <div
+              className={`kanban__column-header${dragOverColumnId === column.id ? ' kanban__column-header--drag-over' : ''}`}
+              draggable={Boolean(onColumnMove)}
+              onDragStart={(event) => {
+                if (!onColumnMove) return
+                event.stopPropagation()
+                event.dataTransfer.effectAllowed = 'move'
+                setDragColumnId(column.id)
+              }}
+              onDragEnd={() => {
+                setDragColumnId(null)
+                setDragOverColumnId(null)
+              }}
+              onDragOver={(event) => {
+                if (!dragColumnId) return
+                event.preventDefault()
+                event.stopPropagation()
+                setDragOverColumnId(column.id)
+              }}
+              onDrop={(event) => {
+                if (!dragColumnId) return
+                event.preventDefault()
+                event.stopPropagation()
+                handleColumnDrop(column.id)
+              }}
+            >
               {renderColumnHeader ? (
                 renderColumnHeader(column, itemsByColumn[column.id] ?? [], index)
               ) : (
@@ -71,8 +107,8 @@ export function KanbanBoard({
                 <div
                   key={item.id}
                   className="kanban__card"
-                  draggable
-                  onDragStart={() => setDragItemId(item.id)}
+                  draggable={Boolean(onCardMove)}
+                  onDragStart={() => onCardMove && setDragItemId(item.id)}
                   onDragEnd={() => {
                     setDragItemId(null)
                     setDragOverColumn(null)

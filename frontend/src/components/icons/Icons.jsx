@@ -112,6 +112,19 @@ export const MoreIcon = (props) => (
   </svg>
 )
 
+export const EditIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+    <path d="m14.5 7.5 2 2" />
+  </svg>
+)
+
+export const TrashIcon = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+  </svg>
+)
+
 export const InboxIcon = (props) => (
   <svg {...base} {...props}>
     <path d="M3 12h4l2 3h6l2-3h4" />

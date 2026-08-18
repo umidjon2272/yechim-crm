@@ -40,13 +40,29 @@ function RootRedirect() {
   return <Navigate to={isAuthenticated ? '/admin' : '/login'} replace />
 }
 
+function GuestRoute() {
+  const { isChecking, isAuthenticated } = useAuth()
+
+  if (isChecking) {
+    return (
+      <div className="full-page-loading">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (isAuthenticated) return <Navigate to="/admin" replace />
+
+  return <LoginPage />
+}
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
 
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<GuestRoute />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
@@ -80,7 +96,7 @@ export function AppRoutes() {
           <Route
             path="settings"
             element={
-              <RequirePermission permission="settings.view">
+              <RequirePermission anyOf={['settings.view', 'programs.view']}>
                 <SettingsPage />
               </RequirePermission>
             }

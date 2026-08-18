@@ -1,19 +1,38 @@
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
-import cookieParser from 'cookie-parser';
-import { AppModule } from './app.module';
+import { ValidationPipe } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { NestFactory } from "@nestjs/core";
+import * as cookieParser from "cookie-parser";
+import { AppModule } from "./app.module";
+
+const DEFAULT_FRONTEND_ORIGINS = [
+  "http://localhost:5173",
+  "https://yechim-crm.vercel.app",
+];
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
-  const frontendUrl = config.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+  const frontendOrigins = [
+    ...DEFAULT_FRONTEND_ORIGINS,
+    ...(config.get<string>("FRONTEND_URL") || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+  ];
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
   app.use(cookieParser());
+  app.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    next();
+  });
   app.enableCors({
-    origin: frontendUrl.split(',').map((item) => item.trim()),
+    origin: frontendOrigins,
     credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
   app.useGlobalPipes(
     new ValidationPipe({
@@ -23,7 +42,7 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(Number(process.env.PORT) || 3000);
+  await app.listen(process.env.PORT || 3000, "0.0.0.0");
 }
 
 bootstrap();

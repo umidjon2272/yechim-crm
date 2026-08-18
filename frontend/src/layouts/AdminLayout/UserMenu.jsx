@@ -13,9 +13,14 @@ export function UserMenu() {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+    try {
+      await logout()
+    } finally {
+      navigate('/login', { replace: true })
+    }
   }
+
+  const roleLabel = user?.partnerGroupId ? 'Partner' : ROLE_LABELS[user?.role] || user?.role
 
   return (
     <Dropdown
@@ -24,7 +29,7 @@ export function UserMenu() {
           <Avatar name={user?.name} src={user?.avatarUrl} size="sm" />
           <span className="user-menu-trigger__meta">
             <div className="user-menu-trigger__name">{user?.name || 'Foydalanuvchi'}</div>
-            <div className="user-menu-trigger__role">{ROLE_LABELS[user?.role] || user?.role}</div>
+            <div className="user-menu-trigger__role">{roleLabel}</div>
           </span>
           <ChevronDownIcon width={14} height={14} />
         </button>
@@ -33,7 +38,7 @@ export function UserMenu() {
       <DropdownItem onClick={() => navigate('/admin/profile')}>
         <UserIcon width={16} height={16} /> Profil
       </DropdownItem>
-      {can('settings.view') && (
+      {(can('settings.view') || can('programs.view')) && (
         <DropdownItem onClick={() => navigate('/admin/settings')}>
           <SettingsIcon width={16} height={16} /> Sozlamalar
         </DropdownItem>

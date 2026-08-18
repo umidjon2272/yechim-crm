@@ -6,7 +6,7 @@ import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
 import { dealsService } from '../../../services/deals.service'
 import { paymentsService } from '../../../services/payments.service'
-import { CustomerForm } from './CustomerForm'
+import { CustomerForm, CustomerLocationPreview, formatAddress } from './CustomerForm'
 import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
 import { ProgramsPanel } from './ProgramsPanel'
 import { InstallationsPanel } from './InstallationsPanel'
@@ -49,16 +49,16 @@ const BASE_SIDE_TABS = [
   { id: 'order', label: 'Buyurtma' },
   { id: 'leads', label: 'Murojaatlar' },
   { id: 'deals', label: 'Savdolar' },
-  { id: 'payments', label: 'To‘lovlar' },
+  { id: 'payments', label: 'ToвЂlovlar' },
   { id: 'tasks', label: 'Vazifalar' },
   { id: 'activities', label: 'Faoliyatlar' },
-  { id: 'installations', label: 'O‘rnatishlar' },
+  { id: 'installations', label: 'OвЂrnatishlar' },
   { id: 'attachments', label: 'Fayllar' },
   { id: 'comments', label: 'Izohlar' },
 ]
 
 // The Bitrix-style "customer element" panel: chat is the main, always-
-// visible column (no click required to reach it) — everything else
+// visible column (no click required to reach it) вЂ” everything else
 // (programs, deals, payments, tasks...) lives in a compact tab strip in the
 // side column, so working a customer never leaves this one panel.
 export function CustomerWorkspace({ customerId: id, onChanged }) {
@@ -73,22 +73,22 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const { data: customer, loading, error, refetch } = useCustomer(id)
   const updateAction = useAction((values) => customersService.update(id, values))
   const deactivateAction = useAction(() => customersService.deactivate(id))
-  const stageAction = useAction((stage) => customersService.setStage(id, stage))
+  const stageAction = useAction((stage) => customersService.setStage(id, typeof stage === 'object' ? stage?.id || stage?.stageId || stage?.value : stage))
   const [employees, setEmployees] = useState([])
   // sideTab is in the deps so leaving the "Buyurtma" tab (where
-  // DealItemsEditor mutates items — and, via syncDealValue, deal.value —
+  // DealItemsEditor mutates items вЂ” and, via syncDealValue, deal.value вЂ”
   // outside this component's own actions) picks up the fresh total for the
   // summary tiles/PaymentForm without needing DealItemsEditor to expose an
   // onChange hook.
   const { data: dealsData } = useAsync(() => customersService.getDeals(id), [id, refreshKey, sideTab])
   const customerDeals = dealsData?.items ?? []
-  // "Buyurtma" — mijozning eng birinchi/asosiy savdosi: bir mijoz uchun bir
+  // "Buyurtma" вЂ” mijozning eng birinchi/asosiy savdosi: bir mijoz uchun bir
   // vaqtda bitta faol buyurtma degan sodda modelga mos, ko'p savdo tarixi
   // esa Savdolar tab'ida to'liq ko'rinadi.
   const primaryDeal = customerDeals[0] || null
   const createOrderAction = useAction((payload) => dealsService.create(payload))
   // Cheap counts for the side-tab labels (section 14: "Savdolar: 2,
-  // To'lovlar: 3..." at a glance) — separate from each tab's own RelatedList
+  // To'lovlar: 3..." at a glance) вЂ” separate from each tab's own RelatedList
   // fetch, which still owns the actual list rendering.
   const { data: paymentsCountData } = useAsync(() => customersService.getPayments(id), [id, refreshKey])
   const { data: tasksCountData } = useAsync(() => customersService.getTasks(id), [id, refreshKey])
@@ -115,7 +115,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
       if (businessPayload) {
         await businessesService.create({ ...businessPayload, customerId: id })
       }
-      toast.success('Mijoz ma’lumotlari yangilandi')
+      toast.success('Mijoz maвЂ™lumotlari yangilandi')
       setIsEditing(false)
       refetch()
       bump()
@@ -146,11 +146,11 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const handleRecordPayment = async (values) => {
     try {
       await createPaymentAction.run(values)
-      toast.success('To‘lov qayd etildi')
+      toast.success('ToвЂlov qayd etildi')
       paymentModal.close()
       bump()
     } catch (err) {
-      toast.error(err.message || 'To‘lovni saqlashda xatolik yuz berdi')
+      toast.error(err.message || 'ToвЂlovni saqlashda xatolik yuz berdi')
     }
   }
 
@@ -169,7 +169,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const handleCreateOrder = async () => {
     try {
       await createOrderAction.run({
-        name: `${customer.name} — buyurtma`,
+        name: `${customer.name} вЂ” buyurtma`,
         customerId: id,
         businessId: customer.business?.id,
         stage: 'NEW',
@@ -193,7 +193,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     return (
       <div style={{ padding: 24, width: '100%' }}>
         <Alert variant="danger" title="Mijoz topilmadi">
-          {error?.message || 'Bu mijoz mavjud emas yoki o‘chirilgan.'}
+          {error?.message || 'Bu mijoz mavjud emas yoki oвЂchirilgan.'}
         </Alert>
       </div>
     )
@@ -210,8 +210,8 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
           <div className="customer-workspace__name">{customer.name}</div>
           <div className="customer-workspace__meta">
             {customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
-            {customer.business?.name && <span> · {customer.business.name}</span>}
-            {customer.assignedEmployee?.name && <span> · Mas'ul: {customer.assignedEmployee.name}</span>}
+            {customer.business?.name && <span> В· {customer.business.name}</span>}
+            {customer.assignedEmployee?.name && <span> В· Mas'ul: {customer.assignedEmployee.name}</span>}
             <Dropdown
               trigger={(toggle) => (
                 <button type="button" className="customer-workspace__stage-trigger" onClick={toggle}>
@@ -350,34 +350,33 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                       <div className="detail-field__value">{customer.assignedEmployee?.name || '-'}</div>
                     </div>
                     <div className="detail-field">
-                      <div className="detail-field__label">Qo‘shimcha telefon</div>
-                      <div className="detail-field__value">{customer.phone2 || '—'}</div>
+                      <div className="detail-field__label">QoвЂshimcha telefon</div>
+                      <div className="detail-field__value">{customer.phone2 || 'вЂ”'}</div>
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Telegram</div>
-                      <div className="detail-field__value">{customer.telegram || '—'}</div>
+                      <div className="detail-field__value">{customer.telegram || 'вЂ”'}</div>
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Elektron pochta</div>
-                      <div className="detail-field__value">{customer.email || '—'}</div>
+                      <div className="detail-field__value">{customer.email || 'вЂ”'}</div>
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Manzil</div>
                       <div className="detail-field__value">
-                        {[customer.address?.region, customer.address?.city, customer.address?.district, customer.address?.street, customer.address?.house]
-                          .filter(Boolean)
-                          .join(', ') || '—'}
+                        {formatAddress(customer.address) || '—'}
                       </div>
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Mijoz manbasi</div>
-                      <div className="detail-field__value">{customer.source || '—'}</div>
+                      <div className="detail-field__value">{customer.source || 'вЂ”'}</div>
                     </div>
                     <div className="detail-field">
-                      <div className="detail-field__label">Qo‘shilgan sana</div>
+                      <div className="detail-field__label">QoвЂshilgan sana</div>
                       <div className="detail-field__value">{formatDate(customer.createdAt)}</div>
                     </div>
                   </div>
+                  <CustomerLocationPreview customer={customer} />
                   {customer.notes && (
                     <div className="detail-field" style={{ marginTop: 16 }}>
                       <div className="detail-field__label">Izoh</div>
@@ -398,12 +397,12 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                   action={
                     <PermissionGate permission="businesses.create">
                       <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/crm/businesses?customerId=${id}`)}>
-                        + Qo‘shish
+                        + QoвЂshish
                       </Button>
                     </PermissionGate>
                   }
                 />
-                <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
+                <HistorySection entityType="customer" entityId={id} title="Mijozning toвЂliq tarixi" key={`history-${refreshKey}`} />
               </div>
             )}
 
@@ -434,7 +433,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                       </PermissionGate>
                     }
                   >
-                    <EmptyState compact icon={<InboxIcon width={20} height={20} />} title="Hali buyurtma yo‘q" description="Dastur/mahsulot qo‘shish uchun avval buyurtma yarating." />
+                    <EmptyState compact icon={<InboxIcon width={20} height={20} />} title="Hali buyurtma yoвЂq" description="Dastur/mahsulot qoвЂshish uchun avval buyurtma yarating." />
                   </Card>
                 )}
               </>
@@ -465,23 +464,23 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
             {sideTab === 'payments' && (
               <div className="stack">
                 <RelatedList
-                  title="To‘lovlar"
+                  title="ToвЂlovlar"
                   fetcher={() => customersService.getPayments(id)}
                   deps={[id, refreshKey]}
-                  renderItem={(item) => <span>{item.amount} — {PAYMENT_STATUS_LABELS[item.status] || item.status}</span>}
-                  emptyHint="Bu mijoz uchun hali to‘lov qayd etilmagan."
+                  renderItem={(item) => <span>{item.amount} вЂ” {PAYMENT_STATUS_LABELS[item.status] || item.status}</span>}
+                  emptyHint="Bu mijoz uchun hali toвЂlov qayd etilmagan."
                   action={
                     customerDeals.length > 0 && (
                       <PermissionGate permission="payments.create">
                         <Button size="sm" variant="ghost" onClick={paymentModal.open}>
-                          <PlusIcon width={14} height={14} /> To‘lov
+                          <PlusIcon width={14} height={14} /> ToвЂlov
                         </Button>
                       </PermissionGate>
                     )
                   }
                 />
                 {customerDeals.length === 0 && (
-                  <p className="text-muted text-xs">To‘lov qo‘shish uchun avval bu mijozga savdo yaratilishi kerak.</p>
+                  <p className="text-muted text-xs">ToвЂlov qoвЂshish uchun avval bu mijozga savdo yaratilishi kerak.</p>
                 )}
               </div>
             )}
@@ -492,7 +491,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                 fetcher={() => customersService.getTasks(id)}
                 deps={[id, refreshKey]}
                 renderItem={(item) => <span>{item.title}</span>}
-                emptyHint="Bu mijoz bilan bog‘liq vazifa yo‘q."
+                emptyHint="Bu mijoz bilan bogвЂliq vazifa yoвЂq."
               />
             )}
 
@@ -519,7 +518,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
         </div>
       </div>
 
-      <Modal open={paymentModal.isOpen} title="To‘lov qo‘shish" onClose={paymentModal.close}>
+      <Modal open={paymentModal.isOpen} title="ToвЂlov qoвЂshish" onClose={paymentModal.close}>
         <PaymentForm
           deals={customerDeals}
           submitLabel="Saqlash"

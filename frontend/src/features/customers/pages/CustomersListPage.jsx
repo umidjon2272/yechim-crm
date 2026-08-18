@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useCustomer, useCustomers } from '../customers.hooks'
 import { customersService, customerGroupsService } from '../../../services/customers.service'
@@ -15,19 +15,25 @@ import { INSTALLATION_STATUSES, INSTALLATION_STATUS_LABELS } from '../../install
 import { Button } from '../../../components/Button/Button'
 import { Input } from '../../../components/Input/Input'
 import { Select } from '../../../components/Select/Select'
+import { FormField } from '../../../components/FormField/FormField'
 import { Modal } from '../../../components/Modal/Modal'
-import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
+import { Card } from '../../../components/Card/Card'
 import { EmptyState } from '../../../components/EmptyState/EmptyState'
 import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
 import { Pagination } from '../../../components/Pagination/Pagination'
 import { KanbanBoard } from '../../../components/Kanban/KanbanBoard'
 import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
+import { useAuth } from '../../auth/useAuth'
 import { useToast } from '../../../store/ToastContext'
+import { useConfirm } from '../../../store/ConfirmContext'
 import { useAction } from '../../../hooks/useAction'
 import { useAsync } from '../../../hooks/useAsync'
 import { useDisclosure } from '../../../hooks/useDisclosure'
-import { InboxIcon, MoreIcon, PlusIcon, SearchIcon } from '../../../components/icons/Icons'
+import { EditIcon, InboxIcon, PlusIcon, SearchIcon, TrashIcon } from '../../../components/icons/Icons'
+import { CustomerWorkPanel, QuickActionModal, ReminderModal } from '../components/CustomerWorkActions'
+import { TodayWorkPanel } from '../components/TodayWorkPanel'
 import { classNames } from '../../../utils/classNames'
 import './CustomersListPage.scss'
 
@@ -35,10 +41,19 @@ function fallbackStages() {
   return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage] }))
 }
 
-function CustomerEditModal({ customerId, employees, stages, loadingStages, onClose, onChanged }) {
+function formatPartnerPeriod(period) {
+  const [year, month] = String(period || '').split('-').map(Number)
+  if (!year || !month) return period
+  const label = new Intl.DateTimeFormat('uz-UZ', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1, 1)))
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function CustomerEditModal({ customerId, employees, stages, loadingStages, readOnly = false, onClose, onChanged }) {
   const toast = useToast()
+  const confirm = useConfirm()
   const { data: customer, loading, error, refetch } = useCustomer(customerId)
   const updateAction = useAction((values) => customersService.update(customerId, values))
+  const deleteAction = useAction(() => customersService.remove(customerId))
 
   const handleUpdate = async (customerPayload, businessPayload) => {
     try {
@@ -50,6 +65,24 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, onClo
       onClose()
     } catch (err) {
       toast.error(err.message || 'Mijozni saqlashda xatolik yuz berdi')
+    }
+  }
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Mijozni o\'chirish',
+      description: 'Bu mijozni o\'chirmoqchimisiz?',
+      confirmLabel: 'O\'chirish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAction.run()
+      toast.success('Mijoz arxivlandi')
+      await onChanged?.()
+      onClose()
+    } catch (err) {
+      toast.error(err.message || 'Mijozni o\'chirishda xatolik yuz berdi')
     }
   }
 
@@ -65,98 +98,35 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, onClo
           {error.message}
         </Alert>
       )}
-      {!loading && !error && customer && (
-        <CustomerForm
-          initialValues={customer}
-          employees={employees}
-          stages={stages}
-          submitLabel="Saqlash"
-          loading={updateAction.loading || loadingStages}
-          onSubmit={handleUpdate}
-          onCancel={onClose}
-        />
+      {!loading && !error && customer && readOnly && (
+        <div className="detail-grid">
+          <div className="detail-field"><div className="detail-field__label">Mijoz</div><div className="detail-field__value">{customer.name}</div></div>
+          <div className="detail-field"><div className="detail-field__label">Telefon</div><div className="detail-field__value">{customer.phone || '—'}</div></div>
+          <div className="detail-field"><div className="detail-field__label">Bosqich</div><div className="detail-field__value">{customer.stageLabel || customer.stage}</div></div>
+          <div className="detail-field"><div className="detail-field__label">Holat</div><div className="detail-field__value">{customer.isCompleted ? 'Yakunlangan' : 'Jarayonda'}</div></div>
+        </div>
       )}
-    </Modal>
-  )
-}
-
-function StageDeleteModal({ stage, stages, count, loading, onClose, onSubmit }) {
-  const [replacementStageId, setReplacementStageId] = useState('')
-  const options = stages.filter((item) => item.id !== stage?.id)
-
-  useEffect(() => {
-    if (stage) setReplacementStageId(options[0]?.id || '')
-  }, [stage?.id])
-
-  if (!stage) return null
-
-  return (
-    <Modal
-      open={!!stage}
-      title="Bosqichni o'chirish"
-      danger
-      onClose={onClose}
-      footer={
+      {!loading && !error && customer && !readOnly && (
         <>
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
-            Bekor qilish
-          </Button>
-          <Button variant="danger" loading={loading} disabled={count > 0 && !replacementStageId} onClick={() => onSubmit(replacementStageId)}>
-            {count > 0 ? "O'tkazish va o'chirish" : "O'chirish"}
-          </Button>
+          <CustomerForm
+            initialValues={customer}
+            employees={employees}
+            stages={stages}
+            submitLabel="Saqlash"
+            loading={updateAction.loading || loadingStages || deleteAction.loading}
+            onSubmit={handleUpdate}
+            onCancel={onClose}
+            onDelete={handleDelete}
+          />
+          <CustomerWorkPanel customer={customer} onChanged={refetch} />
         </>
-      }
-    >
-      {count > 0 ? (
-        <div className="stack">
-          <p className="text-muted">Bu bosqichda {count} ta mijoz mavjud. Ularni qaysi bosqichga o'tkazamiz?</p>
-          <Select value={replacementStageId} onChange={(event) => setReplacementStageId(event.target.value)}>
-            {options.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      ) : (
-        <p className="text-muted">"{stage.label}" bosqichi o'chirilsinmi?</p>
       )}
-    </Modal>
-  )
-}
-
-function PipelineManagerModal({ open, stages, onClose, onRename, onMove, onDelete, onCreateAfter }) {
-  return (
-    <Modal open={open} title="Savdo jarayonlarini boshqarish" className="pipeline-manager-modal" onClose={onClose}>
-      <div className="pipeline-manager">
-        <div className="pipeline-manager__title">Asosiy savdo</div>
-        <div className="pipeline-manager__stages">
-          {stages.map((stage, index) => (
-            <div key={stage.id} className="pipeline-manager__stage">
-              <span>{stage.label}</span>
-              <div className="pipeline-manager__actions">
-                <button type="button" onClick={() => onMove(stage, 'left')} disabled={index === 0}>
-                  Chapga
-                </button>
-                <button type="button" onClick={() => onMove(stage, 'right')} disabled={index === stages.length - 1}>
-                  O'ngga
-                </button>
-                <button type="button" onClick={() => onRename(stage)}>
-                  Rename
-                </button>
-                <button type="button" className="pipeline-manager__danger" onClick={() => onDelete(stage)}>
-                  O'chirish
-                </button>
-              </div>
-              {index < stages.length - 1 && (
-                <button type="button" className="pipeline-manager__insert" onClick={() => onCreateAfter(stage.id)} aria-label="Oraga bosqich qo'shish">
-                  +
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+       {!loading && !error && customer && readOnly && (
+         <div className="detail-field" style={{ marginTop: 16 }}>
+           <div className="detail-field__label">Hisoblangan haq</div>
+           <div className="detail-field__value">${Number(customer.rewardAmount || 0).toLocaleString('en-US')}</div>
+         </div>
+       )}
     </Modal>
   )
 }
@@ -177,7 +147,7 @@ function BulkMoveModal({ open, selectedCount, stages, activeGroupId, loading, on
   return (
     <Modal
       open={open}
-      title="Boshqa savdo jarayoniga o'tkazish"
+      title="Boshqa voronkaga o'tkazish"
       onClose={onClose}
       footer={
         <>
@@ -213,6 +183,248 @@ function BulkMoveModal({ open, selectedCount, stages, activeGroupId, loading, on
   )
 }
 
+function DepositPromptModal({ move, loading, onClose, onSubmit }) {
+  const [amount, setAmount] = useState('')
+
+  useEffect(() => {
+    if (move) setAmount(move.customer.depositAmount ?? '')
+  }, [move])
+
+  if (!move) return null
+
+  return (
+    <Modal
+      open
+      title="Zaklad summasi"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>Bekor qilish</Button>
+          <Button onClick={() => onSubmit(amount)} loading={loading}>Stage'ni saqlash</Button>
+        </>
+      }
+    >
+      <p className="text-muted" style={{ marginBottom: 16 }}>
+        {move.customer.name} mijozini "Zaklad olingan" stage'iga o'tkazyapsiz. Zaklad summasini kiriting.
+      </p>
+      <FormField label="Zaklad summasi" hint="Ixtiyoriy">
+        <Input type="number" min="0" step="1000" value={amount} onChange={(event) => setAmount(event.target.value)} autoFocus />
+      </FormField>
+    </Modal>
+  )
+}
+
+function FollowUpPromptModal({ move, loading, onClose, onSubmit }) {
+  const [remindAt, setRemindAt] = useState('')
+  useEffect(() => {
+    if (move) {
+      const date = new Date()
+      date.setDate(date.getDate() + 1)
+      date.setHours(14, 0, 0, 0)
+      const pad = (value) => String(value).padStart(2, '0')
+      setRemindAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
+    }
+  }, [move])
+  if (!move) return null
+  const quick = (days) => {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    date.setHours(14, 0, 0, 0)
+    const pad = (value) => String(value).padStart(2, '0')
+    setRemindAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
+  }
+  return <Modal open title="Qachon qayta aloqaga chiqamiz?" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={() => onSubmit(remindAt)} loading={loading} disabled={!remindAt}>Saqlash</Button></>}>
+    <p className="text-muted">{move.customer.name} uchun keyingi aloqa vaqtini tanlang.</p>
+    <div className="quick-date-row">
+      <Button size="sm" variant="secondary" onClick={() => quick(1)}>Ertaga</Button>
+      <Button size="sm" variant="secondary" onClick={() => quick(3)}>3 kun</Button>
+      <Button size="sm" variant="secondary" onClick={() => quick(7)}>1 hafta</Button>
+    </div>
+    <FormField label="Sana va vaqt"><Input type="datetime-local" value={remindAt} onChange={(event) => setRemindAt(event.target.value)} /></FormField>
+  </Modal>
+}
+
+function InstallationPromptModal({ move, employees, loading, onClose, onSubmit }) {
+  const [installationAt, setInstallationAt] = useState('')
+  const [installerEmployeeId, setInstallerEmployeeId] = useState('')
+  useEffect(() => {
+    if (move) {
+      const date = new Date()
+      date.setDate(date.getDate() + 1)
+      date.setHours(10, 0, 0, 0)
+      const pad = (value) => String(value).padStart(2, '0')
+      setInstallationAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
+      setInstallerEmployeeId(move.customer.installerEmployeeId || '')
+    }
+  }, [move])
+  if (!move) return null
+  return <Modal open title="O'rnatishni rejalash" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={() => onSubmit({ installationAt, installerEmployeeId })} loading={loading} disabled={!installationAt}>Saqlash</Button></>}>
+    <p className="text-muted">{move.customer.name} uchun o'rnatish sanasi va o'rnatuvchini tanlang.</p>
+    <div className="detail-grid">
+      <FormField label="O'rnatish sanasi"><Input type="datetime-local" value={installationAt} onChange={(event) => setInstallationAt(event.target.value)} /></FormField>
+      <FormField label="O'rnatuvchi"><Select value={installerEmployeeId} onChange={(event) => setInstallerEmployeeId(event.target.value)}><option value="">Tanlang</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</Select></FormField>
+    </div>
+  </Modal>
+}
+
+function PartnerSummaryCard({ groupId }) {
+  const now = new Date()
+  const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+  const { data, loading, error } = useAsync(() => customerGroupsService.partnerSummary(groupId, { period }), [groupId, period])
+
+  if (error) return <Alert variant="danger" title="Partner statistikasini yuklab bo'lmadi">{error.message}</Alert>
+  if (loading || !data) return null
+
+  return (
+    <Card title={`${data.group?.name || 'Partner'} — ${formatPartnerPeriod(data.period)}`}>
+      <div className="detail-grid">
+        <div className="detail-field"><div className="detail-field__label">Shu oy topilgan mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Yakunlanganlar</div><div className="detail-field__value">{data.completedCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">To'lanadigan summa</div><div className="detail-field__value">${Number(data.payableAmount || 0).toLocaleString('en-US')}</div></div>
+      </div>
+      {data.history?.length > 0 && (
+        <div className="stack" style={{ marginTop: 16 }}>
+          <strong>Oylar tarixi</strong>
+          {data.history.slice(0, 6).map((item) => <div key={item.period} className="text-muted text-xs">{formatPartnerPeriod(item.period)}: {item.completedCustomers} ta — ${Number(item.payableAmount || 0).toLocaleString('en-US')}</div>)}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function StageDeleteModal({ stageDelete, stages, loading, onClose, onSubmit }) {
+  const [replacementStageId, setReplacementStageId] = useState('')
+  const alternatives = stages.filter((stage) => stage.id !== stageDelete?.stage?.id)
+
+  useEffect(() => {
+    setReplacementStageId(alternatives[0]?.id || '')
+  }, [stageDelete?.stage?.id])
+
+  if (!stageDelete) return null
+  const needsReplacement = stageDelete.count > 0
+
+  return (
+    <Modal
+      open
+      title="Bosqichni o'chirish"
+      onClose={onClose}
+      footer={<>
+        <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>Bekor qilish</Button>
+        <Button type="button" variant="danger" loading={loading} disabled={needsReplacement && !replacementStageId} onClick={() => onSubmit(needsReplacement ? replacementStageId : undefined)}>O'chirish</Button>
+      </>}
+    >
+      <p>{stageDelete.count > 0 ? `${stageDelete.count} ta mijoz bor. Ularni qaysi bosqichga o'tkazamiz?` : "Bu bosqichdagi mijozlar yo'q."}</p>
+      {needsReplacement && <Select value={replacementStageId} onChange={(event) => setReplacementStageId(event.target.value)}>
+        {alternatives.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+      </Select>}
+    </Modal>
+  )
+}
+
+function InlineStageTitle({ column, canEdit, onSave, onDelete }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(column.label)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!editing) setValue(column.label)
+  }, [column.label, editing])
+
+  const save = async () => {
+    const nextValue = value.trim()
+    if (!nextValue || saving) {
+      setEditing(false)
+      return
+    }
+    setEditing(false)
+    if (nextValue === column.label) return
+    setSaving(true)
+    try {
+      await onSave(column, nextValue)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <span className="stage-inline-title stage-inline-title--editing">
+        <Input
+          className="stage-inline-input"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onBlur={save}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+            if (event.key === 'Escape') {
+              setValue(column.label)
+              setEditing(false)
+            }
+          }}
+          autoFocus
+          disabled={saving}
+          aria-label="Bosqich nomi"
+        />
+        <button type="button" className="stage-cancel-btn" onMouseDown={(event) => event.preventDefault()} onClick={() => { setValue(column.label); setEditing(false) }} aria-label="Bekor qilish">×</button>
+        {onDelete && (
+          <button
+            type="button"
+            className="stage-delete-btn"
+            draggable="false"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onDelete(column)
+            }}
+            aria-label={`${column.label} bosqichini o'chirish`}
+          >
+            <TrashIcon width={14} height={14} />
+          </button>
+        )}
+      </span>
+    )
+  }
+
+  return (
+    <span className="stage-inline-title">
+      <span className="kanban__column-title">{column.label}</span>
+      {canEdit && (
+        <>
+          <button
+            type="button"
+            className="stage-edit-btn"
+            draggable="false"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setEditing(true)
+            }}
+            aria-label={`${column.label} nomini o'zgartirish`}
+          >
+            <EditIcon width={14} height={14} />
+          </button>
+          {onDelete && (
+            <button
+              type="button"
+              className="stage-edit-btn stage-delete-btn"
+              draggable="false"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onDelete(column)
+              }}
+              aria-label={`${column.label} bosqichini o'chirish`}
+            >
+              <TrashIcon width={14} height={14} />
+            </button>
+          )}
+        </>
+      )}
+    </span>
+  )
+}
+
 export function CustomersListPage() {
   const { id: routeCustomerId } = useParams()
   const navigate = useNavigate()
@@ -224,13 +436,11 @@ export function CustomersListPage() {
     params,
     setSearch,
     setStatus,
-    setStage,
     setAssignedEmployeeId,
     setCity,
     setProgram,
     setGroupId,
     setInstallationStatus,
-    setCreatedFrom,
     setCreatedTo,
     setSort,
     setPage,
@@ -240,18 +450,27 @@ export function CustomersListPage() {
   } = useCustomers()
   const createModal = useDisclosure()
   const stageModal = useDisclosure()
-  const pipelineModal = useDisclosure()
   const bulkMoveModal = useDisclosure()
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [createStageId, setCreateStageId] = useState(null)
   const [employees, setEmployees] = useState([])
   const [filterOptions, setFilterOptions] = useState({ cities: [], programs: [], stageCounts: {}, stages: fallbackStages() })
-  const [stageDraft, setStageDraft] = useState({ mode: 'create', stage: null, afterStageId: null })
+  const [stageDraft, setStageDraft] = useState({ afterStageId: null })
   const [stageDelete, setStageDelete] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])
   const [optimisticStages, setOptimisticStages] = useState({})
+  const [depositMove, setDepositMove] = useState(null)
+  const [followUpMove, setFollowUpMove] = useState(null)
+  const [installationMove, setInstallationMove] = useState(null)
+  const [quickAction, setQuickAction] = useState(null)
+  const [quickCustomer, setQuickCustomer] = useState(null)
+  const [reminderType, setReminderType] = useState(null)
   const toast = useToast()
+  const { can } = usePermissions()
+  const { user } = useAuth()
+  const canViewEmployees = can('employees.view')
+  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
 
   const createAction = useAction(async (customerPayload, businessPayload) => {
     const customer = await customersService.create(customerPayload)
@@ -259,14 +478,14 @@ export function CustomersListPage() {
     return customer
   })
   const deactivateAction = useAction((customer) => customersService.deactivate(customer.id))
-  const moveStageAction = useAction(({ id, stage }) => customersService.setStage(id, stage))
+  const moveStageAction = useAction(({ id, stage, ...payload }) => customersService.setStage(id, stage, payload))
   const saveStageAction = useAction((payload) =>
     payload.id ? customersService.updateStage(payload.id, payload.values) : customersService.createStage(payload.values)
   )
   const deleteStageAction = useAction(({ id, replacementStageId }) => customersService.deleteStage(id, { replacementStageId }))
   const bulkMoveAction = useAction((payload) => customersService.bulkMove(payload))
 
-  const loadFilterOptions = () => {
+  const loadFilterOptions = useCallback(() => {
     Promise.all([
       customersService.getFilterOptions(),
       customersService.listStages().catch(() => ({ items: fallbackStages() })),
@@ -280,18 +499,29 @@ export function CustomersListPage() {
         })
       )
       .catch(() => setFilterOptions({ cities: [], programs: [], stageCounts: {}, stages: fallbackStages() }))
-  }
+  }, [])
 
   useEffect(() => {
+    loadFilterOptions()
+    if (!canViewEmployees) {
+      setEmployees([])
+      return undefined
+    }
     employeesService
       .list({ pageSize: 100 })
       .then((res) => setEmployees((res?.items ?? []).filter((employee) => employee.status === 'active')))
       .catch(() => setEmployees([]))
-    loadFilterOptions()
-  }, [])
+    return undefined
+  }, [canViewEmployees, loadFilterOptions])
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => customers.some((customer) => customer.id === id)))
+    setSelectedIds((current) => {
+      const next = current.filter((id) => customers.some((customer) => customer.id === id))
+      // Returning the existing state is important here: while data is being
+      // fetched, `customers` can be empty and this effect must not create a
+      // new array on every render.
+      return next.length === current.length ? current : next
+    })
   }, [customers])
 
   const stageColumns = useMemo(() => filterOptions.stages.map((stage) => ({ id: stage.id, label: stage.label })), [filterOptions.stages])
@@ -313,7 +543,7 @@ export function CustomersListPage() {
 
   const handleCreate = async (customerPayload, businessPayload) => {
     try {
-      await createAction.run(customerPayload, businessPayload)
+      await createAction.run({ ...customerPayload, groupIds: params.groupId ? [params.groupId] : [] }, businessPayload)
       toast.success("Mijoz qo'shildi")
       createModal.close()
       await refetch()
@@ -329,9 +559,25 @@ export function CustomersListPage() {
   }
 
   const handleStageMove = async (customer, fromStage, toStage) => {
+    if (toStage === 'DEPOSIT_RECEIVED' && customer.depositAmount == null) {
+      setDepositMove({ customer, fromStage, toStage })
+      return
+    }
+    if (toStage === 'FOLLOW_UP') {
+      setFollowUpMove({ customer, fromStage, toStage })
+      return
+    }
+    if (toStage === 'INSTALLATION_REQUIRED') {
+      setInstallationMove({ customer, fromStage, toStage })
+      return
+    }
+    await performStageMove(customer, fromStage, toStage)
+  }
+
+  const performStageMove = async (customer, fromStage, toStage, depositAmount, extra = {}) => {
     setOptimisticStages((current) => ({ ...current, [customer.id]: toStage }))
     try {
-      await moveStageAction.run({ id: customer.id, stage: toStage })
+      await moveStageAction.run({ id: customer.id, stage: toStage, depositAmount, ...extra })
       toast.success(`"${customer.name}" ${stageLabels[toStage] || toStage} bosqichiga o'tdi`)
       await refetch()
       loadFilterOptions()
@@ -347,30 +593,77 @@ export function CustomersListPage() {
     }
   }
 
-  const openCreateStage = (afterStageId = null) => {
-    setStageDraft({ mode: 'create', stage: null, afterStageId })
-    stageModal.open()
+  const handleFollowUpMove = async (remindAt) => {
+    const move = followUpMove
+    setFollowUpMove(null)
+    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { nextContactAt: new Date(remindAt).toISOString(), reminderType: 'FOLLOW_UP' })
   }
 
-  const openRenameStage = (stage) => {
-    setStageDraft({ mode: 'rename', stage, afterStageId: null })
+  const handleInstallationMove = async ({ installationAt, installerEmployeeId }) => {
+    const move = installationMove
+    setInstallationMove(null)
+    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { installationAt: new Date(installationAt).toISOString(), installerEmployeeId })
+  }
+
+  const handleQuickAction = (action, customer) => {
+    setQuickCustomer(customer)
+    if (action === 'CALL') setReminderType('CALL')
+    else if (action === 'REMINDER') setReminderType('REPEAT_SALE')
+    else setQuickAction(action)
+  }
+
+  const closeQuickAction = () => {
+    setQuickAction(null)
+    setQuickCustomer(null)
+    setReminderType(null)
+  }
+
+  const handleDepositMove = async (amount) => {
+    const move = depositMove
+    setDepositMove(null)
+    await performStageMove(move.customer, move.fromStage, move.toStage, amount === '' ? null : Number(amount))
+  }
+
+  const openCreateStage = (afterStageId = null) => {
+    setStageDraft({ afterStageId })
     stageModal.open()
   }
 
   const handleSaveStage = async (name) => {
     try {
-      if (stageDraft.mode === 'rename') {
-        await saveStageAction.run({ id: stageDraft.stage.id, values: { name } })
-        toast.success("Bosqich nomi o'zgartirildi")
-      } else {
-        await saveStageAction.run({ values: { name, afterStageId: stageDraft.afterStageId } })
-        toast.success('Bosqich yaratildi')
-      }
+      await saveStageAction.run({ values: { name, afterStageId: stageDraft.afterStageId } })
+      toast.success('Bosqich yaratildi')
       stageModal.close()
       loadFilterOptions()
       await refetch()
     } catch (err) {
       toast.error(err.message || 'Bosqichni saqlashda xatolik yuz berdi')
+    }
+  }
+
+  const handleRenameStage = async (stage, name) => {
+    try {
+      await saveStageAction.run({ id: stage.id, values: { name } })
+      toast.success("Bosqich nomi o'zgartirildi")
+      await loadFilterOptions()
+    } catch (err) {
+      toast.error(err.message || "Bosqich nomini saqlab bo'lmadi")
+    }
+  }
+
+  const handleReorderStages = async (fromId, toId) => {
+    const orderedIds = stageColumns.map((stage) => stage.id)
+    const fromIndex = orderedIds.indexOf(fromId)
+    const toIndex = orderedIds.indexOf(toId)
+    if (fromIndex < 0 || toIndex < 0) return
+    orderedIds.splice(fromIndex, 1)
+    orderedIds.splice(toIndex, 0, fromId)
+    try {
+      await customersService.reorderStages(orderedIds)
+      toast.success('Bosqich tartibi saqlandi')
+      await loadFilterOptions()
+    } catch (err) {
+      toast.error(err.message || "Bosqich tartibini saqlab bo'lmadi")
     }
   }
 
@@ -442,27 +735,25 @@ export function CustomersListPage() {
         <div className="page-header__actions">
           <div className="view-toggle">
             <button type="button" className={classNames('view-toggle__btn', view === 'kanban' && 'view-toggle__btn--active')} onClick={() => setView('kanban')}>
-              Savdo jarayoni
+              Voronka
             </button>
             <button type="button" className={classNames('view-toggle__btn', view === 'list' && 'view-toggle__btn--active')} onClick={() => setView('list')}>
               Ro'yxat
             </button>
           </div>
-          <Button variant="secondary" onClick={pipelineModal.open}>
-            Savdo jarayonlarini boshqarish
-          </Button>
-          <PermissionGate permission="customers.create">
-            <Button onClick={() => {
-              setCreateStageId(null)
-              createModal.open()
-            }}>
-              <PlusIcon width={16} height={16} /> Mijoz qo'shish
-            </Button>
-          </PermissionGate>
         </div>
       </div>
 
-      <CustomerGroupsBar activeGroupId={params.groupId} onSelectGroup={setGroupId} />
+      {!isPartner && (
+        <CustomerGroupsBar
+          activeGroupId={params.groupId}
+          onSelectGroup={setGroupId}
+          canCreate={can('customers.create')}
+          canEdit={can('customers.edit')}
+          canDelete={can('customers.delete')}
+        />
+      )}
+      {isPartner && <PartnerSummaryCard groupId={user.partnerGroupId} />}
 
       <div className="filters-row customers-filter-row">
         <div className="input-group filters-row__search customers-filter-row__search">
@@ -471,27 +762,23 @@ export function CustomersListPage() {
           </span>
           <Input placeholder="Qidirish" value={params.search} onChange={(event) => setSearch(event.target.value)} />
         </div>
-        <Select value={params.assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)}>
+        {!isPartner && canViewEmployees && <Select value={params.assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)}>
           <option value="">Xodim</option>
-          {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.name}
-            </option>
-          ))}
-        </Select>
-        <Select value={params.program} onChange={(event) => setProgram(event.target.value)}>
+          {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+        </Select>}
+        {!isPartner && user && <Button variant={params.assignedEmployeeId === user.id ? 'primary' : 'secondary'} onClick={() => setAssignedEmployeeId(params.assignedEmployeeId === user.id ? '' : user.id)}>Mening mijozlarim</Button>}
+        {!isPartner && <Select value={params.program} onChange={(event) => setProgram(event.target.value)}>
           <option value="">Dastur</option>
           {filterOptions.programs.map((program) => (
             <option key={program} value={program}>
               {program}
             </option>
           ))}
-        </Select>
-        <Input type="date" value={params.createdFrom} onChange={(event) => setCreatedFrom(event.target.value)} title="Sana" />
-        <Button variant="secondary" onClick={() => setAdvancedFiltersOpen((value) => !value)}>
+        </Select>}
+        {!isPartner && <Button variant="secondary" onClick={() => setAdvancedFiltersOpen((value) => !value)}>
           Filter
-        </Button>
-        {advancedFiltersOpen && (
+        </Button>}
+        {!isPartner && advancedFiltersOpen && (
           <div className="customers-filter-row__advanced">
             <Select value={params.status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">Holat</option>
@@ -528,11 +815,13 @@ export function CustomersListPage() {
         )}
       </div>
 
-      {selectedIds.length > 0 && (
+      {!isPartner && <TodayWorkPanel />}
+
+      {selectedIds.length > 0 && can('customers.edit') && (
         <div className="bulk-actions-bar">
           <span>{selectedIds.length} ta mijoz tanlandi</span>
           <Button size="sm" variant="secondary" onClick={bulkMoveModal.open}>
-            Boshqa savdo jarayoniga o'tkazish
+            Boshqa voronkaga o'tkazish
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
             Bekor qilish
@@ -562,10 +851,12 @@ export function CustomersListPage() {
             customers={customers}
             stageLabels={stageLabels}
             selectedIds={selectedIds}
-            onSelect={toggleSelected}
+            onSelect={isPartner ? undefined : toggleSelected}
             onSelectAll={toggleAllVisible}
             onDeactivate={handleDeactivate}
-            onOpen={openCustomer}
+               onOpen={openCustomer}
+               onQuickAction={handleQuickAction}
+            partner={isPartner}
           />
           <Pagination page={params.page} pageSize={params.pageSize} total={total} onPageChange={setPage} />
         </>
@@ -576,66 +867,55 @@ export function CustomersListPage() {
           columns={stageColumns}
           items={displayedCustomers}
           getColumnId={(customer) => customer.stage}
-          renderColumnHeader={(column, columnCustomers, index) => {
+          renderColumnHeader={(column, columnCustomers) => {
             const totalAmount = columnCustomers.reduce((sum, customer) => sum + getCustomerAmount(customer), 0)
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
-                  <span className="kanban__column-title">{column.label}</span>
+                  <InlineStageTitle column={column} canEdit={can('customers.edit')} onSave={handleRenameStage} onDelete={can('customers.edit') ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
-                  <Dropdown
-                    align={index > stageColumns.length - 3 ? 'left' : 'right'}
-                    trigger={(toggle) => (
-                      <button type="button" className="stage-menu-btn" onClick={toggle} aria-label="Bosqich amallari">
-                        <MoreIcon width={16} height={16} />
-                      </button>
-                    )}
-                  >
-                    <DropdownItem onClick={() => openRenameStage(column)}>Nomini o'zgartirish</DropdownItem>
-                    <DropdownItem onClick={() => handleMoveStage(column, 'left')}>Chapga ko'chirish</DropdownItem>
-                    <DropdownItem onClick={() => handleMoveStage(column, 'right')}>O'ngga ko'chirish</DropdownItem>
-                    <DropdownItem danger onClick={() => openDeleteStage(column)}>
-                      O'chirish
-                    </DropdownItem>
-                  </Dropdown>
                 </div>
-                <span className="kanban__column-meta">
+                {!isPartner && <span className="kanban__column-meta">
                   <span className="kanban__column-total">{formatCustomerAmount(totalAmount)}</span>
-                </span>
+                </span>}
               </div>
             )
           }}
-          renderColumnAction={(column) => (
+          renderColumnAction={(column) => can('customers.create') ? (
             <button type="button" className="kanban__add-card" onClick={() => openCreateForStage(column.id)}>
               + Mijoz
             </button>
-          )}
+          ) : null}
           renderCard={(customer) => (
             <CustomerKanbanCard
               customer={customer}
               selected={selectedIds.includes(customer.id)}
-              onSelect={toggleSelected}
+              onSelect={isPartner ? undefined : toggleSelected}
               onOpen={openCustomer}
+              partner={isPartner}
+              stageLabel={stageLabels[customer.stage] || customer.stage}
             />
           )}
-          renderColumnGap={(column) => (
+          renderColumnGap={(column) => can('customers.edit') ? (
             <button type="button" className="kanban__insert-stage" onClick={() => openCreateStage(column.id)} aria-label="Oraga bosqich qo'shish">
               +
             </button>
-          )}
-          afterColumns={
+          ) : null}
+          afterColumns={can('customers.edit') ? (
             <div className="kanban__after-columns">
               <button type="button" className="kanban__create-column" onClick={() => openCreateStage(stageColumns.at(-1)?.id || null)}>
                 <PlusIcon width={16} height={16} /> Bosqich
               </button>
             </div>
-          }
-          onCardMove={handleStageMove}
+          ) : null}
+          onCardMove={isPartner ? undefined : handleStageMove}
+          onColumnMove={can('customers.edit') ? handleReorderStages : undefined}
         />
       )}
 
       <Modal open={createModal.isOpen} title="Mijoz qo'shish" className="customer-edit-modal" onClose={createModal.close}>
         <CustomerForm
+          key={createStageId || 'new-customer'}
           initialValues={{ stage: createStageId || 'NEW' }}
           employees={employees}
           stages={stageColumns}
@@ -648,30 +928,26 @@ export function CustomersListPage() {
 
       <CreateStageModal
         open={stageModal.isOpen}
-        title={stageDraft.mode === 'rename' ? "Bosqich nomini o'zgartirish" : 'Bosqich yaratish'}
-        initialName={stageDraft.mode === 'rename' ? stageDraft.stage?.label || '' : ''}
+        title="Bosqich yaratish"
+        initialName=""
         loading={saveStageAction.loading}
         onClose={stageModal.close}
         onSubmit={handleSaveStage}
       />
 
       <StageDeleteModal
-        stage={stageDelete?.stage}
-        count={stageDelete?.count || 0}
+        stageDelete={stageDelete}
         stages={stageColumns}
         loading={deleteStageAction.loading}
         onClose={() => setStageDelete(null)}
         onSubmit={handleDeleteStage}
       />
 
-      <PipelineManagerModal
-        open={pipelineModal.isOpen}
-        stages={stageColumns}
-        onClose={pipelineModal.close}
-        onRename={openRenameStage}
-        onMove={handleMoveStage}
-        onDelete={openDeleteStage}
-        onCreateAfter={openCreateStage}
+      <DepositPromptModal
+        move={depositMove}
+        loading={moveStageAction.loading}
+        onClose={() => setDepositMove(null)}
+        onSubmit={handleDepositMove}
       />
 
       <BulkMoveModal
@@ -684,11 +960,17 @@ export function CustomersListPage() {
         onSubmit={handleBulkMove}
       />
 
+      <FollowUpPromptModal move={followUpMove} loading={moveStageAction.loading} onClose={() => setFollowUpMove(null)} onSubmit={handleFollowUpMove} />
+      <InstallationPromptModal move={installationMove} employees={employees} loading={moveStageAction.loading} onClose={() => setInstallationMove(null)} onSubmit={handleInstallationMove} />
+      <QuickActionModal action={quickAction} customer={quickCustomer} onClose={closeQuickAction} onChanged={handleCustomerChanged} />
+      <ReminderModal open={Boolean(reminderType)} type={reminderType || 'CALL'} customer={quickCustomer} onClose={closeQuickAction} onCreated={handleCustomerChanged} />
+
       {activeCustomerId && (
         <CustomerEditModal
           customerId={activeCustomerId}
           employees={employees}
           stages={stageColumns}
+          readOnly={isPartner}
           loadingStages={saveStageAction.loading}
           onClose={closeCustomer}
           onChanged={handleCustomerChanged}

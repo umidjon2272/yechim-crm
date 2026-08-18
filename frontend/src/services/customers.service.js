@@ -6,6 +6,7 @@ export const customersService = {
   get: (id) => httpClient.get(CUSTOMERS.DETAIL(id)),
   create: (payload) => httpClient.post(CUSTOMERS.CREATE, payload),
   update: (id, payload) => httpClient.patch(CUSTOMERS.UPDATE(id), payload),
+  remove: (id) => httpClient.delete(CUSTOMERS.DELETE(id)),
   deactivate: (id) => httpClient.post(CUSTOMERS.DEACTIVATE(id)),
   getFilterOptions: () => httpClient.get(CUSTOMERS.FILTER_OPTIONS),
 
@@ -34,7 +35,11 @@ export const customersService = {
   createStage: (payload) => httpClient.post(CUSTOMERS.STAGES, payload),
   updateStage: (id, payload) => httpClient.patch(CUSTOMERS.STAGE_DETAIL(id), payload),
   deleteStage: (id, payload) => httpClient.delete(CUSTOMERS.STAGE_DETAIL(id), { body: payload }),
-  setStage: (id, stage) => httpClient.patch(CUSTOMERS.STAGE_UPDATE(id), { stage }),
+  setStage: (id, stage, payload = {}) => {
+    const stageId = typeof stage === 'object' ? stage?.id || stage?.stageId || stage?.value : stage
+    return httpClient.patch(CUSTOMERS.STAGE_UPDATE(id), { stage: stageId, ...payload })
+  },
+  reorderStages: (stageIds) => httpClient.patch(CUSTOMERS.STAGE_REORDER, { stageIds }),
 
   // Messages (Yozishmalar)
   getMessages: (id) => httpClient.get(MESSAGES.LIST, { params: { customerId: id } }),
@@ -46,6 +51,7 @@ export const customerGroupsService = {
   create: (payload) => httpClient.post(CUSTOMER_GROUPS.CREATE, payload),
   update: (id, payload) => httpClient.patch(CUSTOMER_GROUPS.UPDATE(id), payload),
   remove: (id) => httpClient.delete(CUSTOMER_GROUPS.DELETE(id)),
+  partnerSummary: (id, params) => httpClient.get(CUSTOMER_GROUPS.PARTNER_SUMMARY(id), { params }),
 }
 
 export const customerFieldDefsService = {

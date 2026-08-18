@@ -2,10 +2,12 @@ import { useUI } from '../../store/UIContext'
 import { MenuIcon } from '../../components/icons/Icons'
 import { UserMenu } from './UserMenu'
 import { NotificationsDropdown } from '../../features/notifications/NotificationsDropdown'
+import { useAuth } from '../../features/auth/useAuth'
 import './Header.scss'
 
 export function Header({ title }) {
   const { openMobileSidebar } = useUI()
+  const { user } = useAuth()
 
   return (
     <header className="header">
@@ -16,7 +18,7 @@ export function Header({ title }) {
         <h1 className="header__title">{title}</h1>
       </div>
       <div className="header__right">
-        <NotificationsDropdown />
+        {!user?.partnerGroupId && <NotificationsDropdown />}
         <UserMenu />
       </div>
     </header>

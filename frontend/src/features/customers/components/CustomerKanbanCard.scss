@@ -16,6 +16,7 @@
   flex-direction: column;
   gap: v.$space-3;
   transition: border-color v.$transition-fast, box-shadow v.$transition-fast, transform v.$transition-fast, background-color v.$transition-fast;
+  cursor: pointer;
 
   &:hover {
     border-color: rgba(125, 92, 246, 0.34);
@@ -84,6 +85,56 @@
     font-weight: v.$font-weight-semibold;
     color: v.$color-primary-700;
     line-height: 1.1;
+  }
+
+  &__stage {
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-medium;
+    color: v.$color-text-secondary;
+  }
+
+  &__follow-up,
+  &__contact,
+  &__stage-duration {
+    font-size: 11px;
+    color: v.$color-primary-700;
+  }
+
+  &__follow-up {
+    width: fit-content;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(111, 92, 246, .11);
+    font-weight: 700;
+  }
+
+  &__follow-up--overdue,
+  &__stage-duration--stale {
+    color: #b42318;
+    background: rgba(217, 45, 32, .08);
+  }
+
+  &__stage-duration {
+    color: v.$color-text-muted;
+  }
+
+  &__quick-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: -3px;
+
+    button {
+      width: 25px;
+      height: 25px;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .74);
+      color: v.$color-text-secondary;
+      cursor: pointer;
+
+      &:hover { background: rgba(125, 92, 246, .14); color: v.$color-primary-700; }
+    }
   }
 
   &__footer {

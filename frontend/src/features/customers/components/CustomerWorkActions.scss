@@ -1,0 +1,54 @@
+.customer-work-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(100, 80, 160, .12);
+}
+
+.customer-work-panel__header,
+.customer-work-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.customer-work-panel__header {
+  justify-content: space-between;
+}
+
+.customer-work-panel__overdue {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.customer-work-panel__note {
+  padding: 10px 12px;
+  background: rgba(246, 244, 255, .82);
+  border-radius: 10px;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.customer-work-panel__note span {
+  display: block;
+  margin-bottom: 3px;
+  color: #7b61ff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.customer-work-panel__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quick-date-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}

@@ -55,7 +55,7 @@ export function LoginPage() {
       <form onSubmit={handleSubmit} noValidate>
         <FormField label="Login yoki elektron pochta" required error={fieldErrors.email}>
           <Input
-            type="email"
+            type="text"
             autoComplete="username"
             placeholder="login yoki siz@misol.uz"
             value={values.email}

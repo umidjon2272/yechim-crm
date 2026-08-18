@@ -3,7 +3,7 @@ import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
 
 export { getCustomerAmount }
 
-export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen }) {
+export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen, onQuickAction, partner = false, stageLabel }) {
   const primaryProgram = customer.programs?.[0]?.name
   const product = primaryProgram || customer.business?.name || '-'
   const amount = getCustomerAmount(customer)
@@ -16,7 +16,15 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
     .toUpperCase() || 'M'
 
   return (
-    <button type="button" className="customer-kanban-card" onClick={() => onOpen(customer.id)}>
+    <div
+      className="customer-kanban-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(customer.id)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') onOpen(customer.id)
+      }}
+    >
       {onSelect && (
         <span className="customer-kanban-card__select" onClick={(event) => event.stopPropagation()}>
           <input type="checkbox" checked={selected} onChange={(event) => onSelect(customer.id, event.target.checked)} aria-label={`${customer.name} tanlash`} />
@@ -26,14 +34,36 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
         <span className="customer-kanban-card__avatar">{initials}</span>
         <span className="customer-kanban-card__identity">
           <span className="customer-kanban-card__name">{customer.name}</span>
-          <span className="customer-kanban-card__product">{product}</span>
+          <span className="customer-kanban-card__product">{partner ? customer.phone || '-' : product}</span>
         </span>
       </span>
-      <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerAmount(amount) : '-'}</span>
-      <span className="customer-kanban-card__footer">
-        <span className="customer-kanban-card__assignee-dot" aria-hidden="true" />
-        <span className="customer-kanban-card__assignee">{customer.assignedEmployee?.name || '-'}</span>
-      </span>
-    </button>
+      {partner ? (
+        <>
+          <span className="customer-kanban-card__stage">{stageLabel || customer.stageLabel || customer.stage}</span>
+          <span className="customer-kanban-card__stage">{customer.isCompleted ? 'Yakunlangan' : 'Yakunlanmagan'} · ${Number(customer.rewardAmount || 0).toLocaleString('en-US')}</span>
+        </>
+      ) : (
+        <>
+          <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerAmount(amount) : '-'}</span>
+          {(customer.isFollowUpToday || customer.isFollowUpOverdue) && (
+            <span className={customer.isFollowUpOverdue ? 'customer-kanban-card__follow-up customer-kanban-card__follow-up--overdue' : 'customer-kanban-card__follow-up'}>
+              {customer.isFollowUpOverdue ? '⚠ Aloqa kechikdi' : 'Bugun'}
+            </span>
+          )}
+          {customer.nextContactAt && !customer.isFollowUpOverdue && !customer.isFollowUpToday && <span className="customer-kanban-card__contact">⏰ {new Date(customer.nextContactAt).toLocaleString('uz-UZ', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
+          {customer.stageDurationDays > 0 && <span className={customer.isStageStale ? 'customer-kanban-card__stage-duration customer-kanban-card__stage-duration--stale' : 'customer-kanban-card__stage-duration'}>{customer.isStageStale ? `${customer.stageDurationDays} kundan beri harakat yo'q` : `${stageLabel || customer.stageLabel || customer.stage}: ${customer.stageDurationDays} kun`}</span>}
+          <span className="customer-kanban-card__footer">
+            <span className="customer-kanban-card__assignee-dot" aria-hidden="true" />
+            <span className="customer-kanban-card__assignee">{customer.assignedEmployee?.name || '-'}</span>
+          </span>
+          {onQuickAction && <span className="customer-kanban-card__quick-actions" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => onQuickAction('CALL', customer)} aria-label="Qo'ng'iroqni rejalash">📞</button>
+            <button type="button" onClick={() => onQuickAction('REMINDER', customer)} aria-label="Eslatma qo'shish">⏰</button>
+            <button type="button" onClick={() => onQuickAction('TASK', customer)} aria-label="Vazifa yaratish">✓</button>
+            <button type="button" onClick={() => onQuickAction('NOTE', customer)} aria-label="Izoh qo'shish">✎</button>
+          </span>}
+        </>
+      )}
+    </div>
   )
 }

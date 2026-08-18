@@ -10,6 +10,7 @@ const BASE_URL = (
 export { ApiError }
 
 let unauthorizedHandler = null
+let refreshPromise = null
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler
@@ -27,7 +28,18 @@ function buildUrl(path, params) {
   return url.toString()
 }
 
-async function request(path, { method = 'GET', body, params, headers, signal } = {}) {
+const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout']
+
+async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = request('/auth/refresh', { method: 'POST', skipRefresh: true }).finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
+async function request(path, { method = 'GET', body, params, headers, signal, skipRefresh = false } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
   let res
@@ -48,6 +60,19 @@ async function request(path, { method = 'GET', body, params, headers, signal } =
     throw new ApiError('Backend bilan aloqa qilib bo‘lmadi', { status: 0, details: networkError })
   }
 
+  let refreshFailed = false
+
+  if (res.status === 401 && !skipRefresh && !AUTH_PATHS_WITHOUT_REFRESH.includes(path)) {
+    try {
+      await refreshSession()
+      return request(path, { method, body, params, headers, signal, skipRefresh: true })
+    } catch (refreshError) {
+      // Only an invalid/expired refresh session is an auth failure. A network
+      // outage must not turn a temporary API error into an automatic logout.
+      refreshFailed = refreshError?.status === 401
+    }
+  }
+
   const contentType = res.headers.get('content-type') || ''
   if (res.headers.has('x-vercel-error') || !contentType.includes('application/json')) {
     throw new ApiError(`API noto‘g‘ri javob qaytardi (${res.status})`, { status: res.status })
@@ -55,7 +80,7 @@ async function request(path, { method = 'GET', body, params, headers, signal } =
 
   const data = await res.json().catch(() => null)
 
-  if (res.status === 401) {
+  if (res.status === 401 && (skipRefresh || refreshFailed || AUTH_PATHS_WITHOUT_REFRESH.includes(path))) {
     unauthorizedHandler?.()
   }
 

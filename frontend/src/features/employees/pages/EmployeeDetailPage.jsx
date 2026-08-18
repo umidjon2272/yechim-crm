@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { useEmployee } from '../employees.hooks'
 import { employeesService } from '../../../services/employees.service'
+import { customerGroupsService } from '../../../services/customers.service'
 import { analyticsService } from '../../../services/analytics.service'
 import { EmployeeForm } from '../components/EmployeeForm'
 import { EmployeeStatusBadge } from '../components/EmployeeStatusBadge'
@@ -15,7 +17,6 @@ import { FormField } from '../../../components/FormField/FormField'
 import { PasswordInput } from '../../../components/PasswordInput/PasswordInput'
 import { RelatedList } from '../../../components/RelatedList/RelatedList'
 import { StatCard } from '../../../components/charts/StatCard'
-import { PermissionGate } from '../../roles/PermissionGate'
 import { PermissionMatrix } from '../../roles/components/PermissionMatrix'
 import { useAsync } from '../../../hooks/useAsync'
 import { useAction } from '../../../hooks/useAction'
@@ -65,10 +66,31 @@ function PerformanceSection({ employeeId }) {
   )
 }
 
+function PartnerRewardSection({ groupId }) {
+  const period = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`
+  const { data, loading, error } = useAsync(() => customerGroupsService.partnerSummary(groupId, { period }), [groupId, period])
+  if (error) return <Alert variant="danger" title="Partner hisobotini yuklab bo'lmadi">{error.message}</Alert>
+  if (loading || !data) return null
+  return (
+    <Card title={`Partner mukofoti — ${data.period}`}>
+      <div className="detail-grid">
+        <div className="detail-field"><div className="detail-field__label">Yangi mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Yakunlanganlar</div><div className="detail-field__value">{data.completedCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">To'lanadigan summa</div><div className="detail-field__value">${Number(data.payableAmount || 0).toLocaleString('en-US')}</div></div>
+      </div>
+      {data.history?.length > 0 && <div className="stack" style={{ marginTop: 16 }}>{data.history.slice(0, 6).map((item) => <span key={item.period} className="text-muted text-xs">{item.period}: {item.completedCustomers} ta — ${Number(item.payableAmount || 0).toLocaleString('en-US')}</span>)}</div>}
+    </Card>
+  )
+}
+
 function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
   const [permissions, setPermissions] = useState(employee.permissions ?? [])
   const updateAction = useAction((payload) => employeesService.update(employee.id, payload))
   const toast = useToast()
+
+  useEffect(() => {
+    if (isOpen) setPermissions(employee.permissions ?? [])
+  }, [employee.id, employee.permissions, isOpen])
 
   const handleSave = async () => {
     try {
@@ -103,7 +125,7 @@ function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
 function UpdatePasswordModal({ employeeId, isOpen, onClose, onSaved }) {
   const [values, setValues] = useState({ password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
-  const updateAction = useAction((payload) => employeesService.update(employeeId, payload))
+  const updateAction = useAction((payload) => employeesService.resetPassword(employeeId, payload.password))
   const toast = useToast()
 
   const handleChange = (field) => (event) => setValues((v) => ({ ...v, [field]: event.target.value }))
@@ -160,16 +182,19 @@ export function EmployeeDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isEditing = searchParams.get('edit') === '1'
   const toast = useToast()
+  const { user } = useAuth()
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
   const confirm = useConfirm()
   const permissionsModal = useDisclosure()
   const passwordModal = useDisclosure()
 
   const { data: employee, loading, error, refetch } = useEmployee(id)
+  const { data: partnerGroupsData } = useAsync(() => (isAdmin ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] })), [isAdmin])
   const updateAction = useAction((values) => employeesService.update(id, values))
+  const deleteAction = useAction(() => employeesService.remove(id))
   const toggleStatusAction = useAction((payload) =>
     payload.status === 'active' ? employeesService.activate(id) : employeesService.deactivate(id)
   )
-  const [teams] = useState([])
 
   const handleUpdate = async (values) => {
     try {
@@ -197,6 +222,23 @@ export function EmployeeDetailPage() {
       refetch()
     } catch (err) {
       toast.error(err.message || 'Holatni yangilashda xatolik yuz berdi')
+    }
+  }
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Xodimni butunlay o\'chirish',
+      description: `${employee.name} o\'chirilsinmi? Bu amalni bekor qilib bo\'lmaydi.`,
+      confirmLabel: 'Butunlay o\'chirish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAction.run()
+      toast.success('Xodim butunlay o\'chirildi')
+      navigate('/admin/employees')
+    } catch (err) {
+      toast.error(err.message || 'Xodimni o\'chirishda xatolik yuz berdi')
     }
   }
 
@@ -231,13 +273,17 @@ export function EmployeeDetailPage() {
           <Button variant="secondary" onClick={() => navigate('/admin/employees')}>
             Ortga
           </Button>
-          <PermissionGate permission="employees.edit">
+          {isAdmin && (
             <Button variant="secondary" onClick={passwordModal.open}>
               Parolni yangilash
             </Button>
+          )}
+          {isAdmin && (
             <Button variant="secondary" onClick={permissionsModal.open}>
               Ruxsatlarni boshqarish
             </Button>
+          )}
+          {isAdmin && (
             <Button
               variant={employee.status === 'active' ? 'danger-ghost' : 'secondary'}
               loading={toggleStatusAction.loading}
@@ -245,8 +291,15 @@ export function EmployeeDetailPage() {
             >
               {employee.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}
             </Button>
+          )}
+          {isAdmin && (
+            <Button variant="danger-ghost" loading={deleteAction.loading} onClick={handleDelete}>
+              Butunlay o'chirish
+            </Button>
+          )}
+          {isAdmin && (
             <Button onClick={() => setSearchParams({ edit: '1' })}>Tahrirlash</Button>
-          </PermissionGate>
+          )}
         </div>
       </div>
 
@@ -254,7 +307,8 @@ export function EmployeeDetailPage() {
         <Card title="Ma'lumotlarni tahrirlash">
           <EmployeeForm
             initialValues={employee}
-            teams={teams}
+            partnerGroups={partnerGroupsData?.items ?? []}
+            canManageAccess={isAdmin}
             submitLabel="Saqlash"
             loading={updateAction.loading}
             onSubmit={handleUpdate}
@@ -281,6 +335,10 @@ export function EmployeeDetailPage() {
               <div className="detail-field__value">{employee.team?.name || '—'}</div>
             </div>
             <div className="detail-field">
+              <div className="detail-field__label">Partner guruhi</div>
+              <div className="detail-field__value">{employee.partnerGroup?.name || '—'}</div>
+            </div>
+            <div className="detail-field">
               <div className="detail-field__label">Qo‘shilgan sana</div>
               <div className="detail-field__value">{formatDate(employee.createdAt)}</div>
             </div>
@@ -291,6 +349,8 @@ export function EmployeeDetailPage() {
       <Card title="Ruxsatlar">
         <PermissionMatrix value={employee.permissions ?? []} />
       </Card>
+
+      {employee.partnerGroupId && <PartnerRewardSection groupId={employee.partnerGroupId} />}
 
       <PerformanceSection employeeId={id} />
 

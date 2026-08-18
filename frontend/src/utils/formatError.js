@@ -28,11 +28,14 @@ function stringify(value) {
   }
 
   if (typeof value === 'object') {
+    // NestJS validation responses put the useful field errors in `message`
+    // and the generic label "Bad Request" in `error`. Prefer the former.
+    if (value.message && typeof value.message === 'object') return stringify(value.message)
+    if (typeof value.message === 'string' && value.message && value.message !== 'Bad Request') return value.message
+    if (value.error && typeof value.error === 'object') return stringify(value.error)
+    if (typeof value.error === 'string' && value.error && value.error !== 'Bad Request') return value.error
     if (typeof value.message === 'string' && value.message) return value.message
     if (typeof value.error === 'string' && value.error) return value.error
-    // Nested shapes: { message: {...} } or { error: {...} }
-    if (value.message && typeof value.message === 'object') return stringify(value.message)
-    if (value.error && typeof value.error === 'object') return stringify(value.error)
     try {
       const json = JSON.stringify(value)
       return json && json !== '{}' ? json : ''

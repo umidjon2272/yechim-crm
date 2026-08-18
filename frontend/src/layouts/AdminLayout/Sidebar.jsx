@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { classNames } from '../../utils/classNames'
 import { useUI } from '../../store/UIContext'
 import { usePermissions } from '../../features/roles/usePermissions'
-import { BuildingIcon, SettingsIcon, ChevronDownIcon, ChevronLeftIcon, InboxIcon, UsersIcon } from '../../components/icons/Icons'
+import { BuildingIcon, SettingsIcon, ChevronLeftIcon, InboxIcon, UsersIcon } from '../../components/icons/Icons'
 import './Sidebar.scss'
 
 // Bitrix24-style hub: everything customer-related (business, lead, deal,
@@ -10,16 +10,11 @@ import './Sidebar.scss'
 // the Customer detail page's tabs, not from a separate top-level module per
 // entity — so the CRM submenu only lists the handful of list pages that need
 // their own dedicated queue view, not every entity in the data model.
-const CRM_LINKS = [
-  { to: '/admin/crm/customers', label: 'Mijozlar', permission: 'customers.view' },
-]
-
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebarCollapsed, mobileSidebarOpen, closeMobileSidebar } = useUI()
   const { can } = usePermissions()
   const location = useLocation()
 
-  const visibleCrmLinks = CRM_LINKS.filter((link) => !link.permission || can(link.permission))
   const crmSectionActive = location.pathname.startsWith('/admin/crm') && !location.pathname.startsWith('/admin/crm/tasks')
 
   return (
@@ -37,28 +32,15 @@ export function Sidebar() {
         </div>
 
         <nav className="sidebar__nav">
-          {visibleCrmLinks.length > 0 && (
-            <>
-              <div className={classNames('sidebar__link', crmSectionActive && 'sidebar__link--active')}>
-                <span className="sidebar__link-icon">
-                  <BuildingIcon />
-                </span>
-                <span className="sidebar__link-label">CRM</span>
-                <ChevronDownIcon width={14} height={14} style={{ marginLeft: 'auto' }} />
-              </div>
-              <div className="sidebar__sublinks">
-                {visibleCrmLinks.map((link) => (
-                  <NavLink
-                    key={link.to}
-                    to={link.to}
-                    className={({ isActive }) => classNames('sidebar__sublink', isActive && 'sidebar__sublink--active')}
-                    onClick={closeMobileSidebar}
-                  >
-                    {link.label}
-                  </NavLink>
-                ))}
-              </div>
-            </>
+          {can('customers.view') && (
+            <NavLink
+              to="/admin/crm/customers"
+              className={({ isActive }) => classNames('sidebar__link', (isActive || crmSectionActive) && 'sidebar__link--active')}
+              onClick={closeMobileSidebar}
+            >
+              <span className="sidebar__link-icon"><BuildingIcon /></span>
+              <span className="sidebar__link-label">CRM</span>
+            </NavLink>
           )}
 
           {can('employees.view') && (
@@ -87,7 +69,7 @@ export function Sidebar() {
             </NavLink>
           )}
 
-          {can('settings.view') && (
+          {(can('settings.view') || can('programs.view')) && (
             <NavLink
               to="/admin/settings"
               className={({ isActive }) => classNames('sidebar__link', isActive && 'sidebar__link--active')}

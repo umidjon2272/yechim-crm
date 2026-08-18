@@ -1,31 +1,31 @@
 import { useState } from 'react'
 import { classNames } from '../../../utils/classNames'
-import { GeneralSection } from '../sections/GeneralSection'
 import { UsersRolesSection } from '../sections/UsersRolesSection'
 import { EmployeesSection } from '../sections/EmployeesSection'
 import { ProgramCatalogSection } from '../sections/ProgramCatalogSection'
-import { CustomerFieldsSection } from '../sections/CustomerFieldsSection'
 import { ProfilePage } from '../../profile/pages/ProfilePage'
+import { usePermissions } from '../../roles/usePermissions'
 import './SettingsPage.scss'
 
-// Registry pattern: adding a section later is just one more entry here plus
-// its section component — no routing changes needed. Jamoalar (Teams) is
-// deliberately not a section here — BOLD YECHIM CRM strukturasi treats
-// teams as an internal employee-assignment detail, not a module of its
-// own; the underlying feature/route still exists, just unlisted.
 const SECTIONS = [
   { id: 'profile', label: 'Profil', Component: ProfilePage },
   { id: 'employees', label: 'Xodimlar', Component: EmployeesSection },
-  { id: 'users-roles', label: 'Rollar va ruxsatlar', Component: UsersRolesSection },
+  { id: 'permissions', label: 'Ruxsatlar', Component: UsersRolesSection },
   { id: 'programs', label: 'Dasturlar', Component: ProgramCatalogSection },
-  { id: 'customer-fields', label: 'Mijoz maydonlari', Component: CustomerFieldsSection },
-  // "Umumiy sozlamalar" (kompaniya nomi, vaqt mintaqasi) = CRM sozlamalari.
-  { id: 'general', label: 'CRM sozlamalari', Component: GeneralSection },
 ]
 
 export function SettingsPage() {
   const [activeId, setActiveId] = useState(SECTIONS[0].id)
-  const ActiveComponent = SECTIONS.find((s) => s.id === activeId)?.Component
+  const { can } = usePermissions()
+  const visibleSections = SECTIONS.filter((section) => {
+    if (section.id === 'profile') return true
+    if (section.id === 'employees') return can('employees.view')
+    if (section.id === 'permissions') return can('settings.view')
+    if (section.id === 'programs') return can('programs.view')
+    return false
+  })
+  const safeActiveId = visibleSections.some((section) => section.id === activeId) ? activeId : visibleSections[0]?.id
+  const ActiveComponent = visibleSections.find((section) => section.id === safeActiveId)?.Component
 
   return (
     <div>
@@ -38,11 +38,11 @@ export function SettingsPage() {
 
       <div className="settings-layout">
         <nav className="settings-nav">
-          {SECTIONS.map((section) => (
+          {visibleSections.map((section) => (
             <button
               key={section.id}
               type="button"
-              className={classNames('settings-nav__item', activeId === section.id && 'settings-nav__item--active')}
+              className={classNames('settings-nav__item', safeActiveId === section.id && 'settings-nav__item--active')}
               onClick={() => setActiveId(section.id)}
             >
               {section.label}

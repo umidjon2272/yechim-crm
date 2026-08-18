@@ -59,26 +59,6 @@
   flex-wrap: wrap;
 }
 
-.stage-menu-btn {
-  @include m.flex(center, center);
-  width: 28px;
-  height: 28px;
-  border-radius: v.$radius-full;
-  color: v.$color-text-secondary;
-  opacity: 0;
-  transition: opacity v.$transition-fast, background-color v.$transition-fast, color v.$transition-fast;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.58);
-    color: v.$color-primary-700;
-  }
-}
-
-.kanban__column:hover .stage-menu-btn,
-.stage-menu-btn:focus-visible {
-  opacity: 1;
-}
-
 .customer-edit-modal {
   max-width: 720px;
 }

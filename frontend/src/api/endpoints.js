@@ -17,6 +17,8 @@ export const EMPLOYEES = {
   DETAIL: (id) => `/employees/${id}`,
   CREATE: '/employees',
   UPDATE: (id) => `/employees/${id}`,
+  DELETE: (id) => `/employees/${id}`,
+  RESET_PASSWORD: (id) => `/employees/${id}/password-reset`,
   ACTIVATE: (id) => `/employees/${id}/activate`,
   DEACTIVATE: (id) => `/employees/${id}/deactivate`,
   ASSIGNED_TASKS: (id) => `/employees/${id}/tasks`,
@@ -53,6 +55,7 @@ export const CUSTOMERS = {
   CREATE: '/customers',
   UPDATE: (id) => `/customers/${id}`,
   DEACTIVATE: (id) => `/customers/${id}/deactivate`,
+  DELETE: (id) => `/customers/${id}`,
   // Distinct filter option sets (city, dastur/program) for the customer hub's
   // filter row — cheap to compute from existing records, no separate catalog.
   FILTER_OPTIONS: '/meta/customer-options',
@@ -63,6 +66,7 @@ export const CUSTOMERS = {
   STAGE_UPDATE: (id) => `/customers/${id}/stage`,
   STAGES: '/meta/customer-stages',
   STAGE_DETAIL: (id) => `/meta/customer-stages/${id}`,
+  STAGE_REORDER: '/stages/reorder',
 }
 
 export const CUSTOMER_GROUPS = {
@@ -71,6 +75,7 @@ export const CUSTOMER_GROUPS = {
   CREATE: '/customer-groups',
   UPDATE: (id) => `/customer-groups/${id}`,
   DELETE: (id) => `/customer-groups/${id}`,
+  PARTNER_SUMMARY: (id) => `/customer-groups/${id}/partner-summary`,
 }
 
 export const CUSTOMER_FIELD_DEFS = {
@@ -182,6 +187,16 @@ export const NOTIFICATIONS = {
   UNREAD_COUNT: '/notifications/unread-count',
   MARK_READ: (id) => `/notifications/${id}/read`,
   MARK_ALL_READ: '/notifications/mark-all-read',
+}
+
+export const REMINDERS = {
+  LIST: '/reminders',
+  TODAY: '/reminders/today',
+  OVERDUE: '/reminders/overdue',
+  CREATE: '/reminders',
+  COMPLETE: (id) => `/reminders/${id}/complete`,
+  CANCEL: (id) => `/reminders/${id}/cancel`,
+  TODAY_WORK: '/reminders/work/today',
 }
 
 export const SEARCH = {

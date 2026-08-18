@@ -2,21 +2,11 @@ import { useCallback, useState } from 'react'
 import { useAsync } from '../../hooks/useAsync'
 import { customersService } from '../../services/customers.service'
 
-const VIEW_STORAGE_KEY = 'bold-yechim-customers-view'
-const VALID_VIEWS = ['list', 'kanban']
 const KANBAN_PAGE_SIZE = 200
-
-function loadStoredView() {
-  try {
-    const stored = localStorage.getItem(VIEW_STORAGE_KEY)
-    return VALID_VIEWS.includes(stored) ? stored : 'kanban'
-  } catch {
-    return 'kanban'
-  }
-}
+const EMPTY_CUSTOMERS = []
 
 export function useCustomers() {
-  const [view, setViewState] = useState(loadStoredView)
+  const [view, setViewState] = useState('kanban')
   const [params, setParams] = useState({
     page: 1,
     pageSize: 10,
@@ -65,11 +55,6 @@ export function useCustomers() {
 
   const setView = useCallback((next) => {
     setViewState(next)
-    try {
-      localStorage.setItem(VIEW_STORAGE_KEY, next)
-    } catch {
-      // Storage unavailable — the choice just won't persist across reloads.
-    }
   }, [])
 
   const setSearch = useCallback((search) => setParams((p) => ({ ...p, search, page: 1 })), [])
@@ -88,7 +73,10 @@ export function useCustomers() {
   return {
     view,
     setView,
-    customers: active.data?.items ?? [],
+    // Keep the empty value referentially stable. A fresh [] on every render
+    // makes consumers that reconcile selection in an effect update forever
+    // while the first request is still loading.
+    customers: active.data?.items ?? EMPTY_CUSTOMERS,
     total: listQuery.data?.total ?? 0,
     params,
     setSearch,

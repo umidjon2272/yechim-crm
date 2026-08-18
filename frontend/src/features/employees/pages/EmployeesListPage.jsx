@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react'
 import { useEmployees } from '../employees.hooks'
 import { employeesService } from '../../../services/employees.service'
-import { teamsService } from '../../../services/teams.service'
 import { EmployeeTable } from '../components/EmployeeTable'
 import { EmployeeForm } from '../components/EmployeeForm'
 import { Button } from '../../../components/Button/Button'
@@ -16,26 +14,28 @@ import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
 import { useAction } from '../../../hooks/useAction'
 import { useDisclosure } from '../../../hooks/useDisclosure'
+import { useAsync } from '../../../hooks/useAsync'
+import { useAuth } from '../../auth/useAuth'
+import { customerGroupsService } from '../../../services/customers.service'
 import { InboxIcon, PlusIcon, SearchIcon } from '../../../components/icons/Icons'
 
 export function EmployeesListPage() {
   const { employees, total, params, setSearch, setPage, loading, error, refetch } = useEmployees()
   const { isOpen: isCreateOpen, open: openCreate, close: closeCreate } = useDisclosure()
-  const [teams, setTeams] = useState([])
   const confirm = useConfirm()
   const toast = useToast()
+  const { user } = useAuth()
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
+  const { data: partnerGroupsData } = useAsync(
+    () => (isAdmin ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] })),
+    [isAdmin]
+  )
 
   const createAction = useAction(employeesService.create)
+  const deleteAction = useAction((employee) => employeesService.remove(employee.id))
   const toggleStatusAction = useAction((employee) =>
     employee.status === 'active' ? employeesService.deactivate(employee.id) : employeesService.activate(employee.id)
   )
-
-  useEffect(() => {
-    teamsService
-      .list()
-      .then((res) => setTeams(res?.items ?? []))
-      .catch(() => setTeams([]))
-  }, [])
 
   const handleCreate = async (values) => {
     try {
@@ -64,6 +64,24 @@ export function EmployeesListPage() {
       refetch()
     } catch (err) {
       toast.error(err.message || 'Holatni yangilashda xatolik yuz berdi')
+    }
+  }
+
+  const handleDelete = async (employee) => {
+    const ok = await confirm({
+      title: 'Xodimni butunlay o\'chirish',
+      description: `${employee.name} o\'chirilsinmi? Bu amalni bekor qilib bo\'lmaydi.`,
+      confirmLabel: 'Butunlay o\'chirish',
+      danger: true,
+    })
+    if (!ok) return
+
+    try {
+      await deleteAction.run(employee)
+      toast.success('Xodim butunlay o\'chirildi')
+      await refetch()
+    } catch (err) {
+      toast.error(err.message || 'Xodimni o\'chirishda xatolik yuz berdi')
     }
   }
 
@@ -114,13 +132,19 @@ export function EmployeesListPage() {
 
       {!loading && !error && employees.length > 0 && (
         <>
-          <EmployeeTable employees={employees} onToggleStatus={handleToggleStatus} />
+          <EmployeeTable employees={employees} onToggleStatus={handleToggleStatus} onDelete={handleDelete} />
           <Pagination page={params.page} pageSize={params.pageSize} total={total} onPageChange={setPage} />
         </>
       )}
 
       <Modal open={isCreateOpen} title="Yangi xodim qo‘shish" onClose={closeCreate}>
-        <EmployeeForm teams={teams} submitLabel="Qo‘shish" loading={createAction.loading} onSubmit={handleCreate} onCancel={closeCreate} />
+        <EmployeeForm
+          partnerGroups={partnerGroupsData?.items ?? []}
+          submitLabel="Qo‘shish"
+          loading={createAction.loading}
+          onSubmit={handleCreate}
+          onCancel={closeCreate}
+        />
       </Modal>
     </div>
   )

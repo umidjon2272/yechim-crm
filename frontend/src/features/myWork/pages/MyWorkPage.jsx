@@ -119,7 +119,7 @@ export function MyWorkPage() {
 
       {activeTab === 'installations' && (
         <TabPanel
-          fetcher={() => installationsService.list({ assignedToMe: true, pageSize: 50 })}
+          fetcher={() => installationsService.list({ assignedToMe: true, today: true, pageSize: 50 })}
           deps={[]}
           render={(items) => <InstallationTable installations={items} />}
           emptyTitle="Sizga biriktirilgan o‘rnatishlar yo‘q"
