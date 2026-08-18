@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { taskDto } from '../common/mappers';
 import { paged, pagination } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +11,9 @@ export class TasksService {
     const { page, pageSize, skip, take } = pagination(query);
     const canViewAll = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) || user.permissions?.includes('tasks.viewAll');
     const where: any = {};
-    if (!canViewAll || query.assignedToMe === 'true' || query.assignedToMe === true) where.assignedToId = user.id;
+    if (!canViewAll || query.assignedToMe === 'true' || query.assignedToMe === true) {
+      where.OR = [{ assignedToId: user.id }, { assignedEmployeeId: user.id }];
+    }
     if (query.status) where.status = this.normalizeStatus(query.status);
     if (query.priority) where.priority = query.priority;
     if (query.customerId) where.customerId = query.customerId;
@@ -41,6 +43,7 @@ export class TasksService {
     const assignedToId = body.assignedToId || body.assignedEmployeeId || user.id;
     const canViewAll = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role) || user.permissions?.includes('tasks.viewAll');
     if (!canViewAll && assignedToId !== user.id) throw new ForbiddenException('Vazifani faqat ozingizga biriktirishingiz mumkin');
+    await this.ensureAssignee(assignedToId);
     if (body.customerId) await this.ensureCustomerAccess(body.customerId, user);
     const task = await this.prisma.task.create({
       data: {
@@ -62,6 +65,7 @@ export class TasksService {
       include: { assignedTo: { include: { team: true } }, createdBy: { include: { team: true } }, customer: true, deal: true },
     });
     if (task.customerId) await this.prisma.activity.create({ data: { customerId: task.customerId, type: 'TASK_CREATED', message: `Vazifa yaratildi: ${task.title}`, createdById: user.id, metadata: { taskId: task.id } } });
+    if (task.assignedToId && task.assignedToId !== user.id) await this.notifyAssignee(task.assignedToId, task.title, task.id);
     return taskDto(task);
   }
 
@@ -69,18 +73,24 @@ export class TasksService {
     const current = await this.prisma.task.findUnique({ where: { id } });
     if (!current) throw new NotFoundException('Vazifa topilmadi');
     const canEdit = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) || user.permissions?.includes('tasks.edit');
-    const ownStatusOnly = current.assignedToId === user.id && Object.keys(body).every((key) => key === 'status');
+    const nextStatus = body.status ? this.normalizeStatus(body.status) : undefined;
+    const ownStatusOnly =
+      (current.assignedToId === user.id || current.assignedEmployeeId === user.id) &&
+      Object.keys(body).every((key) => key === 'status') &&
+      ['IN_PROGRESS', 'COMPLETED'].includes(nextStatus || '');
     if (!canEdit && !ownStatusOnly) throw new ForbiddenException('Bu vazifani tahrirlashga ruxsat yoq');
-    const assignedToId = body.assignedToId || body.assignedEmployeeId;
+    const hasAssignee = body.assignedToId !== undefined || body.assignedEmployeeId !== undefined;
+    const assignedToId = hasAssignee ? body.assignedToId || body.assignedEmployeeId || null : undefined;
     const canViewAll = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role) || user.permissions?.includes('tasks.viewAll');
     if (!canViewAll && assignedToId && assignedToId !== user.id) throw new ForbiddenException('Vazifani boshqa xodimga biriktirishga ruxsat yo\'q');
+    if (assignedToId) await this.ensureAssignee(assignedToId);
     if (body.customerId) await this.ensureCustomerAccess(body.customerId, user);
     const task = await this.prisma.task.update({
       where: { id },
       data: {
         title: body.title,
         description: body.description,
-        status: body.status ? this.normalizeStatus(body.status) : undefined,
+        status: nextStatus,
         priority: body.priority,
         dueDate: body.dueDate,
         assignedToId,
@@ -93,16 +103,39 @@ export class TasksService {
       } as any,
       include: { assignedTo: { include: { team: true } }, createdBy: { include: { team: true } }, customer: true, deal: true },
     });
+    if (task.assignedToId && task.assignedToId !== current.assignedToId && task.assignedToId !== user.id) {
+      await this.notifyAssignee(task.assignedToId, task.title, task.id);
+    }
     return taskDto(task);
   }
 
   private normalizeStatus(status: string) {
-    return status === 'NEW' ? 'TODO' : status;
+    const normalized = status === 'NEW' ? 'TODO' : status;
+    if (!['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(normalized)) throw new BadRequestException('Vazifa holati noto\'g\'ri');
+    return normalized;
   }
 
   private ensureCanSee(task: any, user: any) {
     const canViewAll = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) || user.permissions?.includes('tasks.viewAll');
-    if (!canViewAll && task.assignedToId !== user.id) throw new ForbiddenException('Bu vazifani korishga ruxsat yoq');
+    if (!canViewAll && task.assignedToId !== user.id && task.assignedEmployeeId !== user.id) throw new ForbiddenException('Bu vazifani korishga ruxsat yoq');
+  }
+
+  private async ensureAssignee(userId: string) {
+    const assignee = await this.prisma.user.findFirst({ where: { id: userId, status: 'active', isActive: true }, select: { id: true } });
+    if (!assignee) throw new BadRequestException('Mas\'ul xodim topilmadi yoki faol emas');
+  }
+
+  private notifyAssignee(userId: string, title: string, taskId: string) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        type: 'task_assigned',
+        title: 'Yangi vazifa',
+        message: title,
+        relatedEntityType: 'task',
+        relatedEntityId: taskId,
+      },
+    });
   }
 
   private async ensureCustomerAccess(customerId: string, user: any) {

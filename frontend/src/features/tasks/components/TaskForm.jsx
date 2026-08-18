@@ -9,7 +9,7 @@ import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_STATUSES, TASK_STATUS_LABEL
 const DEFAULT_VALUES = {
   title: '',
   description: '',
-  assignedEmployeeId: '',
+  assignedToId: '',
   customerId: '',
   businessId: '',
   leadId: '',
@@ -19,7 +19,7 @@ const DEFAULT_VALUES = {
   status: 'TODO',
 }
 
-export function TaskForm({ initialValues = DEFAULT_VALUES, employees = [], context, submitLabel = 'Saqlash', loading, onSubmit, onCancel }) {
+export function TaskForm({ initialValues = DEFAULT_VALUES, employees = [], context, requireAssignee = false, submitLabel = 'Saqlash', loading, onSubmit, onCancel }) {
   const [values, setValues] = useState({ ...DEFAULT_VALUES, ...initialValues, ...context })
   const [errors, setErrors] = useState({})
 
@@ -29,10 +29,12 @@ export function TaskForm({ initialValues = DEFAULT_VALUES, employees = [], conte
     event.preventDefault()
     const nextErrors = validate(values, {
       title: [rules.required('Sarlavha kiritilishi shart')],
+      ...(requireAssignee ? { assignedToId: [rules.required("Mas'ul xodim tanlanishi shart")] } : {}),
     })
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
-    onSubmit(values)
+    const assignedToId = values.assignedToId || values.assignedEmployeeId || ''
+    onSubmit({ ...values, assignedToId })
   }
 
   return (
@@ -45,8 +47,8 @@ export function TaskForm({ initialValues = DEFAULT_VALUES, employees = [], conte
         <textarea className="textarea" rows={3} value={values.description} onChange={handleChange('description')} disabled={loading} />
       </FormField>
 
-      <FormField label="Mas'ul xodim">
-        <Select value={values.assignedEmployeeId} onChange={handleChange('assignedEmployeeId')} disabled={loading}>
+      <FormField label="Mas'ul xodim" required={requireAssignee} error={errors.assignedToId}>
+        <Select value={values.assignedToId || values.assignedEmployeeId || ''} onChange={handleChange('assignedToId')} disabled={loading} aria-invalid={!!errors.assignedToId}>
           <option value="">Tanlanmagan</option>
           {employees.map((e) => (
             <option key={e.id} value={e.id}>

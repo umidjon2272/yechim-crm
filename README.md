@@ -30,4 +30,6 @@ npm start
 
 - Vercel frontend project: set Root Directory to `frontend`.
 - Render backend service: set Root Directory to `backend`.
-- Legacy Vercel demo API code is kept in `backend/legacy-api` for reference.
+- Production frontend authentication uses only the Render API and httpOnly
+  cookies. `backend/mock-server` is local-only test data and is not referenced
+  by the Vercel build.

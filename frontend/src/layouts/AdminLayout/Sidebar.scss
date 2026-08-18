@@ -152,6 +152,10 @@
     flex-shrink: 0;
   }
 
+  &__account {
+    margin-bottom: v.$space-2;
+  }
+
   &__collapse-btn {
     @include m.flex(center, center);
     width: 100%;

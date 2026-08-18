@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { Dropdown, DropdownLabel, DropdownDivider } from '../../components/Dropdown/Dropdown'
-import { EmptyState } from '../../components/EmptyState/EmptyState'
 import { classNames } from '../../utils/classNames'
 import { formatDateTime } from '../../utils/formatDate'
 import { BellIcon, InboxIcon, UserIcon, BuildingIcon, DashboardIcon, TeamIcon } from '../../components/icons/Icons'
@@ -54,7 +53,7 @@ export function NotificationsDropdown() {
       trigger={(toggle, isOpen) => (
         <button type="button" className="header__icon-btn" onClick={toggle} aria-expanded={isOpen} aria-label="Bildirishnomalar">
           <BellIcon />
-          {unreadCount > 0 && <span className="header__notification-dot" />}
+          {unreadCount > 0 && <span className="header__notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
         </button>
       )}
     >
@@ -63,7 +62,7 @@ export function NotificationsDropdown() {
           Bildirishnomalar {unreadCount > 0 && `(${unreadCount})`}
         </DropdownLabel>
         {notifications.length === 0 ? (
-          <EmptyState compact icon={<InboxIcon width={18} height={18} />} title="Bildirishnoma yo‘q" />
+          <div className="notifications-dropdown__empty">Yangi bildirishnoma yo‘q</div>
         ) : (
           <ul className="notifications-dropdown__list">
             {notifications.map((notification) => (

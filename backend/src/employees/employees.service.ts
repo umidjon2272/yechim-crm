@@ -90,6 +90,7 @@ export class EmployeesService {
       if (data.permissions) data.permissions = this.sanitizePermissions(data.permissions);
       if (data.role !== undefined && !['ADMIN', 'EMPLOYEE'].includes(String(data.role).toUpperCase())) delete data.role;
       const user = await this.prisma.user.update({ where: { id }, data, include: { team: true, partnerGroup: true } });
+      if (data.status === 'inactive' || data.isActive === false) await this.revokeSessions(id);
       return publicUser(user);
     } catch (error) {
       if (uniqueConflict(error)) throw new ConflictException(this.uniqueMessage(error));
@@ -97,11 +98,15 @@ export class EmployeesService {
     }
   }
 
-  setStatus(id: string, status: string, actor?: any) {
+  async setStatus(id: string, status: string, actor?: any) {
     if (!['SUPER_ADMIN', 'ADMIN'].includes(actor?.role)) throw new ForbiddenException('Xodim holatini faqat admin o\'zgartiradi');
-    return this.prisma.user
-      .update({ where: { id }, data: { status, isActive: status === 'active', refreshTokenHash: status === 'active' ? undefined : null }, include: { team: true, partnerGroup: true } })
-      .then(publicUser);
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { status, isActive: status === 'active' },
+      include: { team: true, partnerGroup: true },
+    });
+    if (status !== 'active') await this.revokeSessions(id);
+    return publicUser(user);
   }
 
   async resetPassword(id: string, password: string, actor?: any) {
@@ -109,9 +114,10 @@ export class EmployeesService {
     if (!password || String(password).length < 6) throw new ConflictException('Parol kamida 6 belgidan iborat bo\'lishi kerak');
     const user = await this.prisma.user.update({
       where: { id },
-      data: { passwordHash: await bcrypt.hash(password, 12), refreshTokenHash: null },
+      data: { passwordHash: await bcrypt.hash(password, 12) },
       include: { team: true, partnerGroup: true },
     });
+    await this.revokeSessions(id);
     return publicUser(user);
   }
 
@@ -154,6 +160,10 @@ export class EmployeesService {
   private sanitizePermissions(value: any) {
     if (!Array.isArray(value)) return [];
     return [...new Set(value.filter((permission) => ALL_PERMISSIONS.includes(permission)))];
+  }
+
+  private revokeSessions(userId: string) {
+    return this.prisma.userSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
   }
 
   private uniqueMessage(error: any) {

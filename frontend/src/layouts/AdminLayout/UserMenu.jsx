@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom'
-import { Dropdown, DropdownItem, DropdownDivider } from '../../components/Dropdown/Dropdown'
+import { Dropdown, DropdownItem, DropdownDivider, DropdownLabel } from '../../components/Dropdown/Dropdown'
 import { Avatar } from '../../components/Avatar/Avatar'
 import { ChevronDownIcon, UserIcon, SettingsIcon, LogOutIcon } from '../../components/icons/Icons'
 import { useAuth } from '../../features/auth/useAuth'
 import { usePermissions } from '../../features/roles/usePermissions'
 import { ROLE_LABELS } from '../../features/roles/permissions'
+import { classNames } from '../../utils/classNames'
 import './UserMenu.scss'
 
-export function UserMenu() {
+export function UserMenu({ variant = 'header' }) {
   const { user, logout } = useAuth()
   const { can } = usePermissions()
   const navigate = useNavigate()
@@ -25,7 +26,7 @@ export function UserMenu() {
   return (
     <Dropdown
       trigger={(toggle, isOpen) => (
-        <button type="button" className="user-menu-trigger" onClick={toggle} aria-expanded={isOpen}>
+        <button type="button" className={classNames('user-menu-trigger', `user-menu-trigger--${variant}`)} onClick={toggle} aria-expanded={isOpen}>
           <Avatar name={user?.name} src={user?.avatarUrl} size="sm" />
           <span className="user-menu-trigger__meta">
             <div className="user-menu-trigger__name">{user?.name || 'Foydalanuvchi'}</div>
@@ -35,6 +36,10 @@ export function UserMenu() {
         </button>
       )}
     >
+      <DropdownLabel>
+        <span className="user-menu__identity-name">{user?.name || 'Foydalanuvchi'}</span>
+        <span className="user-menu__identity-role">{roleLabel}</span>
+      </DropdownLabel>
       <DropdownItem onClick={() => navigate('/admin/profile')}>
         <UserIcon width={16} height={16} /> Profil
       </DropdownItem>

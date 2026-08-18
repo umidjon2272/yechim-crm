@@ -73,15 +73,21 @@
     }
   }
 
-  &__notification-dot {
+  &__notification-badge {
     position: absolute;
-    top: 7px;
-    right: 7px;
-    width: 8px;
-    height: 8px;
+    top: -4px;
+    right: -4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    @include m.flex(center, center);
     border-radius: v.$radius-full;
     background: v.$color-gold-500;
     border: 2px solid v.$color-white;
     box-shadow: 0 0 0 3px rgba(233, 137, 189, 0.18);
+    color: v.$color-white;
+    font-size: 9px;
+    line-height: 1;
+    font-weight: v.$font-weight-bold;
   }
 }

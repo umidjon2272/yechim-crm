@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { RequirePermissions } from '../permissions/permissions.decorator';
+import { CreateTaskDto } from './dto';
 import { TasksService } from './tasks.service';
 
 @Controller('tasks')
@@ -21,7 +22,7 @@ export class TasksController {
 
   @RequirePermissions('tasks.create')
   @Post()
-  create(@Body() body: any, @Req() req: Request & { user?: any }) {
+  create(@Body() body: CreateTaskDto, @Req() req: Request & { user?: any }) {
     return this.tasks.create(body, req.user);
   }
 

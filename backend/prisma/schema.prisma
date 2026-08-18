@@ -44,7 +44,6 @@ model User {
   status           String         @default("active")
   isActive         Boolean        @default(true)
   avatarUrl        String?
-  refreshTokenHash String?
   teamId           String?
   team             Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
   partnerGroupId   String?
@@ -54,6 +53,7 @@ model User {
   installerCustomers Customer[]     @relation("CustomerInstallers")
   createdTasks       Task[]         @relation("CreatedTasks")
   assignedTasks      Task[]         @relation("AssignedTasks")
+  sessions           UserSession[]
   activities         Activity[]     @relation("CreatedActivities")
   reminders          Reminder[]     @relation("AssignedReminders")
   createdReminders   Reminder[]     @relation("CreatedReminders")
@@ -68,6 +68,19 @@ model User {
   @@index([role])
   @@index([status])
   @@index([partnerGroupId])
+}
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
 }
 
 model Team {

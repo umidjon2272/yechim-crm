@@ -15,6 +15,13 @@
   @include m.custom-scrollbar;
 }
 
+.notifications-dropdown__empty {
+  padding: v.$space-6 v.$space-3;
+  color: v.$color-text-muted;
+  font-size: v.$font-size-sm;
+  text-align: center;
+}
+
 .notifications-dropdown__item {
   @include m.flex(flex-start, flex-start, v.$space-2);
   width: 100%;

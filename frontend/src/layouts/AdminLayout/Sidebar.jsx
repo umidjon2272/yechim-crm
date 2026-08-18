@@ -3,6 +3,7 @@ import { classNames } from '../../utils/classNames'
 import { useUI } from '../../store/UIContext'
 import { usePermissions } from '../../features/roles/usePermissions'
 import { BuildingIcon, SettingsIcon, ChevronLeftIcon, InboxIcon, UsersIcon } from '../../components/icons/Icons'
+import { UserMenu } from './UserMenu'
 import './Sidebar.scss'
 
 // Bitrix24-style hub: everything customer-related (business, lead, deal,
@@ -84,6 +85,9 @@ export function Sidebar() {
         </nav>
 
         <div className="sidebar__footer">
+          <div className="sidebar__account">
+            <UserMenu variant="sidebar" />
+          </div>
           <button type="button" className="sidebar__collapse-btn" onClick={toggleSidebarCollapsed} aria-label="Yon panelni yig‘ish">
             <ChevronLeftIcon style={{ transform: sidebarCollapsed ? 'rotate(180deg)' : 'none' }} />
           </button>

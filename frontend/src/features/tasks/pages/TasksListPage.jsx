@@ -45,7 +45,7 @@ export function TasksListPage() {
       await createAction.run(values)
       toast.success('Vazifa qo‘shildi')
       close()
-      refetch()
+      await refetch()
     } catch (err) {
       toast.error(err.message || 'Vazifa qo‘shishda xatolik yuz berdi')
     }
@@ -149,7 +149,7 @@ export function TasksListPage() {
       )}
 
       <Modal open={isOpen} title="Yangi vazifa qo‘shish" onClose={close}>
-        <TaskForm employees={employees} submitLabel="Qo‘shish" loading={createAction.loading} onSubmit={handleCreate} onCancel={close} />
+        <TaskForm employees={employees} requireAssignee={canViewAll} submitLabel="Qo‘shish" loading={createAction.loading} onSubmit={handleCreate} onCancel={close} />
       </Modal>
     </div>
   )
