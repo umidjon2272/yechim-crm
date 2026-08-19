@@ -18,12 +18,15 @@ import { ActivityForm } from './components/ActivityForm'
  */
 export function ActivitiesSection({ title = 'Faoliyat tarixi', fetcher, deps, context }) {
   const { can } = usePermissions()
-  const { data, loading, refetch } = useAsync(fetcher, deps)
+  const canView = can('activities.view')
+  const { data, loading, refetch } = useAsync(() => canView ? fetcher() : Promise.resolve({ items: [] }), [...(deps || []), canView])
   const { isOpen, open, close } = useDisclosure()
   const createAction = useAction(activitiesService.create)
   const toast = useToast()
 
   const items = data?.items ?? data ?? []
+
+  if (!canView) return null
 
   const handleSubmit = async (payload) => {
     try {

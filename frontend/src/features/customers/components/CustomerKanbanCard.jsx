@@ -1,5 +1,5 @@
 import './CustomerKanbanCard.scss'
-import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
+import { formatCustomerCurrencyAmount, getCustomerAmount } from '../customerAmount'
 
 export { getCustomerAmount }
 
@@ -48,10 +48,11 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
           <span className="customer-kanban-card__stage">{stageLabel || customer.stageLabel || customer.stage}</span>
           <span className="customer-kanban-card__stage">{partnerProgressLabel(customer)}</span>
           <span className="customer-kanban-card__stage">{customer.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</span>
+          <span className="customer-kanban-card__stage">Mukofot: ${Number(customer.rewardAmount || 0).toLocaleString('en-US')}</span>
         </>
       ) : (
         <>
-          <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerAmount(amount) : '-'}</span>
+          <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerCurrencyAmount(amount, customer.currency) : '-'}</span>
           {(customer.isFollowUpToday || customer.isFollowUpOverdue) && (
             <span className={customer.isFollowUpOverdue ? 'customer-kanban-card__follow-up customer-kanban-card__follow-up--overdue' : 'customer-kanban-card__follow-up'}>
               {customer.isFollowUpOverdue ? '⚠ Aloqa kechikdi' : 'Bugun'}

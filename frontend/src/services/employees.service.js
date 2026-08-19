@@ -8,6 +8,7 @@ export const employeesService = {
   update: (id, payload) => httpClient.patch(EMPLOYEES.UPDATE(id), payload),
   remove: (id) => httpClient.delete(EMPLOYEES.DELETE(id)),
   resetPassword: (id, password) => httpClient.post(EMPLOYEES.RESET_PASSWORD(id), { password }),
+  updateCredentials: (id, payload) => httpClient.patch(EMPLOYEES.CREDENTIALS(id), payload),
   activate: (id) => httpClient.post(EMPLOYEES.ACTIVATE(id)),
   deactivate: (id) => httpClient.post(EMPLOYEES.DEACTIVATE(id)),
 

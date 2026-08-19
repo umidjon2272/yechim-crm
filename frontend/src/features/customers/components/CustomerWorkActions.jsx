@@ -12,6 +12,8 @@ import { Modal } from '../../../components/Modal/Modal'
 import { Timeline } from '../../../components/Timeline/Timeline'
 import { formatDateTime } from '../../../utils/formatDate'
 import { timelineService } from '../../../services/timeline.service'
+import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
 import './CustomerWorkActions.scss'
 
 function localInputValue(date) {
@@ -30,16 +32,20 @@ function quickDate(days) {
 
 export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreated }) {
   const [remindAt, setRemindAt] = useState(() => quickDate(0))
+  const [note, setNote] = useState('')
   const createAction = useAction(remindersService.create)
   const toast = useToast()
 
   useEffect(() => {
-    if (open) setRemindAt(quickDate(0))
+    if (open) {
+      setRemindAt(quickDate(0))
+      setNote('')
+    }
   }, [open])
 
   const submit = async () => {
     try {
-      await createAction.run({ customerId: customer.id, remindAt: new Date(remindAt).toISOString(), type })
+      await createAction.run({ customerId: customer.id, remindAt: new Date(remindAt).toISOString(), type, note: note.trim() || null })
       toast.success('Eslatma saqlandi')
       onCreated?.()
       onClose()
@@ -51,7 +57,7 @@ export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreate
   return (
     <Modal
       open={open}
-      title={type === 'REPEAT_SALE' ? 'Keyingi sotuv eslatmasi' : 'Qo\'ng\'iroqni rejalash'}
+      title={type === 'REPEAT_SALE' ? 'Keyingi sotuv eslatmasi' : "Qo'ng'iroqni rejalash"}
       onClose={onClose}
       footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={submit} loading={createAction.loading} disabled={!remindAt}>Saqlash</Button></>}
     >
@@ -64,6 +70,9 @@ export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreate
       <FormField label="Sana va vaqt">
         <Input type="datetime-local" value={remindAt} onChange={(event) => setRemindAt(event.target.value)} />
       </FormField>
+      <FormField label="Izoh / Kommentariya" hint="Ixtiyoriy">
+        <textarea className="textarea" rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Masalan: Narxni direktor bilan kelishish" />
+      </FormField>
     </Modal>
   )
 }
@@ -71,6 +80,7 @@ export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreate
 export function QuickActionModal({ action, customer, onClose, onChanged }) {
   const [text, setText] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [taskNote, setTaskNote] = useState('')
   const createNote = useAction(activitiesService.create)
   const createTask = useAction(tasksService.create)
   const toast = useToast()
@@ -80,6 +90,7 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
     if (action) {
       setText('')
       setDueDate('')
+      setTaskNote('')
     }
   }, [action])
 
@@ -87,7 +98,7 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
     if (!text.trim()) return
     try {
       if (action === 'NOTE') await createNote.run({ customerId: customer.id, type: 'NOTE', message: text.trim() })
-      else await createTask.run({ customerId: customer.id, title: text.trim(), dueDate: dueDate || null })
+      else await createTask.run({ customerId: customer.id, title: text.trim(), description: taskNote.trim() || null, dueDate: dueDate || null })
       toast.success(action === 'NOTE' ? 'Izoh qo\'shildi' : 'Vazifa yaratildi')
       onChanged?.()
       onClose()
@@ -104,9 +115,10 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
       footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={submit} loading={createNote.loading || createTask.loading} disabled={!text.trim()}>Saqlash</Button></>}
     >
       <FormField label={action === 'NOTE' ? 'Izoh' : 'Vazifa nomi'}>
-        <textarea className="textarea" rows={3} value={text} onChange={(event) => setText(event.target.value)} autoFocus placeholder={action === 'NOTE' ? 'Masalan: Direktor bilan narxni kelishadi' : 'Masalan: Mijoz bilan bog\'lanish'} />
+        <textarea className="textarea" rows={3} value={text} onChange={(event) => setText(event.target.value)} autoFocus placeholder={action === 'NOTE' ? 'Masalan: Direktor bilan narxni kelishadi' : "Masalan: Mijoz bilan bog'lanish"} />
       </FormField>
       {action === 'TASK' && <FormField label="Muddat" hint="Ixtiyoriy"><Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></FormField>}
+      {action === 'TASK' && <FormField label="Izoh / Kommentariya" hint="Ixtiyoriy"><textarea className="textarea" rows={3} value={taskNote} onChange={(event) => setTaskNote(event.target.value)} /></FormField>}
     </Modal>
   )
 }
@@ -114,9 +126,12 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
 export function CustomerWorkPanel({ customer, onChanged }) {
   const [action, setAction] = useState(null)
   const [reminderType, setReminderType] = useState(null)
-  const { data, loading, refetch } = useAsync(() => timelineService.get('customer', customer.id), [customer.id])
+  const { can } = usePermissions()
+  const canSeeHistory = can('history.view')
+  const canSeeComments = can('comments.view')
+  const { data, loading, refetch } = useAsync(() => canSeeHistory ? timelineService.get('customer', customer.id) : Promise.resolve({ items: [] }), [customer.id, canSeeHistory])
   const items = data?.items ?? data ?? []
-  const latestNote = useMemo(() => items.find((item) => item.type === 'NOTE'), [items])
+  const latestNote = useMemo(() => canSeeComments ? items.find((item) => item.type === 'NOTE') : null, [items, canSeeComments])
   const handleChanged = () => {
     refetch()
     onChanged?.()
@@ -130,15 +145,15 @@ export function CustomerWorkPanel({ customer, onChanged }) {
       </div>
       {latestNote && <div className="customer-work-panel__note"><span>Oxirgi izoh</span>{latestNote.description || latestNote.message}</div>}
       <div className="customer-work-panel__actions">
-        <Button size="sm" variant="secondary" onClick={() => setReminderType('CALL')}>📞 Qo'ng'iroq</Button>
-        <Button size="sm" variant="secondary" onClick={() => setReminderType('REPEAT_SALE')}>⏰ Eslatma</Button>
-        <Button size="sm" variant="secondary" onClick={() => setAction('TASK')}>✓ Vazifa</Button>
-        <Button size="sm" variant="secondary" onClick={() => setAction('NOTE')}>✎ Izoh</Button>
+        <PermissionGate permission="calls.create"><Button size="sm" variant="secondary" onClick={() => setReminderType('CALL')}>Qo'ng'iroq</Button></PermissionGate>
+        <PermissionGate permission="reminders.create"><Button size="sm" variant="secondary" onClick={() => setReminderType('REPEAT_SALE')}>Eslatma</Button></PermissionGate>
+        <PermissionGate permission="tasks.create"><Button size="sm" variant="secondary" onClick={() => setAction('TASK')}>Vazifa</Button></PermissionGate>
+        <PermissionGate permission="comments.create"><Button size="sm" variant="secondary" onClick={() => setAction('NOTE')}>Izoh</Button></PermissionGate>
       </div>
-      <div className="customer-work-panel__timeline">
+      {canSeeHistory && <div className="customer-work-panel__timeline">
         <strong>Tarix</strong>
         {loading ? <span className="text-muted text-xs">Yuklanmoqda...</span> : <Timeline items={items.slice(0, 8)} />}
-      </div>
+      </div>}
       <QuickActionModal action={action} customer={customer} onClose={() => setAction(null)} onChanged={handleChanged} />
       <ReminderModal open={Boolean(reminderType)} type={reminderType || 'CALL'} customer={customer} onClose={() => setReminderType(null)} onCreated={handleChanged} />
     </div>

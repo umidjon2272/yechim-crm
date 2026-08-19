@@ -28,7 +28,7 @@ export function LogCallButton({ context, onCreated }) {
   }
 
   return (
-    <PermissionGate permission="activities.create">
+    <PermissionGate permission="calls.create">
       <Button variant="secondary" onClick={open}>
         <PhoneIcon width={16} height={16} /> Qo‘ng‘iroq
       </Button>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useEmployees } from '../employees.hooks'
 import { employeesService } from '../../../services/employees.service'
 import { EmployeeTable } from '../components/EmployeeTable'
@@ -25,6 +26,7 @@ export function EmployeesListPage() {
   const confirm = useConfirm()
   const toast = useToast()
   const { user } = useAuth()
+  const [invitation, setInvitation] = useState(null)
   const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
   const { data: partnerGroupsData } = useAsync(
     () => (isAdmin ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] })),
@@ -39,10 +41,11 @@ export function EmployeesListPage() {
 
   const handleCreate = async (values) => {
     try {
-      await createAction.run(values)
+      const result = await createAction.run(values)
       toast.success('Xodim muvaffaqiyatli qo‘shildi')
       closeCreate()
       refetch()
+      setInvitation(result)
     } catch (err) {
       toast.error(err.message || 'Xodim qo‘shishda xatolik yuz berdi')
     }
@@ -145,6 +148,17 @@ export function EmployeesListPage() {
           onSubmit={handleCreate}
           onCancel={closeCreate}
         />
+      </Modal>
+      <Modal open={Boolean(invitation)} title="Xodim yaratildi" onClose={() => setInvitation(null)}>
+        {invitation && <div className="stack">
+          <p>Login ma'lumotlari faqat shu oynada ko'rsatiladi.</p>
+          <div className="detail-grid">
+            <div className="detail-field"><div className="detail-field__label">Login</div><div className="detail-field__value">{invitation.credentials?.login}</div></div>
+            <div className="detail-field"><div className="detail-field__label">Parol</div><div className="detail-field__value">{invitation.credentials?.password}</div></div>
+          </div>
+          <div className="detail-field"><div className="detail-field__label">Kirish havolasi</div><div className="detail-field__value">{invitation.loginUrl}</div></div>
+          <Button type="button" onClick={async () => { const message = `YECHIM CRM\n\nKirish:\n${invitation.loginUrl}\n\nLogin: ${invitation.credentials?.login}\nParol: ${invitation.credentials?.password}`; await navigator.clipboard?.writeText(message); toast.success('Kirish ma\'lumotlari nusxalandi') }}>Kirish ma'lumotlarini nusxalash</Button>
+        </div>}
       </Modal>
     </div>
   )

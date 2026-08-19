@@ -23,6 +23,8 @@ import { Tabs } from '../../../components/Tabs/Tabs'
 import { Modal } from '../../../components/Modal/Modal'
 import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
 import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
+import { useAuth } from '../../auth/useAuth'
 import { ActivitiesSection } from '../../activities/ActivitiesSection'
 import { LogCallButton } from '../../activities/components/LogCallButton'
 import { CommentsSection } from '../../comments/CommentsSection'
@@ -64,6 +66,9 @@ export function CustomerDetailPage() {
   const isEditing = searchParams.get('edit') === '1'
   const toast = useToast()
   const confirm = useConfirm()
+  const { can } = usePermissions()
+  const { user } = useAuth()
+  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey((k) => k + 1)
@@ -214,11 +219,12 @@ export function CustomerDetailPage() {
             loading={updateAction.loading}
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
+            canManageGroups={can('customers.edit')}
           />
         </Card>
       ) : (
         <>
-          <Tabs items={TABS} activeId={activeTab} onChange={setActiveTab} />
+          <Tabs items={TABS.filter((tab) => isPartner ? tab.id === 'overview' : (tab.id === 'activities' ? can('activities.view') : tab.id === 'comments' ? can('comments.view') : true))} activeId={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'overview' && (
             <div className="stack">
@@ -266,7 +272,7 @@ export function CustomerDetailPage() {
                 )}
               </Card>
               <Card title="Guruhlar">
-                <CustomerGroupsField customer={customer} onChanged={refetch} />
+                <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
               </Card>
               <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />
               <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />

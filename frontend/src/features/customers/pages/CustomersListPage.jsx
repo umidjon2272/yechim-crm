@@ -9,7 +9,7 @@ import { CustomerKanbanCard, getCustomerAmount } from '../components/CustomerKan
 import { CustomerForm } from '../components/CustomerForm'
 import { CreateStageModal } from '../components/CreateStageModal'
 import { CustomerGroupsBar } from '../components/CustomerGroupsBar'
-import { formatCustomerAmount } from '../customerAmount'
+import { formatCustomerCurrencyAmount } from '../customerAmount'
 import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS, CUSTOMER_STAGES, CUSTOMER_STAGE_LABELS } from '../customers.constants'
 import { INSTALLATION_STATUSES, INSTALLATION_STATUS_LABELS } from '../../installations/installations.constants'
 import { Button } from '../../../components/Button/Button'
@@ -119,6 +119,7 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
             onSubmit={handleUpdate}
             onCancel={onClose}
             onDelete={handleDelete}
+            canManageGroups={!readOnly}
           />
           <Card title="Guruhlar" className="customer-edit-modal__groups-card">
             <CustomerGroupsField customer={customer} onChanged={async () => { await refetch(); onChanged?.() }} />
@@ -867,16 +868,22 @@ export function CustomersListPage() {
           items={displayedCustomers}
           getColumnId={(customer) => customer.stage}
           renderColumnHeader={(column, columnCustomers) => {
-            const totalAmount = columnCustomers.reduce((sum, customer) => sum + getCustomerAmount(customer), 0)
+            const totals = columnCustomers.reduce((groups, customer) => {
+              const currency = customer.currency || { code: 'UZS', symbol: 'so\'m' }
+              const key = currency.id || currency.code
+              groups[key] = groups[key] || { currency, amount: 0 }
+              groups[key].amount += getCustomerAmount(customer)
+              return groups
+            }, {})
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
                   <InlineStageTitle column={column} canEdit={can('customers.edit')} onSave={handleRenameStage} onDelete={can('customers.edit') ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
                 </div>
-                {!isPartner && <span className="kanban__column-meta">
-                  <span className="kanban__column-total">{formatCustomerAmount(totalAmount)}</span>
-                </span>}
+                 {!isPartner && <span className="kanban__column-meta">
+                   {Object.values(totals).map((total) => <span className="kanban__column-total" key={total.currency.id || total.currency.code}>{formatCustomerCurrencyAmount(total.amount, total.currency)}</span>)}
+                 </span>}
               </div>
             )
           }}
@@ -922,6 +929,7 @@ export function CustomersListPage() {
           loading={createAction.loading}
           onSubmit={handleCreate}
           onCancel={createModal.close}
+          canManageGroups={!isPartner}
         />
       </Modal>
 

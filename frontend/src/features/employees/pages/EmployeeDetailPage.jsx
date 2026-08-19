@@ -14,6 +14,7 @@ import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
 import { Modal } from '../../../components/Modal/Modal'
 import { FormField } from '../../../components/FormField/FormField'
+import { Input } from '../../../components/Input/Input'
 import { PasswordInput } from '../../../components/PasswordInput/PasswordInput'
 import { RelatedList } from '../../../components/RelatedList/RelatedList'
 import { StatCard } from '../../../components/charts/StatCard'
@@ -122,27 +123,28 @@ function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
   )
 }
 
-function UpdatePasswordModal({ employeeId, isOpen, onClose, onSaved }) {
-  const [values, setValues] = useState({ password: '', confirmPassword: '' })
+function UpdatePasswordModal({ employeeId, username: initialUsername, isOpen, onClose, onSaved }) {
+  const [values, setValues] = useState({ username: initialUsername || '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
-  const updateAction = useAction((payload) => employeesService.resetPassword(employeeId, payload.password))
+  const updateAction = useAction((payload) => employeesService.updateCredentials(employeeId, payload))
   const toast = useToast()
 
   const handleChange = (field) => (event) => setValues((v) => ({ ...v, [field]: event.target.value }))
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const nextErrors = validate(values, { password: [rules.required('Yangi parol kiritilishi shart')] })
-    if (!nextErrors.password && values.password !== values.confirmPassword) {
+    const nextErrors = validate(values, { username: [rules.required('Login kiritilishi shart')] })
+    if (values.password && values.password.length < 6) nextErrors.password = 'Parol kamida 6 belgidan iborat bo\'lishi kerak'
+    if (values.password && values.password !== values.confirmPassword) {
       nextErrors.confirmPassword = 'Parollar mos kelmadi'
     }
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     try {
-      await updateAction.run({ password: values.password })
-      toast.success('Parol yangilandi')
-      setValues({ password: '', confirmPassword: '' })
+      await updateAction.run({ username: values.username.trim(), ...(values.password ? { newPassword: values.password } : {}) })
+      toast.success(values.password ? 'Login va parol yangilandi' : 'Login yangilandi')
+      setValues({ username: initialUsername || '', password: '', confirmPassword: '' })
       onSaved()
     } catch (err) {
       toast.error(err.message || 'Parolni yangilashda xatolik yuz berdi')
@@ -150,9 +152,12 @@ function UpdatePasswordModal({ employeeId, isOpen, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={isOpen} title="Parolni yangilash" onClose={onClose}>
+    <Modal open={isOpen} title="Login / parolni boshqarish" onClose={onClose}>
       <form onSubmit={handleSubmit} noValidate>
-        <FormField label="Yangi parol" required error={errors.password}>
+        <FormField label="Login" required error={errors.username}>
+          <Input value={values.username} onChange={handleChange('username')} error={!!errors.username} disabled={updateAction.loading} />
+        </FormField>
+        <FormField label="Yangi parol" hint="Ixtiyoriy — reset qilish uchun kiriting" error={errors.password}>
           <PasswordInput value={values.password} onChange={handleChange('password')} error={!!errors.password} disabled={updateAction.loading} />
         </FormField>
         <FormField label="Parolni tasdiqlash" error={errors.confirmPassword}>
@@ -275,7 +280,7 @@ export function EmployeeDetailPage() {
           </Button>
           {isAdmin && (
             <Button variant="secondary" onClick={passwordModal.open}>
-              Parolni yangilash
+              Login / parol
             </Button>
           )}
           {isAdmin && (
@@ -399,9 +404,10 @@ export function EmployeeDetailPage() {
       />
       <UpdatePasswordModal
         employeeId={id}
+        username={employee.username}
         isOpen={passwordModal.isOpen}
         onClose={passwordModal.close}
-        onSaved={() => passwordModal.close()}
+        onSaved={() => { passwordModal.close(); refetch() }}
       />
     </div>
   )

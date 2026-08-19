@@ -26,6 +26,8 @@ import { Tabs } from '../../../components/Tabs/Tabs'
 import { Modal } from '../../../components/Modal/Modal'
 import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
 import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
+import { useAuth } from '../../auth/useAuth'
 import { ActivitiesSection } from '../../activities/ActivitiesSection'
 import { CommentsSection } from '../../comments/CommentsSection'
 import { AttachmentsSection } from '../../attachments/AttachmentsSection'
@@ -65,6 +67,9 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const navigate = useNavigate()
   const toast = useToast()
   const confirm = useConfirm()
+  const { can } = usePermissions()
+  const { user } = useAuth()
+  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
   const [sideTab, setSideTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -234,7 +239,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
               Stage: <strong>{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</strong>
             </span>
             <span>
-              Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount) : 'Belgilanmagan'}</strong>
+              {!isPartner && <>Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</strong></>}
             </span>
             <span>
               Mas'ul: <strong>{customer.assignedEmployee?.name || '-'}</strong>
@@ -292,8 +297,9 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
               employees={employees}
               submitLabel="Saqlash"
               loading={updateAction.loading}
-              onSubmit={handleUpdate}
-              onCancel={() => setIsEditing(false)}
+            onSubmit={handleUpdate}
+            onCancel={() => setIsEditing(false)}
+            canManageGroups={can('customers.edit')}
             />
           </Card>
         </div>
@@ -308,7 +314,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     tasks: tasksCountData?.total,
     installations: installationsCountData?.total,
   }
-  const sideTabs = BASE_SIDE_TABS.map((tab) =>
+  const sideTabs = BASE_SIDE_TABS.filter((tab) => isPartner ? tab.id === 'overview' : (tab.id === 'activities' ? can('activities.view') : tab.id === 'comments' ? can('comments.view') : true)).map((tab) =>
     tabCounts[tab.id] != null ? { ...tab, label: `${tab.label} (${tabCounts[tab.id]})` } : tab
   )
 
@@ -339,7 +345,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Savdo summasi</div>
-                      <div className="detail-field__value">{customerAmount > 0 ? formatCustomerAmount(customerAmount) : 'Belgilanmagan'}</div>
+                      <div className="detail-field__value">{isPartner ? '—' : customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</div>
                     </div>
                     <div className="detail-field">
                       <div className="detail-field__label">Dastur</div>
@@ -385,7 +391,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                   )}
                 </Card>
                 <Card title="Guruhlar">
-                  <CustomerGroupsField customer={customer} onChanged={refetch} />
+                  <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
                 </Card>
                 <RelatedList
                   title="Bizneslar"

@@ -5,6 +5,7 @@ import { EmployeesSection } from '../sections/EmployeesSection'
 import { ProgramCatalogSection } from '../sections/ProgramCatalogSection'
 import { ProfilePage } from '../../profile/pages/ProfilePage'
 import { usePermissions } from '../../roles/usePermissions'
+import { CurrenciesSection } from '../sections/CurrenciesSection'
 import './SettingsPage.scss'
 
 const SECTIONS = [
@@ -12,6 +13,7 @@ const SECTIONS = [
   { id: 'employees', label: 'Xodimlar', Component: EmployeesSection },
   { id: 'permissions', label: 'Ruxsatlar', Component: UsersRolesSection },
   { id: 'programs', label: 'Dasturlar', Component: ProgramCatalogSection },
+  { id: 'currencies', label: 'Valyutalar', Component: CurrenciesSection },
 ]
 
 export function SettingsPage() {
@@ -22,6 +24,7 @@ export function SettingsPage() {
     if (section.id === 'employees') return can('employees.view')
     if (section.id === 'permissions') return can('settings.view')
     if (section.id === 'programs') return can('programs.view')
+    if (section.id === 'currencies') return can('settings.view')
     return false
   })
   const safeActiveId = visibleSections.some((section) => section.id === activeId) ? activeId : visibleSections[0]?.id

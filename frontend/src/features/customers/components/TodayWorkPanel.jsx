@@ -22,8 +22,8 @@ export function TodayWorkPanel() {
       </button>
       <Modal open={open} title="Bugungi ishlar" onClose={() => setOpen(false)}>
         {loading ? <div className="page-loading"><Spinner /></div> : <div className="today-work-list">
-          <section><strong>Qo'ng'iroqlar</strong>{items.reminders.length ? items.reminders.map((item) => <div className="today-work-list__item" key={item.id}>{item.title}<small>{new Date(item.remindAt).toLocaleString('uz-UZ')}</small></div>) : <p className="text-muted text-xs">Bugun qo'ng'iroq yo'q.</p>}</section>
-          <section><strong>Vazifalar</strong>{items.tasks.length ? items.tasks.map((item) => <div className="today-work-list__item" key={item.id}>{item.title}<small>{item.customer?.name || 'Mijozsiz'}</small></div>) : <p className="text-muted text-xs">Bugun vazifa yo'q.</p>}</section>
+          <section><strong>Qo'ng'iroqlar</strong>{items.reminders.length ? items.reminders.map((item) => <div className="today-work-list__item" key={item.id}>{item.title}<small>{item.note || new Date(item.remindAt).toLocaleString('uz-UZ')}</small></div>) : <p className="text-muted text-xs">Bugun qo'ng'iroq yo'q.</p>}</section>
+          <section><strong>Vazifalar</strong>{items.tasks.length ? items.tasks.map((item) => <div className="today-work-list__item" key={item.id}>{item.title}<small>{item.description || item.customer?.name || 'Mijozsiz'}</small></div>) : <p className="text-muted text-xs">Bugun vazifa yo'q.</p>}</section>
           <section><strong>O'rnatishlar</strong>{items.installations.length ? items.installations.map((item) => <div className="today-work-list__item" key={item.id}>{item.customer?.name || 'Mijoz'}<small>{item.scheduledDate ? new Date(item.scheduledDate).toLocaleString('uz-UZ') : 'Sana belgilanmagan'}</small></div>) : <p className="text-muted text-xs">Bugun o'rnatish yo'q.</p>}</section>
         </div>}
       </Modal>

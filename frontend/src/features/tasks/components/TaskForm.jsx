@@ -43,7 +43,7 @@ export function TaskForm({ initialValues = DEFAULT_VALUES, employees = [], conte
         <Input value={values.title} onChange={handleChange('title')} error={!!errors.title} disabled={loading} />
       </FormField>
 
-      <FormField label="Tavsif">
+      <FormField label="Izoh / Kommentariya" hint="Ixtiyoriy">
         <textarea className="textarea" rows={3} value={values.description} onChange={handleChange('description')} disabled={loading} />
       </FormField>
 

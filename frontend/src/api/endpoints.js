@@ -10,6 +10,7 @@ export const AUTH = {
 
 export const USERS = {
   ME: '/users/me',
+  ME_LOGIN: '/users/me/login',
 }
 
 export const EMPLOYEES = {
@@ -19,6 +20,7 @@ export const EMPLOYEES = {
   UPDATE: (id) => `/employees/${id}`,
   DELETE: (id) => `/employees/${id}`,
   RESET_PASSWORD: (id) => `/employees/${id}/password-reset`,
+  CREDENTIALS: (id) => `/employees/${id}/credentials`,
   ACTIVATE: (id) => `/employees/${id}/activate`,
   DEACTIVATE: (id) => `/employees/${id}/deactivate`,
   ASSIGNED_TASKS: (id) => `/employees/${id}/tasks`,
@@ -204,6 +206,12 @@ export const REMINDERS = {
   COMPLETE: (id) => `/reminders/${id}/complete`,
   CANCEL: (id) => `/reminders/${id}/cancel`,
   TODAY_WORK: '/reminders/work/today',
+}
+
+export const CURRENCIES = {
+  LIST: '/currencies',
+  CREATE: '/currencies',
+  UPDATE: (id) => `/currencies/${id}`,
 }
 
 export const SEARCH = {

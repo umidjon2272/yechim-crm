@@ -125,6 +125,6 @@ export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, 
     },
   ]
 
-  const visibleColumns = partner ? columns.filter((column) => ['name', 'phone', 'stage', 'completed', 'installed'].includes(column.key)) : columns
+  const visibleColumns = partner ? columns.filter((column) => ['name', 'phone', 'stage', 'completed', 'installed', 'rewardAmount'].includes(column.key)) : columns
   return <Table columns={visibleColumns} data={customers} onRowClick={(row) => onOpen(row.id)} />
 }

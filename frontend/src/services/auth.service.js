@@ -12,4 +12,5 @@ export const authService = {
       { accessToken: tokens.accessToken || null, skipAuth: !tokens.accessToken, skipRefresh: true },
     ),
   getCurrentUser: () => httpClient.get(AUTH.ME),
+  changePassword: (payload) => httpClient.post('/auth/change-password', payload),
 }

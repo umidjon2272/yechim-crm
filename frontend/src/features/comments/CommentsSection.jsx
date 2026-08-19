@@ -22,12 +22,15 @@ import './CommentsSection.scss'
 export function CommentsSection({ entityType, entityId }) {
   const { user } = useAuth()
   const { can } = usePermissions()
-  const { data, loading, error, refetch } = useAsync(() => commentsService.list(entityType, entityId), [entityType, entityId])
+  const canView = can('comments.view')
+  const { data, loading, error, refetch } = useAsync(() => canView ? commentsService.list(entityType, entityId) : Promise.resolve({ items: [] }), [entityType, entityId, canView])
   const createAction = useAction(commentsService.create)
   const removeAction = useAction(commentsService.remove)
   const [text, setText] = useState('')
 
   const comments = data?.items ?? data ?? []
+
+  if (!canView) return null
 
   const handleSubmit = async (event) => {
     event.preventDefault()
