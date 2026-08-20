@@ -51,6 +51,64 @@ function coordinateValue(value) {
   return Number.isFinite(number) ? number : null
 }
 
+function CustomerGroupsDropdown({ groups, value = [], onChange, disabled }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
+  const selectedIds = Array.isArray(value) ? value : []
+  const selectedGroups = groups.filter((group) => selectedIds.includes(group.id))
+  const allSelected = groups.length > 0 && selectedGroups.length === groups.length
+
+  useEffect(() => {
+    if (!open) return undefined
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [open])
+
+  const toggleGroup = (groupId) => {
+    onChange(selectedIds.includes(groupId) ? selectedIds.filter((id) => id !== groupId) : [...selectedIds, groupId])
+  }
+
+  const toggleAll = () => onChange(allSelected ? [] : groups.map((group) => group.id))
+
+  return (
+    <div className="customer-groups-dropdown" ref={containerRef}>
+      <button
+        type="button"
+        className="customer-groups-dropdown__trigger"
+        onClick={() => setOpen((current) => !current)}
+        disabled={disabled || groups.length === 0}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="customer-groups-dropdown__selection">
+          {selectedGroups.length === 0 && <span className="customer-groups-dropdown__placeholder">Guruh tanlang</span>}
+          {allSelected && <span className="customer-groups-dropdown__pill">Barcha</span>}
+          {!allSelected && selectedGroups.map((group) => <span key={group.id} className="customer-groups-dropdown__pill">{group.name}</span>)}
+        </span>
+        <span className="customer-groups-dropdown__chevron" aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <div className="customer-groups-dropdown__menu" role="listbox" aria-multiselectable="true">
+          <label className="customer-groups-dropdown__option customer-groups-dropdown__option--all">
+            <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+            <span>Barcha</span>
+          </label>
+          {groups.map((group) => (
+            <label key={group.id} className="customer-groups-dropdown__option">
+              <input type="checkbox" checked={selectedIds.includes(group.id)} onChange={() => toggleGroup(group.id)} />
+              <span>{group.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {groups.length === 0 && <span className="form-field__hint">Hozircha guruhlar mavjud emas.</span>}
+    </div>
+  )
+}
+
 function LocationField({ values, setValue, loading }) {
   const [searching, setSearching] = useState(false)
   const [locating, setLocating] = useState(false)
@@ -260,7 +318,6 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
   const [errors, setErrors] = useState({})
   const set = (field) => (event) => setValues((current) => ({ ...current, [field]: event.target.value }))
   const setValue = (field, value) => setValues((current) => ({ ...current, [field]: value }))
-  const setGroups = (event) => setValue('groupIds', Array.from(event.target.selectedOptions).map((option) => option.value))
   const handlePhone = (event) => {
     let phone = event.target.value.replace(/[^\d+]/g, '')
     if (!phone.startsWith('+998')) phone = `+998${phone.replace(/^\+?998/, '')}`
@@ -289,7 +346,7 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
     onSubmit({
       name: `${values.firstName} ${values.lastName}`.trim(),
       firstName: values.firstName,
-      lastName: values.lastName,
+      ...(isEditing ? { lastName: values.lastName } : {}),
       phone: values.phone,
       amount: Number.isFinite(amount) ? amount : 0,
       currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null,
@@ -308,7 +365,7 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
     <form onSubmit={handleSubmit} noValidate className="stack">
       <div className="detail-grid">
         <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
-        <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>
+        {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
         <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
         <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><Input type="number" min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>
         <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>
@@ -320,7 +377,7 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
         {isEditing && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><Input type="number" min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
       </div>
       <LocationField values={values} setValue={setValue} loading={loading} />
-      {canManageGroups && <FormField label="Guruh" hint="Bir nechta guruh tanlash mumkin"><Select multiple size={Math.min(4, Math.max(2, groups.length))} value={values.groupIds} onChange={setGroups} disabled={loading}><option value="" disabled>Guruh tanlang</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</Select></FormField>}
+      {canManageGroups && <FormField label="Guruh" hint="Bir nechta guruh tanlash mumkin"><CustomerGroupsDropdown groups={groups} value={values.groupIds} onChange={(groupIds) => setValue('groupIds', groupIds)} disabled={loading} /></FormField>}
       <div className="card__footer" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {onDelete && <Button type="button" variant="danger-ghost" onClick={onDelete} disabled={loading}>O‘chirish</Button>}
         <span style={{ flex: 1 }} />

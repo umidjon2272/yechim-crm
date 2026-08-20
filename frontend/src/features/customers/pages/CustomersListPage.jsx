@@ -543,7 +543,8 @@ export function CustomersListPage() {
 
   const handleCreate = async (customerPayload, businessPayload) => {
     try {
-      await createAction.run({ ...customerPayload, groupIds: params.groupId ? [params.groupId] : [] }, businessPayload)
+      const groupIds = Array.isArray(customerPayload.groupIds) ? customerPayload.groupIds : params.groupId ? [params.groupId] : []
+      await createAction.run({ ...customerPayload, groupIds }, businessPayload)
       toast.success("Mijoz qo'shildi")
       createModal.close()
       await refetch()
@@ -922,7 +923,7 @@ export function CustomersListPage() {
       <Modal open={createModal.isOpen} title="Mijoz qo'shish" className="customer-edit-modal" onClose={createModal.close}>
         <CustomerForm
           key={createStageId || 'new-customer'}
-          initialValues={{ stage: createStageId || 'NEW' }}
+          initialValues={{ stage: createStageId || 'NEW', groupIds: params.groupId ? [params.groupId] : [] }}
           employees={employees}
           stages={stageColumns}
           submitLabel="Qo'shish"

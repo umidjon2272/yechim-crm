@@ -86,7 +86,7 @@ function PartnerRewardSection({ groupId }) {
 
 function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
   const [permissions, setPermissions] = useState(employee.permissions ?? [])
-  const updateAction = useAction((payload) => employeesService.update(employee.id, payload))
+  const updateAction = useAction((nextPermissions) => employeesService.updatePermissions(employee.id, nextPermissions))
   const toast = useToast()
 
   useEffect(() => {
@@ -95,9 +95,9 @@ function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
 
   const handleSave = async () => {
     try {
-      await updateAction.run({ permissions })
+      await updateAction.run(permissions)
       toast.success('Ruxsatlar yangilandi')
-      onSaved()
+      await onSaved()
     } catch (err) {
       toast.error(err.message || 'Ruxsatlarni saqlashda xatolik yuz berdi')
     }
@@ -196,6 +196,7 @@ export function EmployeeDetailPage() {
   const { data: employee, loading, error, refetch } = useEmployee(id)
   const { data: partnerGroupsData } = useAsync(() => (isAdmin ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] })), [isAdmin])
   const updateAction = useAction((values) => employeesService.update(id, values))
+  const permissionsAction = useAction((permissions) => employeesService.updatePermissions(id, permissions))
   const deleteAction = useAction(() => employeesService.remove(id))
   const toggleStatusAction = useAction((payload) =>
     payload.status === 'active' ? employeesService.activate(id) : employeesService.deactivate(id)
@@ -203,10 +204,12 @@ export function EmployeeDetailPage() {
 
   const handleUpdate = async (values) => {
     try {
-      await updateAction.run(values)
+      const { permissions, ...profileValues } = values
+      await updateAction.run(profileValues)
+      if (isAdmin && Array.isArray(permissions)) await permissionsAction.run(permissions)
       toast.success('Ma’lumotlar yangilandi')
       setSearchParams({})
-      refetch()
+      await refetch()
     } catch (err) {
       toast.error(err.message || 'Yangilashda xatolik yuz berdi')
     }
@@ -315,7 +318,7 @@ export function EmployeeDetailPage() {
             partnerGroups={partnerGroupsData?.items ?? []}
             canManageAccess={isAdmin}
             submitLabel="Saqlash"
-            loading={updateAction.loading}
+            loading={updateAction.loading || permissionsAction.loading}
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
           />
@@ -397,9 +400,9 @@ export function EmployeeDetailPage() {
         employee={employee}
         isOpen={permissionsModal.isOpen}
         onClose={permissionsModal.close}
-        onSaved={() => {
+        onSaved={async () => {
           permissionsModal.close()
-          refetch()
+          await refetch()
         }}
       />
       <UpdatePasswordModal

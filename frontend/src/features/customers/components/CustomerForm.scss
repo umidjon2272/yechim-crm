@@ -33,6 +33,110 @@
   }
 }
 
+.customer-groups-dropdown {
+  position: relative;
+
+  &__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: v.$space-3;
+    width: 100%;
+    min-height: 44px;
+    padding: v.$space-2 v.$space-3;
+    color: v.$color-text-primary;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(125, 92, 246, 0.18);
+    border-radius: v.$radius-md;
+    transition: border-color v.$transition-fast, box-shadow v.$transition-fast;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: rgba(125, 92, 246, 0.48);
+      box-shadow: 0 0 0 3px rgba(125, 92, 246, 0.1);
+      outline: none;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+  }
+
+  &__selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: v.$space-1;
+    min-width: 0;
+  }
+
+  &__placeholder {
+    color: v.$color-text-secondary;
+  }
+
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 3px 9px;
+    overflow: hidden;
+    color: v.$color-text-primary;
+    font-size: v.$font-size-xs;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: rgba(125, 92, 246, 0.12);
+    border-radius: 999px;
+  }
+
+  &__chevron {
+    flex: 0 0 auto;
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-sm;
+  }
+
+  &__menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    max-height: 220px;
+    padding: v.$space-1;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(125, 92, 246, 0.18);
+    border-radius: v.$radius-md;
+    box-shadow: 0 14px 32px rgba(47, 35, 94, 0.14);
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: v.$space-2;
+    padding: v.$space-2 v.$space-3;
+    color: v.$color-text-primary;
+    font-size: v.$font-size-sm;
+    cursor: pointer;
+    border-radius: v.$radius-sm;
+
+    &:hover {
+      background: rgba(125, 92, 246, 0.08);
+    }
+
+    input {
+      accent-color: #7d5cf6;
+    }
+
+    &--all {
+      margin-bottom: v.$space-1;
+      font-weight: v.$font-weight-semibold;
+      border-bottom: 1px solid rgba(125, 92, 246, 0.12);
+      border-radius: 0;
+    }
+  }
+}
+
 .customer-location {
   display: flex;
   flex-direction: column;

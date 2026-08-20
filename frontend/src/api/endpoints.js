@@ -18,6 +18,7 @@ export const EMPLOYEES = {
   DETAIL: (id) => `/employees/${id}`,
   CREATE: '/employees',
   UPDATE: (id) => `/employees/${id}`,
+  PERMISSIONS: (id) => `/employees/${id}/permissions`,
   DELETE: (id) => `/employees/${id}`,
   RESET_PASSWORD: (id) => `/employees/${id}/password-reset`,
   CREDENTIALS: (id) => `/employees/${id}/credentials`,
