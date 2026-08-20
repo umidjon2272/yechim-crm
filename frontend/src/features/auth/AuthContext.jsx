@@ -24,9 +24,8 @@ export function AuthProvider({ children }) {
     clearLegacyAuthStorage()
     const { accessToken, refreshToken } = readAuthTokens()
 
-    // No token in this tab means there is no session to restore. In
-    // particular, never fall back to localStorage, a default user, or a
-    // browser-wide cookie.
+    // Tokens are persisted for the installed PWA, but the user identity is
+    // never guessed from storage. It must be confirmed by the backend.
     if (!accessToken && !refreshToken) {
       if (requestEpoch !== authEpochRef.current) return
       updateUser(null)
@@ -35,8 +34,8 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // httpClient uses this tab's access token. If it is expired, it first
-      // refreshes with this tab's refresh token and retries /auth/me.
+      // httpClient uses the persistent access token. If it is expired, it
+      // refreshes with the persistent refresh token and retries /auth/me.
       const currentUser = await authService.getCurrentUser()
       if (requestEpoch !== authEpochRef.current) return
       if (!currentUser?.id) {
@@ -49,12 +48,15 @@ export function AuthProvider({ children }) {
       setStatus('authenticated')
     } catch (error) {
       if (requestEpoch !== authEpochRef.current) return
-      // A 401 means this tab's session is invalid. A transient error should
-      // not replace an already-rendered authenticated user.
-      if (error?.status === 401 || !userRef.current) {
-        if (error?.status === 401) clearAuthTokens()
+      // Only an explicit 401 means that the refresh/session is invalid. Keep
+      // the existing authenticated user during a transient outage instead of
+      // redirecting to login merely because the API is temporarily offline.
+      if (error?.status === 401) {
+        clearAuthTokens()
         updateUser(null)
         setStatus('unauthenticated')
+      } else if (userRef.current) {
+        setStatus('authenticated')
       }
     }
   }, [updateUser])
@@ -78,7 +80,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async (credentials) => {
       const requestEpoch = ++authEpochRef.current
-      // Replacing an account in this tab replaces only this tab's token pair.
+      // Replacing an account clears the persisted token pair before login.
       clearAuthTokens()
       setLoginLoading(true)
       setLoginError(null)
@@ -113,8 +115,8 @@ export function AuthProvider({ children }) {
     const requestEpoch = ++authEpochRef.current
     const tokens = readAuthTokens()
 
-    // Hide protected UI and clear only this tab immediately. The captured
-    // tokens let the server revoke exactly this UserSession below.
+    // Hide protected UI and clear the persisted token pair immediately. The
+    // captured tokens let the server revoke exactly this UserSession below.
     clearAuthTokens()
     updateUser(null)
     setStatus('unauthenticated')

@@ -41,7 +41,7 @@ import { canViewCustomerField, canViewCustomerFinancials, canViewPipelineTotal a
 import './CustomersListPage.scss'
 
 function fallbackStages() {
-  return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage], isSystem: true, isDefault: true, isProtected: true }))
+  return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage], isSystem: true, isDefault: true, isProtected: stage === 'NEW' || stage === 'INSTALLED', isFinal: stage === 'INSTALLED' }))
 }
 
 function formatPartnerPeriod(period) {
@@ -491,6 +491,7 @@ export function CustomersListPage() {
   const canViewPipelineTotal = canViewCustomerPipelineTotal(user)
   const canManageCustomerGroups = !isPartner && (isAdmin || user?.role !== 'EMPLOYEE')
   const canSeeAllCustomersTab = !user || user?.role !== 'EMPLOYEE' || user?.customerVisibility === 'ALL' || can('customers.viewAll')
+  const canManageStages = isAdmin && can('customers.edit')
   const handleGroupSelect = (groupId, group) => {
     setActiveGroupName(group?.name || '')
     setGroupId(groupId)
@@ -509,20 +510,21 @@ export function CustomersListPage() {
   const deleteStageAction = useAction(({ id, replacementStageId }) => customersService.deleteStage(id, { replacementStageId }))
   const bulkMoveAction = useAction((payload) => customersService.bulkMove(payload))
 
-  const loadFilterOptions = useCallback(() => {
-    Promise.all([
-      customersService.getFilterOptions(),
-      customersService.listStages().catch(() => ({ items: fallbackStages() })),
-    ])
-      .then(([res, stagesRes]) =>
-        setFilterOptions({
-          cities: res?.cities ?? [],
-          stageCounts: res?.stageCounts ?? {},
-          stageTotals: res?.stageTotals ?? {},
-          stages: stagesRes?.items?.length ? stagesRes.items : fallbackStages(),
-        })
-      )
-      .catch(() => setFilterOptions({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() }))
+  const loadFilterOptions = useCallback(async () => {
+    try {
+      const [res, stagesRes] = await Promise.all([
+        customersService.getFilterOptions(),
+        customersService.listStages().catch(() => ({ items: fallbackStages() })),
+      ])
+      setFilterOptions({
+        cities: res?.cities ?? [],
+        stageCounts: res?.stageCounts ?? {},
+        stageTotals: res?.stageTotals ?? {},
+        stages: stagesRes?.items?.length ? stagesRes.items : fallbackStages(),
+      })
+    } catch {
+      setFilterOptions({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
+    }
   }, [])
 
   useEffect(() => {
@@ -724,8 +726,8 @@ export function CustomersListPage() {
   }
 
   const openDeleteStage = (stage) => {
-    if (stage.isSystem || stage.isDefault || stage.isProtected) {
-      toast.error('Tizim/default bosqichini o\'chirib bo\'lmaydi')
+    if (stage.isProtected) {
+      toast.error(`"${stage.label}" bosqichini o\'chirib bo\'lmaydi: bu majburiy bosqich`)
       return
     }
     const count = Number.isFinite(Number(stage.customerCount)) ? Number(stage.customerCount) : displayedCustomers.filter((customer) => customer.stage === stage.id).length
@@ -737,8 +739,7 @@ export function CustomersListPage() {
       await deleteStageAction.run({ id: stageDelete.stage.id, replacementStageId })
       toast.success("Bosqich o'chirildi")
       setStageDelete(null)
-      loadFilterOptions()
-      await refetch()
+      await Promise.all([loadFilterOptions(), refetch()])
     } catch (err) {
       toast.error(err.message || "Bosqichni o'chirishda xatolik yuz berdi")
     }
@@ -929,7 +930,7 @@ export function CustomersListPage() {
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
-                  <InlineStageTitle column={column} canEdit={can('customers.edit')} onSave={handleRenameStage} onDelete={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected ? openDeleteStage : undefined} />
+                  <InlineStageTitle column={column} canEdit={canManageStages} onSave={handleRenameStage} onDelete={canManageStages && !column.isProtected ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
                 </div>
                  {canViewPipelineTotal && <span className="kanban__column-meta">
@@ -954,12 +955,12 @@ export function CustomersListPage() {
               stageLabel={stageLabels[customer.stage] || customer.stage}
             />
           )}
-          renderColumnGap={(column) => can('customers.edit') ? (
+          renderColumnGap={(column) => canManageStages ? (
             <button type="button" className="kanban__insert-stage" onClick={() => openCreateStage(column.id)} aria-label="Oraga bosqich qo'shish">
               +
             </button>
           ) : null}
-           afterColumns={!isMobile && can('customers.edit') ? (
+           afterColumns={!isMobile && canManageStages ? (
             <div className="kanban__after-columns">
               <button type="button" className="kanban__create-column" onClick={() => openCreateStage(stageColumns.at(-1)?.id || null)}>
                 <PlusIcon width={16} height={16} /> Bosqich
@@ -967,7 +968,7 @@ export function CustomersListPage() {
             </div>
           ) : null}
           onCardMove={isPartner ? undefined : handleStageMove}
-           onColumnMove={!isMobile && can('customers.edit') ? handleReorderStages : undefined}
+           onColumnMove={!isMobile && canManageStages ? handleReorderStages : undefined}
         />
       )}
 

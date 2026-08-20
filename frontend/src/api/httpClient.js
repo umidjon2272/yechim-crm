@@ -69,8 +69,9 @@ async function request(
   try {
     res = await fetch(buildUrl(path, params), {
       method,
-      // Auth is explicitly carried by this tab's sessionStorage token. Do not
-      // send origin-wide cookies that could belong to another tab/session.
+      // Auth is explicitly carried by the persisted token for this CRM
+      // account. No user object is trusted from storage; /auth/me remains the
+      // source of truth after every app launch.
       credentials: 'omit',
       headers: {
         ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),

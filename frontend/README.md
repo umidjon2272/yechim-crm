@@ -18,7 +18,8 @@ the `/api` prefix:
 VITE_API_URL=https://yechim-backend.onrender.com/api
 ```
 
-Authentication is tab-scoped: each tab keeps its access and refresh token in
-its own `sessionStorage` and sends the access token as a Bearer header. The
-frontend restores the current tab by calling `/api/auth/me`; it does not use a
-localStorage user object or browser-wide auth cookies.
+Authentication stores only the access/refresh token pair in `localStorage` so
+the installed PWA can reopen without asking for credentials again. The
+frontend never trusts a stored user object: it refreshes the access token when
+needed and restores the current identity and permissions through
+`/api/auth/me`. Logout or a revoked/expired refresh session clears the tokens.

@@ -10,8 +10,8 @@ export function AppProviders({ children }) {
   useEffect(() => {
     const handlePageShow = (event) => {
       // A protected route can be restored from the browser back/forward cache
-      // after logout. Reloading that stale document makes AuthProvider check
-      // the httpOnly session cookie again before showing any protected UI.
+      // after logout. Reloading that stale document makes AuthProvider verify
+      // the persisted token pair before showing any protected UI.
       if (event.persisted) window.location.reload()
     }
     window.addEventListener('pageshow', handlePageShow)

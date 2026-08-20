@@ -1,8 +1,8 @@
 import { httpClient } from '../api/httpClient'
 import { AUTH } from '../api/endpoints'
 
-// Auth tokens are returned by the backend and persisted by AuthContext in the
-// current tab's sessionStorage. This service only transports them.
+// Auth tokens are returned by the backend and persisted by AuthContext. This
+// service only transports them; the current user is always resolved by /me.
 export const authService = {
   login: (credentials) => httpClient.post(AUTH.LOGIN, credentials, { skipAuth: true, skipRefresh: true }),
   logout: (tokens = {}) =>
