@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -84,7 +85,7 @@ export function DealForm({ initialValues = DEFAULT_VALUES, customers = [], busin
           </Select>
         </FormField>
         <FormField label="Qiymati">
-          <Input type="number" min="0" value={values.value} onChange={handleChange('value')} disabled={loading} />
+        <NumberInput min="0" value={values.value} onChange={handleChange('value')} disabled={loading} />
         </FormField>
       </div>
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -438,14 +439,14 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
         <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
         {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
         <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
-        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><Input type="number" min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>}
+        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><NumberInput min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>}
         {canViewFinancials && <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>}
       </div>
       {canViewFinancials && <div className="detail-grid">
         <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>
          {/* Stage changes are deliberately made from the Kanban drag action so
              deposit/follow-up/installation prompts cannot be bypassed here. */}
-        {isEditing && canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><Input type="number" min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
+        {isEditing && canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><NumberInput min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
       </div>}
       {canViewFinancials && <LocationField values={values} setValue={setValue} loading={loading} />}
       <FormField label="Izoh"><textarea className="textarea" rows={3} value={values.note} onChange={(event) => setValue('note', event.target.value)} disabled={loading} placeholder="Mijoz haqida qisqa izoh" /></FormField>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -33,8 +34,7 @@ export function CustomerGroupForm({ initialValues = { name: '', partnerRewardPer
         />
       </FormField>
       <FormField label="Har yakunlangan mijoz uchun haq" hint="Ixtiyoriy. Masalan: 100">
-        <Input
-          type="number"
+        <NumberInput
           min="0"
           step="0.01"
           value={values.partnerRewardPerCustomer}

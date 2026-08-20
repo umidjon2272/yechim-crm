@@ -8,6 +8,7 @@ import { usePermissions } from '../../roles/usePermissions'
 import { Card } from '../../../components/Card/Card'
 import { Button } from '../../../components/Button/Button'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Modal } from '../../../components/Modal/Modal'
 import { FormField } from '../../../components/FormField/FormField'
 import { Spinner } from '../../../components/Spinner/Spinner'
@@ -43,14 +44,14 @@ function ItemForm({ initialValues = DEFAULT_ITEM, loading, onSubmit, onCancel })
       </FormField>
       <div className="detail-grid">
         <FormField label="Miqdori">
-          <Input type="number" min="1" value={values.quantity} onChange={handleChange('quantity')} disabled={loading} />
+          <NumberInput min="1" inputMode="numeric" value={values.quantity} onChange={handleChange('quantity')} disabled={loading} />
         </FormField>
         <FormField label="Narxi (birlik)">
-          <Input type="number" min="0" value={values.unitPrice} onChange={handleChange('unitPrice')} disabled={loading} />
+          <NumberInput min="0" value={values.unitPrice} onChange={handleChange('unitPrice')} disabled={loading} />
         </FormField>
       </div>
       <FormField label="Chegirma">
-        <Input type="number" min="0" value={values.discount} onChange={handleChange('discount')} disabled={loading} />
+        <NumberInput min="0" value={values.discount} onChange={handleChange('discount')} disabled={loading} />
       </FormField>
       <div className="card__footer" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {onCancel && (

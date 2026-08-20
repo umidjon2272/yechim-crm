@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -82,7 +83,7 @@ export function ActivityForm({ context, loading, onSubmit, onCancel }) {
           <Input type="date" value={values.date} onChange={handleChange('date')} error={!!errors.date} disabled={loading} />
         </FormField>
         <FormField label="Davomiyligi (daqiqa)">
-          <Input type="number" min="0" value={values.duration} onChange={handleChange('duration')} disabled={loading} />
+          <NumberInput min="0" inputMode="numeric" value={values.duration} onChange={handleChange('duration')} disabled={loading} />
         </FormField>
       </div>
 

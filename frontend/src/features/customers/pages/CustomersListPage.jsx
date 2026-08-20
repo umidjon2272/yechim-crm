@@ -14,6 +14,7 @@ import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS, CUSTOMER_STAGES, CUSTOMER_ST
 import { INSTALLATION_STATUSES, INSTALLATION_STATUS_LABELS } from '../../installations/installations.constants'
 import { Button } from '../../../components/Button/Button'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { FormField } from '../../../components/FormField/FormField'
 import { Modal } from '../../../components/Modal/Modal'
@@ -213,7 +214,7 @@ function DepositPromptModal({ move, loading, onClose, onSubmit }) {
         {move.customer.name} mijozini "Zaklad olingan" stage'iga o'tkazyapsiz. Zaklad summasini kiriting.
       </p>
       <FormField label="Zaklad summasi" hint="Ixtiyoriy">
-        <Input type="number" min="0" step="1000" value={amount} onChange={(event) => setAmount(event.target.value)} autoFocus />
+        <NumberInput min="0" step="1000" value={amount} onChange={(event) => setAmount(event.target.value)} autoFocus />
       </FormField>
     </Modal>
   )
