@@ -12,11 +12,12 @@ const ACTION_LABELS = {
   viewAmount: "Savdo summasini ko'rish",
   viewPipelineTotal: "Voronka jami summasini ko'rish",
   viewDeposit: "Zaklad summasini ko'rish",
+  viewFinancials: "Moliyaviy ma'lumotlarni ko'rish",
   convert: "Aylantirish",
   changeStage: "Bosqichni o'zgartirish",
 }
 
-const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'changeStage', 'convert', 'delete']
+const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials', 'changeStage', 'convert', 'delete']
 const ALL_ACTIONS = ACTION_ORDER.filter((action) => PERMISSION_SCHEMA.some((resource) => resource.actions.includes(action)))
 
 export function PermissionMatrix({ value = [], onChange }) {
@@ -26,6 +27,11 @@ export function PermissionMatrix({ value = [], onChange }) {
   const toggle = (resource, action) => {
     if (readOnly) return
     const key = `${resource}.${action}`
+    const financialKeys = ['customers.viewFinancials', 'customers.viewAmount', 'customers.viewDeposit', 'customers.viewPipelineTotal']
+    if (key === 'customers.viewFinancials') {
+      onChange(value.includes(key) ? value.filter((item) => !financialKeys.includes(item)) : Array.from(new Set([...value, ...financialKeys])))
+      return
+    }
     onChange(value.includes(key) ? value.filter((item) => item !== key) : [...value, key])
   }
 

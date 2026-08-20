@@ -23,6 +23,7 @@ const DEFAULT_VALUES = {
   phone: '+998',
   amount: '',
   currencyId: '',
+  note: '',
   programName: '',
   address: '',
   latitude: '',
@@ -350,7 +351,7 @@ function QuickActionsFields({ values, setValue, employees = [], loading }) {
   )
 }
 
-export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canViewAmount = true, canViewDeposit = true }) {
+export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canViewFinancials = true, canViewAmount = true, canViewDeposit = true }) {
   const isEditing = Boolean(initialValues?.id)
   const { data: currenciesData } = useAsync(currenciesService.list, [])
   const currencies = currenciesData?.items ?? []
@@ -367,6 +368,7 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     phone: initialValues?.phone || '+998',
     amount: initialValues?.amount ?? '',
     currencyId: initialValues?.currencyId || initialValues?.currency?.id || '',
+    note: initialValues?.note || initialValues?.notes || '',
     depositAmount: initialValues?.depositAmount ?? '',
     programName: initialValues?.service || initialValues?.programs?.[0]?.name || '',
     address: formatAddress(initialAddress),
@@ -412,15 +414,18 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
       firstName: values.firstName,
       ...(isEditing ? { lastName: values.lastName } : {}),
       phone: values.phone,
-      amount: Number.isFinite(amount) ? amount : 0,
-      currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null,
-      depositAmount: Number.isFinite(depositAmount) ? depositAmount : null,
-      service: primaryProgramName || null,
-      programs,
+      note: values.note.trim() || null,
+      notes: values.note.trim() || null,
+      ...(canViewFinancials && canViewAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
+      ...(canViewFinancials ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
+      ...(canViewFinancials && canViewDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
+      ...(canViewFinancials ? { service: primaryProgramName || null, programs } : {}),
       stage: values.stage,
-      address: values.address.trim() || null,
-      latitude: Number.isFinite(latitudeValue) ? latitudeValue : null,
-      longitude: Number.isFinite(longitudeValue) ? longitudeValue : null,
+      ...(canViewFinancials ? {
+        address: values.address.trim() || null,
+        latitude: Number.isFinite(latitudeValue) ? latitudeValue : null,
+        longitude: Number.isFinite(longitudeValue) ? longitudeValue : null,
+      } : {}),
       ...(canManageGroups ? { groupIds: values.groupIds } : {}),
       ...(!isEditing && values.quickActions?.length ? { quickActions: values.quickActions } : {}),
       ...(!isEditing && initialValues?.currentGroupId ? { currentGroupId: initialValues.currentGroupId } : {}),
@@ -434,15 +439,16 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
         {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
         <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
         {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><Input type="number" min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>}
-        <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>
+        {canViewFinancials && <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>}
       </div>
-      <div className="detail-grid">
+      {canViewFinancials && <div className="detail-grid">
         <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>
          {/* Stage changes are deliberately made from the Kanban drag action so
              deposit/follow-up/installation prompts cannot be bypassed here. */}
         {isEditing && canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><Input type="number" min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
-      </div>
-      <LocationField values={values} setValue={setValue} loading={loading} />
+      </div>}
+      {canViewFinancials && <LocationField values={values} setValue={setValue} loading={loading} />}
+      <FormField label="Izoh"><textarea className="textarea" rows={3} value={values.note} onChange={(event) => setValue('note', event.target.value)} disabled={loading} placeholder="Mijoz haqida qisqa izoh" /></FormField>
       {!isEditing && initialValues?.currentGroupName && <div className="form-field__hint">Bu mijoz <strong>{initialValues.currentGroupName}</strong> guruhiga qo'shiladi.</div>}
       {!isEditing && <QuickActionsFields values={values} setValue={setValue} employees={employees} loading={loading} />}
       {canManageGroups && <FormField label="Guruh" hint="Bir nechta guruh tanlash mumkin"><CustomerGroupsDropdown groups={groups} value={values.groupIds} onChange={(groupIds) => setValue('groupIds', groupIds)} disabled={loading} /></FormField>}

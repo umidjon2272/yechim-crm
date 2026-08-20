@@ -41,6 +41,7 @@ import { useDisclosure } from '../../../hooks/useDisclosure'
 import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
 import { formatDate } from '../../../utils/formatDate'
+import { canViewCustomerField, canViewCustomerFinancials } from '../financialPermissions'
 import { MoreIcon, PlusIcon } from '../../../components/icons/Icons'
 import './CustomerDetailPage.scss'
 
@@ -82,6 +83,9 @@ export function CustomerDetailPage() {
   const { can } = usePermissions()
   const { user } = useAuth()
   const isPartner = user?.role === 'PARTNER'
+  const canViewFinancials = canViewCustomerFinancials(user)
+  const canViewAmount = canViewCustomerField(user, 'amount')
+  const canViewDeposit = canViewCustomerField(user, 'deposit')
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey((k) => k + 1)
@@ -90,7 +94,7 @@ export function CustomerDetailPage() {
   const updateAction = useAction((values) => customersService.update(id, values))
   const deactivateAction = useAction(() => customersService.deactivate(id))
   const [employees, setEmployees] = useState([])
-  const { data: dealsData } = useAsync(() => customersService.getDeals(id), [id, refreshKey])
+  const { data: dealsData } = useAsync(() => canViewFinancials ? customersService.getDeals(id) : Promise.resolve(null), [id, refreshKey, canViewFinancials])
   const customerDeals = dealsData?.items ?? []
 
   const paymentModal = useDisclosure()
@@ -233,13 +237,18 @@ export function CustomerDetailPage() {
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
             canManageGroups={can('customers.edit')}
-            canViewAmount={can('customers.viewAmount') || can('amount.view')}
-            canViewDeposit={can('customers.viewDeposit') || can('deposit.view')}
+            canViewFinancials={canViewFinancials}
+            canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
           />
         </Card>
       ) : (
         <>
-          <Tabs items={TABS.filter((tab) => isPartner ? tab.id === 'overview' : !TAB_PERMISSIONS[tab.id] || can(TAB_PERMISSIONS[tab.id]))} activeId={activeTab} onChange={setActiveTab} />
+          <Tabs items={TABS.filter((tab) => {
+            if (isPartner) return tab.id === 'overview'
+            if (!canViewFinancials && ['deals', 'payments'].includes(tab.id)) return false
+            return !TAB_PERMISSIONS[tab.id] || can(TAB_PERMISSIONS[tab.id])
+          })} activeId={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'overview' && (
             <div className="stack">

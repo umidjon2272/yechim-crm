@@ -15,7 +15,6 @@ export function useCustomers() {
     stage: '',
     assignedEmployeeId: '',
     city: '',
-    program: '',
     groupId: '',
     installationStatus: '',
     createdFrom: '',
@@ -29,7 +28,7 @@ export function useCustomers() {
     () => (view !== 'kanban' ? customersService.list(params) : Promise.resolve(null)),
     [
       view, params.page, params.pageSize, params.search, params.status, params.stage, params.assignedEmployeeId,
-      params.city, params.program, params.groupId, params.installationStatus,
+      params.city, params.groupId, params.installationStatus,
       params.createdFrom, params.createdTo, params.sort,
     ]
   )
@@ -40,7 +39,6 @@ export function useCustomers() {
         status: params.status,
         assignedEmployeeId: params.assignedEmployeeId,
         city: params.city,
-        program: params.program,
         groupId: params.groupId,
         installationStatus: params.installationStatus,
         createdFrom: params.createdFrom,
@@ -49,7 +47,7 @@ export function useCustomers() {
       }
       return view === 'kanban' ? loadKanbanCustomers(kanbanParams) : Promise.resolve(null)
     },
-    [view, params.search, params.status, params.assignedEmployeeId, params.city, params.program, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
+    [view, params.search, params.status, params.assignedEmployeeId, params.city, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
   )
   const active = view === 'kanban' ? kanbanQuery : listQuery
 
@@ -62,7 +60,6 @@ export function useCustomers() {
   const setStage = useCallback((stage) => setParams((p) => ({ ...p, stage, page: 1 })), [])
   const setAssignedEmployeeId = useCallback((assignedEmployeeId) => setParams((p) => ({ ...p, assignedEmployeeId, page: 1 })), [])
   const setCity = useCallback((city) => setParams((p) => ({ ...p, city, page: 1 })), [])
-  const setProgram = useCallback((program) => setParams((p) => ({ ...p, program, page: 1 })), [])
   const setGroupId = useCallback((groupId) => setParams((p) => ({ ...p, groupId, page: 1 })), [])
   const setInstallationStatus = useCallback((installationStatus) => setParams((p) => ({ ...p, installationStatus, page: 1 })), [])
   const setCreatedFrom = useCallback((createdFrom) => setParams((p) => ({ ...p, createdFrom, page: 1 })), [])
@@ -84,7 +81,6 @@ export function useCustomers() {
     setStage,
     setAssignedEmployeeId,
     setCity,
-    setProgram,
     setGroupId,
     setInstallationStatus,
     setCreatedFrom,

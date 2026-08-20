@@ -36,6 +36,7 @@ import { CustomerWorkPanel, QuickActionModal, ReminderModal } from '../component
 import { TodayWorkPanel } from '../components/TodayWorkPanel'
 import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { classNames } from '../../../utils/classNames'
+import { canViewCustomerField, canViewCustomerFinancials, canViewPipelineTotal as canViewCustomerPipelineTotal } from '../financialPermissions'
 import './CustomersListPage.scss'
 
 function fallbackStages() {
@@ -49,7 +50,7 @@ function formatPartnerPeriod(period) {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
-function CustomerEditModal({ customerId, employees, stages, loadingStages, readOnly = false, onClose, onChanged }) {
+function CustomerEditModal({ customerId, employees, stages, loadingStages, readOnly = false, canViewFinancials = true, canViewAmount = true, canViewDeposit = true, onClose, onChanged }) {
   const toast = useToast()
   const confirm = useConfirm()
   const { can } = usePermissions()
@@ -121,8 +122,9 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
             onCancel={onClose}
             onDelete={handleDelete}
             canManageGroups={!readOnly}
-            canViewAmount={can('customers.viewAmount') || can('amount.view')}
-            canViewDeposit={can('customers.viewDeposit') || can('deposit.view')}
+            canViewFinancials={canViewFinancials}
+            canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
           />
           <Card title="Guruhlar" className="customer-edit-modal__groups-card">
             <CustomerGroupsField customer={customer} onChanged={async () => { await refetch(); onChanged?.() }} />
@@ -446,7 +448,6 @@ export function CustomersListPage() {
     setStatus,
     setAssignedEmployeeId,
     setCity,
-    setProgram,
     setGroupId,
     setInstallationStatus,
     setCreatedTo,
@@ -463,7 +464,7 @@ export function CustomersListPage() {
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [createStageId, setCreateStageId] = useState(null)
   const [employees, setEmployees] = useState([])
-  const [filterOptions, setFilterOptions] = useState({ cities: [], programs: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
+  const [filterOptions, setFilterOptions] = useState({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
   const [stageDraft, setStageDraft] = useState({ afterStageId: null })
   const [stageDelete, setStageDelete] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])
@@ -483,8 +484,10 @@ export function CustomersListPage() {
   const canViewEmployees = can('employees.view')
   const isPartner = user?.role === 'PARTNER'
   const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
-  const canViewAmount = isAdmin || can('customers.viewAmount') || can('amount.view')
-  const canViewPipelineTotal = isAdmin || can('customers.viewPipelineTotal')
+  const canViewFinancials = canViewCustomerFinancials(user)
+  const canViewAmount = canViewCustomerField(user, 'amount')
+  const canViewDeposit = canViewCustomerField(user, 'deposit')
+  const canViewPipelineTotal = canViewCustomerPipelineTotal(user)
   const canManageCustomerGroups = !isPartner && (isAdmin || user?.role !== 'EMPLOYEE')
   const canSeeAllCustomersTab = !user || user?.role !== 'EMPLOYEE' || user?.customerVisibility === 'ALL' || can('customers.viewAll')
   const handleGroupSelect = (groupId, group) => {
@@ -513,13 +516,12 @@ export function CustomersListPage() {
       .then(([res, stagesRes]) =>
         setFilterOptions({
           cities: res?.cities ?? [],
-          programs: res?.programs ?? [],
           stageCounts: res?.stageCounts ?? {},
           stageTotals: res?.stageTotals ?? {},
           stages: stagesRes?.items?.length ? stagesRes.items : fallbackStages(),
         })
       )
-      .catch(() => setFilterOptions({ cities: [], programs: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() }))
+      .catch(() => setFilterOptions({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() }))
   }, [])
 
   useEffect(() => {
@@ -829,14 +831,6 @@ export function CustomersListPage() {
           {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
         </Select>}
         {!isPartner && user && <Button variant={params.assignedEmployeeId === user.id ? 'primary' : 'secondary'} onClick={() => setAssignedEmployeeId(params.assignedEmployeeId === user.id ? '' : user.id)}>Mening mijozlarim</Button>}
-        {!isPartner && <Select value={params.program} onChange={(event) => setProgram(event.target.value)}>
-          <option value="">Dastur</option>
-          {filterOptions.programs.map((program) => (
-            <option key={program} value={program}>
-              {program}
-            </option>
-          ))}
-        </Select>}
         {!isPartner && <Button variant="secondary" onClick={() => setAdvancedFiltersOpen((value) => !value)}>
           Filter
         </Button>}
@@ -934,7 +928,7 @@ export function CustomersListPage() {
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
-                  <InlineStageTitle column={column} canEdit={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected} onSave={handleRenameStage} onDelete={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected ? openDeleteStage : undefined} />
+                  <InlineStageTitle column={column} canEdit={can('customers.edit')} onSave={handleRenameStage} onDelete={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
                 </div>
                  {canViewPipelineTotal && <span className="kanban__column-meta">
@@ -987,8 +981,9 @@ export function CustomersListPage() {
           onSubmit={handleCreate}
           onCancel={createModal.close}
           canManageGroups={canManageCustomerGroups}
+          canViewFinancials={canViewFinancials}
           canViewAmount={canViewAmount}
-          canViewDeposit={isAdmin || can('customers.viewDeposit') || can('deposit.view')}
+          canViewDeposit={canViewDeposit}
         />
       </Modal>
 
@@ -1040,6 +1035,9 @@ export function CustomersListPage() {
           loadingStages={saveStageAction.loading}
           onClose={closeCustomer}
           onChanged={handleCustomerChanged}
+          canViewFinancials={canViewFinancials}
+          canViewAmount={canViewAmount}
+          canViewDeposit={canViewDeposit}
         />
       )}
     </div>

@@ -25,7 +25,7 @@ export const ROLE_LABELS = {
 }
 
 export const PERMISSION_SCHEMA = [
-  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'delete', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit'] },
+  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'delete', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials'] },
   { resource: 'calls', label: "Qo'ng'iroqlar", section: 'Kommunikatsiya', actions: ['view', 'create'] },
   { resource: 'reminders', label: 'Eslatmalar', section: 'Kommunikatsiya', actions: ['view', 'viewAll', 'create', 'edit'] },
   { resource: 'tasks', label: 'Vazifalar', section: 'Vazifalar', actions: ['view', 'viewAll', 'create', 'edit', 'delete'] },
@@ -55,7 +55,7 @@ export const ROLE_DEFAULT_PERMISSIONS = {
   PARTNER: ['customers.view'],
   EMPLOYEE: [
     'customers.view', 'customers.create', 'customers.edit',
-    'customers.viewPhone', 'customers.viewAmount', 'customers.viewPipelineTotal', 'customers.viewDeposit',
+    'customers.viewPhone', 'customers.viewAmount', 'customers.viewPipelineTotal', 'customers.viewDeposit', 'customers.viewFinancials',
     'calls.view', 'calls.create', 'reminders.view', 'reminders.create',
     'tasks.view', 'tasks.create', 'comments.view', 'comments.create',
     'activities.view', 'activities.create', 'history.view', 'programs.view',

@@ -8,6 +8,7 @@ import { dealsService } from '../../../services/deals.service'
 import { paymentsService } from '../../../services/payments.service'
 import { CustomerForm, CustomerLocationPreview, formatAddress } from './CustomerForm'
 import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
+import { canViewCustomerField, canViewCustomerFinancials } from '../financialPermissions'
 import { ProgramsPanel } from './ProgramsPanel'
 import { InstallationsPanel } from './InstallationsPanel'
 import { CustomerGroupsField } from './CustomerGroupsField'
@@ -83,7 +84,9 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const { can } = usePermissions()
   const { user } = useAuth()
   const isPartner = user?.role === 'PARTNER'
-  const canViewAmount = !isPartner && (['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.viewAmount') || can('amount.view'))
+  const canViewFinancials = canViewCustomerFinancials(user)
+  const canViewAmount = canViewCustomerField(user, 'amount')
+  const canViewDeposit = canViewCustomerField(user, 'deposit')
   const [sideTab, setSideTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -99,7 +102,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   // outside this component's own actions) picks up the fresh total for the
   // summary tiles/PaymentForm without needing DealItemsEditor to expose an
   // onChange hook.
-  const { data: dealsData } = useAsync(() => customersService.getDeals(id), [id, refreshKey, sideTab])
+  const { data: dealsData } = useAsync(() => canViewFinancials ? customersService.getDeals(id) : Promise.resolve(null), [id, refreshKey, sideTab, canViewFinancials])
   const customerDeals = dealsData?.items ?? []
   // "Buyurtma" вЂ” mijozning eng birinchi/asosiy savdosi: bir mijoz uchun bir
   // vaqtda bitta faol buyurtma degan sodda modelga mos, ko'p savdo tarixi
@@ -109,7 +112,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   // Cheap counts for the side-tab labels (section 14: "Savdolar: 2,
   // To'lovlar: 3..." at a glance) вЂ” separate from each tab's own RelatedList
   // fetch, which still owns the actual list rendering.
-  const { data: paymentsCountData } = useAsync(() => customersService.getPayments(id), [id, refreshKey])
+  const { data: paymentsCountData } = useAsync(() => canViewFinancials ? customersService.getPayments(id) : Promise.resolve(null), [id, refreshKey, canViewFinancials])
   const { data: tasksCountData } = useAsync(() => customersService.getTasks(id), [id, refreshKey])
   const { data: installationsCountData } = useAsync(() => customersService.getInstallations(id), [id, refreshKey])
 
@@ -316,6 +319,9 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
             onSubmit={handleUpdate}
             onCancel={() => setIsEditing(false)}
             canManageGroups={can('customers.edit')}
+            canViewFinancials={canViewFinancials}
+            canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
             />
           </Card>
         </div>
@@ -330,7 +336,11 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     tasks: tasksCountData?.total,
     installations: installationsCountData?.total,
   }
-  const sideTabs = BASE_SIDE_TABS.filter((tab) => isPartner ? tab.id === 'overview' : !SIDE_TAB_PERMISSIONS[tab.id] || can(SIDE_TAB_PERMISSIONS[tab.id])).map((tab) =>
+  const sideTabs = BASE_SIDE_TABS.filter((tab) => {
+    if (isPartner) return tab.id === 'overview'
+    if (!canViewFinancials && ['order', 'deals', 'payments'].includes(tab.id)) return false
+    return !SIDE_TAB_PERMISSIONS[tab.id] || can(SIDE_TAB_PERMISSIONS[tab.id])
+  }).map((tab) =>
     tabCounts[tab.id] != null ? { ...tab, label: `${tab.label} (${tabCounts[tab.id]})` } : tab
   )
 
@@ -342,7 +352,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
           {!isPartner && <MessagesPanel customerId={id} variant="flush" />}
         </div>
         <div className="customer-workspace__side">
-          {!isPartner && <CustomerSummaryTiles
+          {!isPartner && canViewFinancials && <CustomerSummaryTiles
             programs={customer.programs || []}
             deal={primaryDeal}
             payments={paymentsCountData?.items ?? []}

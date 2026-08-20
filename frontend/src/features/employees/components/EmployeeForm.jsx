@@ -10,6 +10,7 @@ import { validate, rules } from '../../../utils/validators'
 import './EmployeeForm.scss'
 
 const DEFAULT_VALUES = { firstName: '', lastName: '', phone: '+998', username: '', password: '', role: 'EMPLOYEE', partnerGroupId: '', customerVisibility: 'ASSIGNED', allowedGroupIds: [] }
+const LEGACY_FINANCIAL_PERMISSIONS = ['customers.viewAmount', 'customers.viewDeposit', 'customers.viewPipelineTotal']
 
 function splitName(name = '') {
   const parts = name.trim().split(/\s+/)
@@ -19,6 +20,10 @@ function splitName(name = '') {
 export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, canManageAccess = true }) {
   const isEditing = Boolean(initialValues?.id)
   const name = splitName(initialValues.name)
+  const initialPermissions = Array.isArray(initialValues.permissions)
+    ? initialValues.permissions
+    : ROLE_DEFAULT_PERMISSIONS[initialValues.role] || ROLE_DEFAULT_PERMISSIONS.EMPLOYEE
+  const legacyFinancialConfigured = LEGACY_FINANCIAL_PERMISSIONS.some((permission) => initialPermissions.includes(permission))
   const [values, setValues] = useState(() => ({
     ...DEFAULT_VALUES,
     ...name,
@@ -27,9 +32,12 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [
     role: initialValues.role || 'EMPLOYEE',
     customerVisibility: initialValues.customerVisibility || 'ASSIGNED',
     allowedGroupIds: Array.isArray(initialValues.allowedGroupIds) ? initialValues.allowedGroupIds : [],
-    permissions: Array.isArray(initialValues.permissions)
-      ? initialValues.permissions
-      : ROLE_DEFAULT_PERMISSIONS[initialValues.role] || ROLE_DEFAULT_PERMISSIONS.EMPLOYEE,
+    // Existing users used the granular financial permissions before the
+    // master toggle existed. Reflect that legacy configuration as enabled so
+    // an admin can switch it off and remove all financial permissions at once.
+    permissions: initialPermissions.includes('customers.viewFinancials') || !legacyFinancialConfigured
+      ? initialPermissions
+      : [...initialPermissions, 'customers.viewFinancials'],
   }))
   const [errors, setErrors] = useState({})
 
