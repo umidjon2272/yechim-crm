@@ -153,6 +153,11 @@ export const ACTIVITIES = {
   CREATE: '/activities',
 }
 
+export const REMINDERS = {
+  LIST: '/reminders',
+  CREATE: '/reminders',
+}
+
 export const INSTALLATIONS = {
   LIST: '/installations',
   DETAIL: (id) => `/installations/${id}`,

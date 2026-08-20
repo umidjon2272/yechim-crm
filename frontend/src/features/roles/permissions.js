@@ -17,6 +17,7 @@ export const ROLES = {
   SUPPORT: 'SUPPORT',
   INSTALLER: 'INSTALLER',
   DEVELOPER: 'DEVELOPER',
+  EMPLOYEE: 'EMPLOYEE',
 }
 
 export const ROLE_LABELS = {
@@ -27,6 +28,7 @@ export const ROLE_LABELS = {
   [ROLES.SUPPORT]: 'Qo‘llab-quvvatlash',
   [ROLES.INSTALLER]: 'O‘rnatuvchi',
   [ROLES.DEVELOPER]: 'Dasturchi',
+  [ROLES.EMPLOYEE]: 'Xodim',
 }
 
 // resource -> available actions. Matched against the Employee/Roles/
@@ -39,7 +41,7 @@ export const ROLE_LABELS = {
 // `tasks.view`.
 export const PERMISSION_SCHEMA = [
   { resource: 'dashboard', label: 'Boshqaruv paneli', actions: ['view'] },
-  { resource: 'customers', label: 'Mijozlar', actions: ['view', 'create', 'edit', 'delete'] },
+  { resource: 'customers', label: 'Mijozlar', actions: ['view', 'viewAll', 'viewOwn', 'viewGroups', 'amount.view', 'deposit.view', 'phone.view', 'create', 'edit', 'delete'] },
   { resource: 'businesses', label: 'Bizneslar', actions: ['view', 'create', 'edit', 'delete'] },
   { resource: 'leads', label: 'Murojaatlar', actions: ['view', 'create', 'edit', 'delete', 'assign', 'convert'] },
   { resource: 'deals', label: 'Savdolar', actions: ['view', 'create', 'edit', 'delete', 'changeStage', 'assign'] },
@@ -49,7 +51,9 @@ export const PERMISSION_SCHEMA = [
   { resource: 'activities', label: 'Faoliyatlar', actions: ['view', 'create', 'edit', 'delete'] },
   { resource: 'installations', label: 'O‘rnatishlar', actions: ['view', 'create', 'edit', 'delete', 'assign'] },
   { resource: 'attachments', label: 'Biriktirilgan fayllar', actions: ['create'] },
-  { resource: 'comments', label: 'Izohlar', actions: ['create'] },
+  { resource: 'comments', label: 'Izohlar', actions: ['view', 'create'] },
+  { resource: 'history', label: 'Tarix', actions: ['view'] },
+  { resource: 'reminders', label: 'Eslatmalar', actions: ['view'] },
   { resource: 'employees', label: 'Xodimlar', actions: ['view', 'create', 'edit', 'delete'] },
   { resource: 'teams', label: 'Jamoalar', actions: ['view', 'create', 'edit', 'delete'] },
   { resource: 'notifications', label: 'Bildirishnomalar', actions: ['view', 'manage'] },

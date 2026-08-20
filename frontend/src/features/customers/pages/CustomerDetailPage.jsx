@@ -37,6 +37,7 @@ import { useAsync } from '../../../hooks/useAsync'
 import { useDisclosure } from '../../../hooks/useDisclosure'
 import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
+import { usePermissions } from '../../roles/usePermissions'
 import { formatDate } from '../../../utils/formatDate'
 import { MoreIcon, PlusIcon } from '../../../components/icons/Icons'
 import './CustomerDetailPage.scss'
@@ -62,6 +63,7 @@ export function CustomerDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isEditing = searchParams.get('edit') === '1'
   const toast = useToast()
+  const { can } = usePermissions()
   const confirm = useConfirm()
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -165,7 +167,7 @@ export function CustomerDetailPage() {
           <div>
             <h2 className="page-header__title">{customer.name}</h2>
             <p className="page-header__subtitle">
-              {customer.phone && <span>{customer.phone} · </span>}
+              {can('customers.phone.view') && customer.phone && <span>{customer.phone} · </span>}
               {customer.business?.name && <span>{customer.business.name} · </span>}
               <Badge variant={customer.status === 'active' ? 'success' : 'gray'}>
                 {CUSTOMER_STATUS_LABELS[customer.status] || customer.status}

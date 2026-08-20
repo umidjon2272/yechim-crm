@@ -94,12 +94,15 @@ export function CustomerForm({
   employees = [],
   stages = CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage] })),
   submitLabel = 'Saqlash',
+  minimal = false,
+  showAmount,
   loading,
   onSubmit,
   onCancel,
 }) {
   const { data: fieldDefsData } = useAsync(() => customerFieldDefsService.list({ pageSize: 100 }), [])
   const fieldDefs = fieldDefsData?.items ?? []
+  const canShowAmount = showAmount ?? (!initialValues || initialValues.amount !== undefined)
 
   const seed = initialValues
     ? {
@@ -146,7 +149,9 @@ export function CustomerForm({
           ...existingPrograms.slice(1),
         ]
       : existingPrograms
-    const customerPayload = { ...rest, amount: Number.isFinite(amount) ? amount : 0, programs, name: `${firstName} ${lastName}`.trim() }
+    const payloadRest = { ...rest }
+    delete payloadRest.amount
+    const customerPayload = { ...payloadRest, ...(canShowAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}), programs, name: `${firstName} ${lastName}`.trim() }
     const businessPayload = businessName.trim()
       ? { name: businessName, businessType, phone: businessPhone, address: businessAddress, city: values.address.city }
       : null
@@ -155,7 +160,7 @@ export function CustomerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="stack">
+    <form onSubmit={handleSubmit} noValidate className={`stack customer-form${minimal ? ' customer-form--minimal' : ''}${!canShowAmount ? ' customer-form--hide-amount' : ''}`}>
       <div className="detail-grid">
         <FormField label="Ism" required error={errors.firstName}>
           <Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} />

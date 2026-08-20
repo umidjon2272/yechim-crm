@@ -6,6 +6,7 @@ export const employeesService = {
   get: (id) => httpClient.get(EMPLOYEES.DETAIL(id)),
   create: (payload) => httpClient.post(EMPLOYEES.CREATE, payload),
   update: (id, payload) => httpClient.patch(EMPLOYEES.UPDATE(id), payload),
+  updatePermissions: (id, permissions) => httpClient.patch(EMPLOYEES.PERMISSIONS(id), { permissions }),
   activate: (id) => httpClient.post(EMPLOYEES.ACTIVATE(id)),
   deactivate: (id) => httpClient.post(EMPLOYEES.DEACTIVATE(id)),
 

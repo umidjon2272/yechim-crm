@@ -78,7 +78,7 @@ export function CrmDashboardPage() {
         <ChartCard title="Holat bo‘yicha murojaatlar" loading={leadsByStatus.loading} error={leadsByStatus.error} empty={!leadsByStatus.data?.length}>
           <BarChart data={(leadsByStatus.data ?? []).map((d) => ({ label: d.status, value: d.count }))} />
         </ChartCard>
-        <ChartCard title="Savdo jarayoni" loading={dealsByStage.loading} error={dealsByStage.error} empty={!dealsByStage.data?.length}>
+        <ChartCard title="Voronka" loading={dealsByStage.loading} error={dealsByStage.error} empty={!dealsByStage.data?.length}>
           <BarChart data={(dealsByStage.data ?? []).map((d) => ({ label: d.stage, value: d.count }))} />
         </ChartCard>
         <PermissionGate permission="profit.view">

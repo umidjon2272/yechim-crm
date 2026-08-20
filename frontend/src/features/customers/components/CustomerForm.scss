@@ -32,3 +32,19 @@
     gap: v.$space-4;
   }
 }
+
+.customer-form--minimal {
+  > .detail-grid > :nth-child(2),
+  > .detail-grid > :nth-child(n + 6) {
+    display: none;
+  }
+
+  > .customer-form-section:nth-of-type(3),
+  > .customer-form-section:nth-of-type(4) {
+    display: none;
+  }
+}
+
+.customer-form--hide-amount > .detail-grid > :nth-child(5) {
+  display: none;
+}

@@ -7,6 +7,7 @@ const VALID_VIEWS = ['list', 'kanban']
 const KANBAN_PAGE_SIZE = 200
 
 function loadStoredView() {
+  if (typeof window !== 'undefined' && window.innerWidth <= 700) return 'kanban'
   try {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY)
     return VALID_VIEWS.includes(stored) ? stored : 'kanban'

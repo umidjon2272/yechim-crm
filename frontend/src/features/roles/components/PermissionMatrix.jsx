@@ -6,18 +6,23 @@ const ACTION_LABELS = {
   create: 'Qo‘shish',
   edit: 'Tahrirlash',
   delete: 'O‘chirish',
-  viewAll: 'Barchasini ko‘rish',
   assign: 'Biriktirish',
   convert: 'Savdoga aylantirish',
   changeStage: 'Bosqichni o‘zgartirish',
   send: 'Yuborish',
   manage: 'Boshqarish',
+  viewAll: 'Barcha mijozlar',
+  viewOwn: 'O‘ziga biriktirilgan',
+  viewGroups: 'Tanlangan guruhlar',
+  'amount.view': 'Savdo summasi',
+  'deposit.view': 'Zaklad summasi',
+  'phone.view': 'Telefon',
 }
 
 // Columns are derived from whatever actions the schema actually declares
 // (in a stable, sensible order) instead of a fixed action list, so
 // resource-specific extras like `tasks.viewAll` still get a column.
-const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'delete', 'assign', 'convert', 'changeStage', 'send', 'manage']
+const ACTION_ORDER = ['view', 'viewAll', 'viewOwn', 'viewGroups', 'amount.view', 'deposit.view', 'phone.view', 'create', 'edit', 'delete', 'assign', 'convert', 'changeStage', 'send', 'manage']
 const ALL_ACTIONS = ACTION_ORDER.filter((action) =>
   PERMISSION_SCHEMA.some((resource) => resource.actions.includes(action))
 )

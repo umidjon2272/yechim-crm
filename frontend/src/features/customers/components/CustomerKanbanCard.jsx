@@ -3,7 +3,7 @@ import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
 
 export { getCustomerAmount }
 
-export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen }) {
+export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen, canViewAmount = true, canViewPhone = true }) {
   const primaryProgram = customer.programs?.[0]?.name
   const product = primaryProgram || customer.business?.name || '-'
   const amount = getCustomerAmount(customer)
@@ -29,7 +29,8 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
           <span className="customer-kanban-card__product">{product}</span>
         </span>
       </span>
-      <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerAmount(amount) : '-'}</span>
+      {canViewPhone && customer.phone && <span className="customer-kanban-card__phone">{customer.phone}</span>}
+      {canViewAmount && <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerAmount(amount) : '-'}</span>}
       <span className="customer-kanban-card__footer">
         <span className="customer-kanban-card__assignee-dot" aria-hidden="true" />
         <span className="customer-kanban-card__assignee">{customer.assignedEmployee?.name || '-'}</span>

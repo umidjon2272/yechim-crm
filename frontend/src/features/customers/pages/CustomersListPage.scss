@@ -7,6 +7,10 @@
   min-height: calc(100vh - 136px);
 }
 
+.customers-page__mobilebar {
+  display: none;
+}
+
 .customers-page__header {
   justify-content: flex-start;
   margin-bottom: v.$space-3;
@@ -158,7 +162,126 @@
   color: v.$color-primary-700;
 }
 
+.mobile-stage-selector {
+  display: none;
+}
+
+.customer-created-follow-up {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-3;
+
+  &__success {
+    color: v.$color-success-700;
+    font-weight: v.$font-weight-semibold;
+  }
+
+  &__title {
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-sm;
+  }
+
+  &__actions,
+  &__quick-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: v.$space-2;
+  }
+
+  &__quick-dates button {
+    padding: 5px 9px;
+    border-radius: v.$radius-full;
+    background: rgba(125, 92, 246, 0.08);
+    color: v.$color-primary-700;
+    font-size: v.$font-size-xs;
+  }
+}
+
 @include m.respond-down(v.$breakpoint-sm) {
+  .customers-page__mobilebar {
+    display: flex;
+    align-items: center;
+    gap: v.$space-3;
+    margin-bottom: v.$space-2;
+    color: v.$color-text-primary;
+    font-weight: v.$font-weight-semibold;
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.58);
+      color: v.$color-primary-700;
+    }
+  }
+
+  .customers-page__header .view-toggle,
+  .customers-page__header > .page-header__actions > .btn:nth-child(2),
+  .customers-filter-row > :not(.customers-filter-row__search) {
+    display: none;
+  }
+
+  .customers-page__header .page-header__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .mobile-stage-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: v.$space-2;
+    margin-bottom: v.$space-3;
+    padding: v.$space-2 v.$space-3;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.52);
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-sm;
+
+    .select {
+      width: min(70%, 220px);
+      height: 36px;
+    }
+  }
+
+  .customer-groups-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .customer-edit-modal,
+  .customer-create-modal {
+    width: calc(100vw - 24px);
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  .customer-kanban-card__amount {
+    display: none;
+  }
+
+  .kanban {
+    display: block;
+  }
+
+  .kanban__column-wrap {
+    width: 100%;
+  }
+
+  .kanban__column {
+    min-height: 220px;
+  }
+
+  .kanban__insert-stage,
+  .kanban__after-columns {
+    display: none;
+  }
+
   .customers-filter-row__search {
     min-width: 100%;
     max-width: none;

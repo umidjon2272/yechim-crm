@@ -41,6 +41,30 @@
   padding-top: v.$space-3;
 }
 
+.employee-form__group-scope {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.employee-form__group-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .employee-form__group-scope {
+    grid-template-columns: 1fr;
+  }
+}
+
 .employee-form__permissions-actions {
   @include m.flex(center, flex-end);
   margin-bottom: v.$space-2;

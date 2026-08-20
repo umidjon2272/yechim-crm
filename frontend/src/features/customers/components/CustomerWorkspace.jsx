@@ -39,6 +39,7 @@ import { useAsync } from '../../../hooks/useAsync'
 import { useDisclosure } from '../../../hooks/useDisclosure'
 import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
+import { usePermissions } from '../../roles/usePermissions'
 import { formatDate } from '../../../utils/formatDate'
 import { MoreIcon, PlusIcon, PhoneIcon, InboxIcon } from '../../../components/icons/Icons'
 import './CustomerWorkspace.scss'
@@ -64,6 +65,7 @@ const BASE_SIDE_TABS = [
 export function CustomerWorkspace({ customerId: id, onChanged }) {
   const navigate = useNavigate()
   const toast = useToast()
+  const { can } = usePermissions()
   const confirm = useConfirm()
   const [sideTab, setSideTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
@@ -209,7 +211,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
         <div>
           <div className="customer-workspace__name">{customer.name}</div>
           <div className="customer-workspace__meta">
-            {customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
+            {can('customers.phone.view') && customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
             {customer.business?.name && <span> · {customer.business.name}</span>}
             {customer.assignedEmployee?.name && <span> · Mas'ul: {customer.assignedEmployee.name}</span>}
             <Dropdown
@@ -234,7 +236,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
               Stage: <strong>{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</strong>
             </span>
             <span>
-              Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount) : 'Belgilanmagan'}</strong>
+              {can('customers.amount.view') && <>Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount) : 'Belgilanmagan'}</strong></>}
             </span>
             <span>
               Mas'ul: <strong>{customer.assignedEmployee?.name || '-'}</strong>
@@ -246,7 +248,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
         </div>
       </div>
       <div className="customer-workspace__actions">
-        {customer.phone && (
+        {can('customers.phone.view') && customer.phone && (
           <a className="btn btn--secondary" href={`tel:${customer.phone}`}>
             <PhoneIcon width={15} height={15} /> Telefon
           </a>
@@ -337,10 +339,10 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                       <div className="detail-field__label">Stage</div>
                       <div className="detail-field__value">{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</div>
                     </div>
-                    <div className="detail-field">
+                    {can('customers.amount.view') && <div className="detail-field">
                       <div className="detail-field__label">Savdo summasi</div>
                       <div className="detail-field__value">{customerAmount > 0 ? formatCustomerAmount(customerAmount) : 'Belgilanmagan'}</div>
-                    </div>
+                    </div>}
                     <div className="detail-field">
                       <div className="detail-field__label">Dastur</div>
                       <div className="detail-field__value">{primaryProgram}</div>

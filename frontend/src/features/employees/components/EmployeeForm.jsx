@@ -7,6 +7,8 @@ import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
 import { ROLES, ROLE_LABELS, ROLE_DEFAULT_PERMISSIONS } from '../../roles/permissions'
 import { PermissionMatrix } from '../../roles/components/PermissionMatrix'
+import { customerGroupsService } from '../../../services/customers.service'
+import { useAsync } from '../../../hooks/useAsync'
 import { RefreshIcon, ChevronDownIcon } from '../../../components/icons/Icons'
 import './EmployeeForm.scss'
 
@@ -21,6 +23,8 @@ const DEFAULT_VALUES = {
   role: ROLES.SALES,
   teamId: '',
   status: 'active',
+  customerScope: 'ALL',
+  allowedGroupIds: [],
   // No `permissions` key here on purpose: EmployeeForm's initial state below
   // falls back to the selected role's defaults via `??`, which only kicks
   // in when the field is genuinely absent (undefined) — an explicit `[]`
@@ -46,15 +50,25 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, teams = [], submi
     ...splitName(initialValues.name),
     ...initialValues,
     permissions: initialValues.permissions ?? ROLE_DEFAULT_PERMISSIONS[initialValues.role ?? DEFAULT_VALUES.role] ?? [],
+    allowedGroupIds: initialValues.allowedGroupIds ?? [],
   }))
   const [errors, setErrors] = useState({})
   const [permissionsOpen, setPermissionsOpen] = useState(!isEditing)
+  const { data: groupData } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
+  const groups = groupData?.items ?? []
 
   const handleChange = (field) => (event) => setValues((v) => ({ ...v, [field]: event.target.value }))
 
   const handlePermissionsChange = (permissions) => setValues((v) => ({ ...v, permissions }))
 
   const resetToRoleDefaults = () => setValues((v) => ({ ...v, permissions: ROLE_DEFAULT_PERMISSIONS[v.role] ?? [] }))
+  const toggleGroup = (groupId) =>
+    setValues((v) => ({
+      ...v,
+      allowedGroupIds: v.allowedGroupIds.includes(groupId)
+        ? v.allowedGroupIds.filter((id) => id !== groupId)
+        : [...v.allowedGroupIds, groupId],
+    }))
 
   const handleGeneratePassword = () => {
     const generated = generatePassword()
@@ -169,6 +183,26 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, teams = [], submi
           <option value="inactive">Faol emas</option>
         </Select>
       </FormField>
+
+      <div className="employee-form__section-title">Mijozlar ko‘rinishi</div>
+      <FormField label="Mijozlar ko‘rinishi" hint="Backend API ham shu scope bilan filtrlanadi">
+        <Select value={values.customerScope} onChange={handleChange('customerScope')} disabled={loading}>
+          <option value="ALL">Barcha mijozlar</option>
+          <option value="OWN">Faqat o‘ziga biriktirilgan mijozlar</option>
+          <option value="GROUPS">Faqat tanlangan guruh(lar)</option>
+        </Select>
+      </FormField>
+      {values.customerScope === 'GROUPS' && (
+        <div className="employee-form__group-scope">
+          {groups.length === 0 && <span className="text-muted text-xs">Hali guruh yaratilmagan.</span>}
+          {groups.map((group) => (
+            <label key={group.id} className="employee-form__group-option">
+              <input type="checkbox" checked={values.allowedGroupIds.includes(group.id)} onChange={() => toggleGroup(group.id)} disabled={loading} />
+              {group.name}
+            </label>
+          ))}
+        </div>
+      )}
 
       <button
         type="button"

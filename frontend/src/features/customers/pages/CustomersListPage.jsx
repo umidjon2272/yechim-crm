@@ -4,6 +4,9 @@ import { useCustomer, useCustomers } from '../customers.hooks'
 import { customersService, customerGroupsService } from '../../../services/customers.service'
 import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
+import { tasksService } from '../../../services/tasks.service'
+import { activitiesService, remindersService } from '../../../services/activities.service'
+import { commentsService } from '../../../services/comments.service'
 import { CustomerTable } from '../components/CustomerTable'
 import { CustomerKanbanCard, getCustomerAmount } from '../components/CustomerKanbanCard'
 import { CustomerForm } from '../components/CustomerForm'
@@ -14,6 +17,7 @@ import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS, CUSTOMER_STAGES, CUSTOMER_ST
 import { INSTALLATION_STATUSES, INSTALLATION_STATUS_LABELS } from '../../installations/installations.constants'
 import { Button } from '../../../components/Button/Button'
 import { Input } from '../../../components/Input/Input'
+import { FormField } from '../../../components/FormField/FormField'
 import { Select } from '../../../components/Select/Select'
 import { Modal } from '../../../components/Modal/Modal'
 import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
@@ -23,16 +27,103 @@ import { Spinner } from '../../../components/Spinner/Spinner'
 import { Pagination } from '../../../components/Pagination/Pagination'
 import { KanbanBoard } from '../../../components/Kanban/KanbanBoard'
 import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
 import { useToast } from '../../../store/ToastContext'
+import { useUI } from '../../../store/UIContext'
 import { useAction } from '../../../hooks/useAction'
 import { useAsync } from '../../../hooks/useAsync'
 import { useDisclosure } from '../../../hooks/useDisclosure'
-import { InboxIcon, MoreIcon, PlusIcon, SearchIcon } from '../../../components/icons/Icons'
+import { InboxIcon, MenuIcon, MoreIcon, PlusIcon, SearchIcon } from '../../../components/icons/Icons'
 import { classNames } from '../../../utils/classNames'
 import './CustomersListPage.scss'
 
 function fallbackStages() {
   return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage] }))
+}
+
+function localDateTime(days = 1, hour = '15:00') {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  const day = date.toISOString().slice(0, 10)
+  return `${day}T${hour}`
+}
+
+function QuickFollowUp({ customer, onDone }) {
+  const { can } = usePermissions()
+  const [mode, setMode] = useState(null)
+  const [when, setWhen] = useState(localDateTime(1))
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const toast = useToast()
+
+  const open = (nextMode) => {
+    setMode(nextMode)
+    setWhen(localDateTime(nextMode === 'call' ? 0 : 1))
+    setNote('')
+  }
+
+  const save = async (event) => {
+    event.preventDefault()
+    if (!mode) return
+    setSaving(true)
+    try {
+      const iso = new Date(when).toISOString()
+      if (mode === 'call') {
+        await activitiesService.create({ customerId: customer.id, type: 'CALL', title: 'Qo‘ng‘iroq rejalashtirildi', date: iso, description: note })
+      } else if (mode === 'reminder') {
+        await remindersService.create({ customerId: customer.id, title: 'Mijoz bilan bog‘lanish', remindAt: iso, note })
+      } else if (mode === 'task') {
+        await tasksService.create({ customerId: customer.id, title: note || `${customer.name} bilan bog‘lanish`, dueDate: iso, description: note })
+      } else {
+        await commentsService.create({ entityType: 'customer', entityId: customer.id, text: note })
+      }
+      toast.success('Keyingi ish saqlandi')
+      setMode(null)
+      setNote('')
+    } catch (err) {
+      toast.error(err.message || 'Keyingi ishni saqlashda xatolik yuz berdi')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="customer-created-follow-up">
+      <div className="customer-created-follow-up__success">Mijoz yaratildi ✓</div>
+      <div className="customer-created-follow-up__title">Keyingi ish:</div>
+      <div className="customer-created-follow-up__actions">
+        {can('activities.create') && <Button size="sm" variant="secondary" onClick={() => open('call')}>Qo‘ng‘iroq</Button>}
+        {can('reminders.create') && <Button size="sm" variant="secondary" onClick={() => open('reminder')}>Eslatma</Button>}
+        {can('tasks.create') && <Button size="sm" variant="secondary" onClick={() => open('task')}>Vazifa</Button>}
+        {can('comments.create') && <Button size="sm" variant="secondary" onClick={() => open('note')}>Izoh</Button>}
+      </div>
+      {mode && (
+        <form className="customer-created-follow-up__form" onSubmit={save}>
+          {mode !== 'note' ? (
+            <>
+              <FormField label={mode === 'task' ? 'Muddat' : 'Sana/vaqt'}>
+                <Input type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} disabled={saving} />
+              </FormField>
+              <div className="customer-created-follow-up__quick-dates">
+                <button type="button" onClick={() => setWhen(localDateTime(0))}>Bugun</button>
+                <button type="button" onClick={() => setWhen(localDateTime(1))}>Ertaga</button>
+                <button type="button" onClick={() => setWhen(localDateTime(3))}>3 kundan keyin</button>
+                <button type="button" onClick={() => setWhen(localDateTime(7))}>1 haftadan keyin</button>
+              </div>
+            </>
+          ) : null}
+          <FormField label="Izoh">
+            <textarea className="textarea" rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Masalan: Narxni direktor bilan yana gaplashish" disabled={saving} />
+          </FormField>
+          <div className="card__footer" style={{ paddingLeft: 0, paddingRight: 0 }}>
+            <Button type="button" variant="secondary" onClick={() => setMode(null)} disabled={saving}>Bekor qilish</Button>
+            <Button type="submit" loading={saving} disabled={mode === 'note' && !note.trim()}>Saqlash</Button>
+          </div>
+        </form>
+      )}
+      <Button variant="ghost" onClick={onDone}>Tayyor</Button>
+    </div>
+  )
 }
 
 function CustomerEditModal({ customerId, employees, stages, loadingStages, onClose, onChanged }) {
@@ -243,6 +334,7 @@ export function CustomersListPage() {
   const pipelineModal = useDisclosure()
   const bulkMoveModal = useDisclosure()
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
+  const [createdCustomer, setCreatedCustomer] = useState(null)
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [createStageId, setCreateStageId] = useState(null)
   const [employees, setEmployees] = useState([])
@@ -252,6 +344,16 @@ export function CustomersListPage() {
   const [selectedIds, setSelectedIds] = useState([])
   const [optimisticStages, setOptimisticStages] = useState({})
   const toast = useToast()
+  const { openMobileSidebar } = useUI()
+  const { can } = usePermissions()
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 700)
+  const [mobileStage, setMobileStage] = useState('NEW')
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 700)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const createAction = useAction(async (customerPayload, businessPayload) => {
     const customer = await customersService.create(customerPayload)
@@ -299,6 +401,10 @@ export function CustomersListPage() {
     () => filterOptions.stages.reduce((acc, stage) => ({ ...acc, [stage.id]: stage.label }), { ...CUSTOMER_STAGE_LABELS }),
     [filterOptions.stages]
   )
+  const visibleStageColumns = useMemo(
+    () => (isMobile ? stageColumns.filter((stage) => stage.id === mobileStage) : stageColumns),
+    [isMobile, mobileStage, stageColumns]
+  )
   const displayedCustomers = useMemo(
     () => customers.map((customer) => (optimisticStages[customer.id] ? { ...customer, stage: optimisticStages[customer.id] } : customer)),
     [customers, optimisticStages]
@@ -313,9 +419,9 @@ export function CustomersListPage() {
 
   const handleCreate = async (customerPayload, businessPayload) => {
     try {
-      await createAction.run(customerPayload, businessPayload)
+      const customer = await createAction.run(customerPayload, businessPayload)
       toast.success("Mijoz qo'shildi")
-      createModal.close()
+      setCreatedCustomer(customer)
       await refetch()
       loadFilterOptions()
     } catch (err) {
@@ -438,6 +544,10 @@ export function CustomersListPage() {
 
   return (
     <div className="customers-page">
+      <div className="customers-page__mobilebar">
+        <button type="button" onClick={openMobileSidebar} aria-label="Menyuni ochish"><MenuIcon width={20} height={20} /></button>
+        <span>CRM</span>
+      </div>
       <div className="page-header customers-page__header">
         <div className="page-header__actions">
           <div className="view-toggle">
@@ -463,6 +573,15 @@ export function CustomersListPage() {
       </div>
 
       <CustomerGroupsBar activeGroupId={params.groupId} onSelectGroup={setGroupId} />
+
+      {isMobile && (
+        <div className="mobile-stage-selector">
+          <span>Bosqich:</span>
+          <Select value={mobileStage} onChange={(event) => setMobileStage(event.target.value)}>
+            {stageColumns.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+          </Select>
+        </div>
+      )}
 
       <div className="filters-row customers-filter-row">
         <div className="input-group filters-row__search customers-filter-row__search">
@@ -572,8 +691,8 @@ export function CustomersListPage() {
       )}
 
       {!loading && !error && view === 'kanban' && (
-        <KanbanBoard
-          columns={stageColumns}
+          <KanbanBoard
+            columns={visibleStageColumns}
           items={displayedCustomers}
           getColumnId={(customer) => customer.stage}
           renderColumnHeader={(column, columnCustomers, index) => {
@@ -600,7 +719,7 @@ export function CustomersListPage() {
                   </Dropdown>
                 </div>
                 <span className="kanban__column-meta">
-                  <span className="kanban__column-total">{formatCustomerAmount(totalAmount)}</span>
+                  {can('customers.amount.view') && <span className="kanban__column-total">{formatCustomerAmount(totalAmount)}</span>}
                 </span>
               </div>
             )
@@ -613,6 +732,8 @@ export function CustomersListPage() {
           renderCard={(customer) => (
             <CustomerKanbanCard
               customer={customer}
+              canViewAmount={can('customers.amount.view')}
+              canViewPhone={can('customers.phone.view')}
               selected={selectedIds.includes(customer.id)}
               onSelect={toggleSelected}
               onOpen={openCustomer}
@@ -634,16 +755,36 @@ export function CustomersListPage() {
         />
       )}
 
-      <Modal open={createModal.isOpen} title="Mijoz qo'shish" className="customer-edit-modal" onClose={createModal.close}>
-        <CustomerForm
-          initialValues={{ stage: createStageId || 'NEW' }}
-          employees={employees}
-          stages={stageColumns}
-          submitLabel="Qo'shish"
-          loading={createAction.loading}
-          onSubmit={handleCreate}
-          onCancel={createModal.close}
-        />
+      <Modal
+        open={createModal.isOpen}
+        title={createdCustomer ? 'Keyingi ish' : "Mijoz qo'shish"}
+        className="customer-edit-modal customer-create-modal"
+        onClose={() => {
+          setCreatedCustomer(null)
+          createModal.close()
+        }}
+      >
+        {createdCustomer ? (
+          <QuickFollowUp
+            customer={createdCustomer}
+            onDone={() => {
+              setCreatedCustomer(null)
+              createModal.close()
+            }}
+          />
+        ) : (
+          <CustomerForm
+            initialValues={{ stage: createStageId || 'NEW', groupIds: params.groupId ? [params.groupId] : [] }}
+            employees={employees}
+            stages={stageColumns}
+            submitLabel="Qo'shish"
+            minimal
+            showAmount={can('customers.amount.view')}
+            loading={createAction.loading}
+            onSubmit={handleCreate}
+            onCancel={createModal.close}
+          />
+        )}
       </Modal>
 
       <CreateStageModal
