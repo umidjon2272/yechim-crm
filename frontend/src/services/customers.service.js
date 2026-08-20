@@ -34,7 +34,7 @@ export const customersService = {
   listStages: () => httpClient.get(CUSTOMERS.STAGES),
   createStage: (payload) => httpClient.post(CUSTOMERS.STAGES, payload),
   updateStage: (id, payload) => httpClient.patch(CUSTOMERS.STAGE_DETAIL(id), payload),
-  deleteStage: (id, payload) => httpClient.delete(CUSTOMERS.STAGE_DETAIL(id), { body: payload }),
+  deleteStage: (id, payload) => httpClient.delete(CUSTOMERS.STAGE_DELETE(id), { body: payload }),
   setStage: (id, stage, payload = {}) => {
     const stageId = typeof stage === 'object' ? stage?.id || stage?.stageId || stage?.value : stage
     return httpClient.patch(CUSTOMERS.STAGE_UPDATE(id), { stage: stageId, ...payload })

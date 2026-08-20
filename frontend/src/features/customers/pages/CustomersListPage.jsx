@@ -39,7 +39,7 @@ import { classNames } from '../../../utils/classNames'
 import './CustomersListPage.scss'
 
 function fallbackStages() {
-  return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage] }))
+  return CUSTOMER_STAGES.map((stage) => ({ id: stage, label: CUSTOMER_STAGE_LABELS[stage], isSystem: true, isDefault: true, isProtected: true }))
 }
 
 function formatPartnerPeriod(period) {
@@ -524,7 +524,7 @@ export function CustomersListPage() {
     })
   }, [customers])
 
-  const stageColumns = useMemo(() => filterOptions.stages.map((stage) => ({ id: stage.id, label: stage.label })), [filterOptions.stages])
+  const stageColumns = useMemo(() => filterOptions.stages.map((stage) => ({ ...stage, id: stage.id, label: stage.label })), [filterOptions.stages])
   const stageLabels = useMemo(
     () => filterOptions.stages.reduce((acc, stage) => ({ ...acc, [stage.id]: stage.label }), { ...CUSTOMER_STAGE_LABELS }),
     [filterOptions.stages]
@@ -678,7 +678,11 @@ export function CustomersListPage() {
   }
 
   const openDeleteStage = (stage) => {
-    const count = displayedCustomers.filter((customer) => customer.stage === stage.id).length
+    if (stage.isSystem || stage.isDefault || stage.isProtected) {
+      toast.error('Tizim/default bosqichini o\'chirib bo\'lmaydi')
+      return
+    }
+    const count = Number.isFinite(Number(stage.customerCount)) ? Number(stage.customerCount) : displayedCustomers.filter((customer) => customer.stage === stage.id).length
     setStageDelete({ stage, count })
   }
 
@@ -879,7 +883,7 @@ export function CustomersListPage() {
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
-                  <InlineStageTitle column={column} canEdit={can('customers.edit')} onSave={handleRenameStage} onDelete={can('customers.edit') ? openDeleteStage : undefined} />
+                  <InlineStageTitle column={column} canEdit={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected} onSave={handleRenameStage} onDelete={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
                 </div>
                  {!isPartner && <span className="kanban__column-meta">

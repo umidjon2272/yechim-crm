@@ -69,6 +69,7 @@ export const CUSTOMERS = {
   STAGE_UPDATE: (id) => `/customers/${id}/stage`,
   STAGES: '/meta/customer-stages',
   STAGE_DETAIL: (id) => `/meta/customer-stages/${id}`,
+  STAGE_DELETE: (id) => `/stages/${id}`,
   STAGE_REORDER: '/stages/reorder',
 }
 
