@@ -59,6 +59,19 @@ const BASE_SIDE_TABS = [
   { id: 'comments', label: 'Izohlar' },
 ]
 
+const SIDE_TAB_PERMISSIONS = {
+  programs: 'programs.view',
+  order: 'deals.view',
+  leads: 'leads.view',
+  deals: 'deals.view',
+  payments: 'payments.view',
+  tasks: 'tasks.view',
+  activities: 'activities.view',
+  installations: 'installations.view',
+  attachments: 'attachments.create',
+  comments: 'comments.view',
+}
+
 // The Bitrix-style "customer element" panel: chat is the main, always-
 // visible column (no click required to reach it) вЂ” everything else
 // (programs, deals, payments, tasks...) lives in a compact tab strip in the
@@ -314,7 +327,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     tasks: tasksCountData?.total,
     installations: installationsCountData?.total,
   }
-  const sideTabs = BASE_SIDE_TABS.filter((tab) => isPartner ? tab.id === 'overview' : (tab.id === 'activities' ? can('activities.view') : tab.id === 'comments' ? can('comments.view') : true)).map((tab) =>
+  const sideTabs = BASE_SIDE_TABS.filter((tab) => isPartner ? tab.id === 'overview' : !SIDE_TAB_PERMISSIONS[tab.id] || can(SIDE_TAB_PERMISSIONS[tab.id])).map((tab) =>
     tabCounts[tab.id] != null ? { ...tab, label: `${tab.label} (${tabCounts[tab.id]})` } : tab
   )
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { usersService } from '../../../services/users.service'
@@ -18,6 +18,10 @@ function splitName(name = '') {
   return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }
 }
 
+function getCurrentLogin(user) {
+  return user?.username || user?.login || user?.email || user?.phone || ''
+}
+
 export function ProfilePage() {
   const { user, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
@@ -26,9 +30,14 @@ export function ProfilePage() {
   const loginAction = useAction(usersService.updateLogin)
   const passwordAction = useAction(authService.changePassword)
   const initialName = splitName(user?.name)
+  const currentLogin = getCurrentLogin(user)
   const [values, setValues] = useState({ firstName: initialName.firstName, lastName: initialName.lastName, phone: user?.phone || '', email: user?.email || '' })
-  const [login, setLogin] = useState(user?.username || '')
+  const [login, setLogin] = useState(currentLogin)
   const [passwordValues, setPasswordValues] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+  useEffect(() => {
+    setLogin(currentLogin)
+  }, [currentLogin])
 
   const handleChange = (field) => (event) => setValues((current) => ({ ...current, [field]: event.target.value }))
 
@@ -96,7 +105,7 @@ export function ProfilePage() {
             <FormField label="Telefon"><Input value={values.phone} onChange={handleChange('phone')} disabled={updateAction.loading} /></FormField>
             <FormField label="Elektron pochta"><Input type="email" value={values.email} onChange={handleChange('email')} disabled={updateAction.loading} /></FormField>
             <FormField label="Rol"><Input value={roleLabel} disabled /></FormField>
-            <FormField label="Login"><Input value={user?.username || ''} disabled /></FormField>
+            <FormField label="Login"><Input value={currentLogin} disabled /></FormField>
           </div>
           <p className="text-muted text-xs" style={{ margin: '16px 0' }}>Login va parolni faqat administrator o'zgartiradi.</p>
           <Button type="submit" loading={updateAction.loading}>Saqlash</Button>
@@ -105,7 +114,7 @@ export function ProfilePage() {
       {['ADMIN', 'SUPER_ADMIN'].includes(user?.role) && <>
         <Card title="Loginni o'zgartirish">
           <form onSubmit={handleLoginChange} className="stack">
-            <FormField label="Joriy login"><Input value={user?.username || ''} disabled /></FormField>
+            <FormField label="Joriy login"><Input value={currentLogin} disabled /></FormField>
             <FormField label="Yangi login" required><Input value={login} onChange={(event) => setLogin(event.target.value)} disabled={loginAction.loading} /></FormField>
             <Button type="submit" loading={loginAction.loading}>Loginni saqlash</Button>
           </form>

@@ -8,9 +8,11 @@ const ACTION_LABELS = {
   edit: 'Tahrirlash',
   delete: "O'chirish",
   viewAll: "Barchasini ko'rish",
+  convert: "Aylantirish",
+  changeStage: "Bosqichni o'zgartirish",
 }
 
-const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'delete']
+const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'changeStage', 'convert', 'delete']
 const ALL_ACTIONS = ACTION_ORDER.filter((action) => PERMISSION_SCHEMA.some((resource) => resource.actions.includes(action)))
 
 export function PermissionMatrix({ value = [], onChange }) {

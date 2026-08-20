@@ -59,6 +59,19 @@ const TABS = [
   { id: 'comments', label: 'Izohlar' },
 ]
 
+const TAB_PERMISSIONS = {
+  programs: 'programs.view',
+  business: 'businesses.view',
+  leads: 'leads.view',
+  deals: 'deals.view',
+  payments: 'payments.view',
+  tasks: 'tasks.view',
+  activities: 'activities.view',
+  installations: 'installations.view',
+  attachments: 'attachments.create',
+  comments: 'comments.view',
+}
+
 export function CustomerDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -224,7 +237,7 @@ export function CustomerDetailPage() {
         </Card>
       ) : (
         <>
-          <Tabs items={TABS.filter((tab) => isPartner ? tab.id === 'overview' : (tab.id === 'activities' ? can('activities.view') : tab.id === 'comments' ? can('comments.view') : true))} activeId={activeTab} onChange={setActiveTab} />
+          <Tabs items={TABS.filter((tab) => isPartner ? tab.id === 'overview' : !TAB_PERMISSIONS[tab.id] || can(TAB_PERMISSIONS[tab.id]))} activeId={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'overview' && (
             <div className="stack">
@@ -275,7 +288,9 @@ export function CustomerDetailPage() {
                 <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
               </Card>
               <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />
-              <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
+              <PermissionGate permission="history.view">
+                <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
+              </PermissionGate>
             </div>
           )}
 
