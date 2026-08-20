@@ -12,7 +12,7 @@ import { classNames } from '../../../utils/classNames'
 import { MoreIcon } from '../../../components/icons/Icons'
 import './CustomerGroupsBar.scss'
 
-export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = true, canEdit = true, canDelete = true }) {
+export function CustomerGroupsBar({ activeGroupId, onSelectGroup, showAllCustomers = true, canCreate = true, canEdit = true, canDelete = true }) {
   const { data, loading, refetch } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
   const [editingGroup, setEditingGroup] = useState(null)
   const groupModal = useDisclosure()
@@ -68,13 +68,13 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = tr
 
   return (
     <div className="customer-groups-bar">
-      <button
+      {showAllCustomers && <button
         type="button"
         className={classNames('customer-groups-bar__chip', !activeGroupId && 'customer-groups-bar__chip--active')}
         onClick={() => onSelectGroup('', null)}
       >
         Barcha mijozlar
-      </button>
+      </button>}
       {groups.map((group) => (
         <div key={group.id} className={classNames('customer-groups-bar__chip', activeGroupId === group.id && 'customer-groups-bar__chip--active')}>
           <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id, group)}>

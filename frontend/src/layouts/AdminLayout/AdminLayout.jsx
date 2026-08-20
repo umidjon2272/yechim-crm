@@ -39,6 +39,7 @@ export function AdminLayout() {
       <Sidebar />
       <div className="admin-layout__main">
         {!hideHeader && <Header title={resolveTitle(location.pathname)} />}
+        {hideHeader && <Header title={resolveTitle(location.pathname)} className="header--mobile-only" />}
         <main className={`admin-layout__content page-enter${hideHeader ? ' admin-layout__content--no-header' : ''}`} key={location.pathname}>
           <Outlet />
         </main>

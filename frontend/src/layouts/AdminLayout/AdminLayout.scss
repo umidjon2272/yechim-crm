@@ -21,3 +21,14 @@
     }
   }
 }
+
+@media (max-width: 767px) {
+  .admin-layout__content {
+    padding: v.$space-4 v.$space-3 v.$space-6;
+    max-width: 100vw;
+  }
+
+  .admin-layout__content--no-header {
+    padding-top: v.$space-3;
+  }
+}

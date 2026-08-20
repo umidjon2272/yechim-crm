@@ -91,3 +91,24 @@
     font-weight: v.$font-weight-bold;
   }
 }
+
+.header--mobile-only {
+  display: none;
+
+  @include m.respond-down(v.$breakpoint-lg) {
+    display: flex;
+  }
+}
+
+@media (max-width: 767px) {
+  .header {
+    height: 60px;
+    margin: 8px 8px 0;
+    padding: 0 v.$space-2;
+    border-radius: v.$radius-xl;
+
+    &__right {
+      gap: 2px;
+    }
+  }
+}

@@ -299,3 +299,54 @@
     height: calc(100vh - 264px);
   }
 }
+
+@media (max-width: 767px) {
+  .kanban {
+    flex-direction: column;
+    overflow-x: hidden;
+    padding: v.$space-2;
+    min-height: 0;
+    border-radius: v.$radius-xl;
+  }
+
+  .kanban__column-wrap {
+    display: block;
+    width: 100%;
+  }
+
+  .kanban__column {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    flex: 0 0 auto;
+    border-radius: v.$radius-lg;
+  }
+
+  .kanban__column-header {
+    border-radius: v.$radius-lg v.$radius-lg 0 0;
+    padding: v.$space-4;
+  }
+
+  .kanban__cards {
+    overflow: visible;
+    padding: 0 v.$space-2 v.$space-2;
+    gap: v.$space-2;
+  }
+
+  .kanban__column-action {
+    padding: v.$space-2;
+  }
+
+  .kanban__add-card {
+    height: 46px;
+  }
+
+  .kanban__insert-stage,
+  .kanban__after-columns {
+    display: none;
+  }
+
+  .kanban__card {
+    width: 100%;
+  }
+}

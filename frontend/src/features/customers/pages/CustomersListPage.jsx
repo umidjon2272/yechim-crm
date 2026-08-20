@@ -5,7 +5,7 @@ import { customersService, customerGroupsService, partnersService } from '../../
 import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
 import { CustomerTable } from '../components/CustomerTable'
-import { CustomerKanbanCard, getCustomerAmount } from '../components/CustomerKanbanCard'
+import { CustomerKanbanCard } from '../components/CustomerKanbanCard'
 import { CustomerForm } from '../components/CustomerForm'
 import { CreateStageModal } from '../components/CreateStageModal'
 import { CustomerGroupsBar } from '../components/CustomerGroupsBar'
@@ -463,7 +463,7 @@ export function CustomersListPage() {
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [createStageId, setCreateStageId] = useState(null)
   const [employees, setEmployees] = useState([])
-  const [filterOptions, setFilterOptions] = useState({ cities: [], programs: [], stageCounts: {}, stages: fallbackStages() })
+  const [filterOptions, setFilterOptions] = useState({ cities: [], programs: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
   const [stageDraft, setStageDraft] = useState({ afterStageId: null })
   const [stageDelete, setStageDelete] = useState(null)
   const [selectedIds, setSelectedIds] = useState([])
@@ -475,13 +475,18 @@ export function CustomersListPage() {
   const [quickCustomer, setQuickCustomer] = useState(null)
   const [reminderType, setReminderType] = useState(null)
   const [activeGroupName, setActiveGroupName] = useState('')
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  const [mobileStageId, setMobileStageId] = useState('NEW')
   const toast = useToast()
   const { can } = usePermissions()
   const { user } = useAuth()
   const canViewEmployees = can('employees.view')
   const isPartner = user?.role === 'PARTNER'
   const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
+  const canViewAmount = isAdmin || can('customers.viewAmount') || can('amount.view')
+  const canViewPipelineTotal = isAdmin || can('customers.viewPipelineTotal')
   const canManageCustomerGroups = !isPartner && (isAdmin || user?.role !== 'EMPLOYEE')
+  const canSeeAllCustomersTab = !user || user?.role !== 'EMPLOYEE' || user?.customerVisibility === 'ALL' || can('customers.viewAll')
   const handleGroupSelect = (groupId, group) => {
     setActiveGroupName(group?.name || '')
     setGroupId(groupId)
@@ -510,10 +515,11 @@ export function CustomersListPage() {
           cities: res?.cities ?? [],
           programs: res?.programs ?? [],
           stageCounts: res?.stageCounts ?? {},
+          stageTotals: res?.stageTotals ?? {},
           stages: stagesRes?.items?.length ? stagesRes.items : fallbackStages(),
         })
       )
-      .catch(() => setFilterOptions({ cities: [], programs: [], stageCounts: {}, stages: fallbackStages() }))
+      .catch(() => setFilterOptions({ cities: [], programs: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() }))
   }, [])
 
   useEffect(() => {
@@ -548,6 +554,27 @@ export function CustomersListPage() {
     () => customers.map((customer) => (optimisticStages[customer.id] ? { ...customer, stage: optimisticStages[customer.id] } : customer)),
     [customers, optimisticStages]
   )
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const handleChange = () => setIsMobile(media.matches)
+    handleChange()
+    media.addEventListener?.('change', handleChange)
+    return () => media.removeEventListener?.('change', handleChange)
+  }, [])
+
+  useEffect(() => {
+    if (isMobile) setView('kanban')
+  }, [isMobile, setView])
+
+  useEffect(() => {
+    if (!stageColumns.some((stage) => stage.id === mobileStageId)) {
+      setMobileStageId(stageColumns.find((stage) => stage.id === 'NEW')?.id || stageColumns[0]?.id || 'NEW')
+    }
+  }, [stageColumns, mobileStageId])
+
+  const mobileStage = stageColumns.find((stage) => stage.id === mobileStageId) || stageColumns[0]
+  const visibleStageColumns = isMobile && mobileStage ? [mobileStage] : stageColumns
+  const visibleCustomers = isMobile && mobileStage ? displayedCustomers.filter((customer) => customer.stage === mobileStage.id) : displayedCustomers
   const activeCustomerId = selectedCustomerId || routeCustomerId
 
   const openCustomer = (customerId) => setSelectedCustomerId(customerId)
@@ -766,16 +793,29 @@ export function CustomersListPage() {
       </div>
 
       {!isPartner && (
-          <CustomerGroupsBar
-            activeGroupId={params.groupId}
-            onSelectGroup={handleGroupSelect}
-           canCreate={isAdmin && can('customers.create')}
+           <CustomerGroupsBar
+             activeGroupId={params.groupId}
+             onSelectGroup={handleGroupSelect}
+             showAllCustomers={canSeeAllCustomersTab}
+             canCreate={isAdmin && can('customers.create')}
            canEdit={isAdmin && can('customers.edit')}
            canDelete={isAdmin && can('customers.delete')}
         />
       )}
       {!isPartner && params.groupId && <div className="customer-group-context-badge">{activeGroupName || 'Tanlangan guruh'} guruhi</div>}
       {isPartner && <PartnerSummaryCard />}
+
+      {isMobile && (
+        <div className="mobile-crm-toolbar">
+          <label className="mobile-crm-toolbar__stage">
+            <span>Bosqich:</span>
+            <Select value={mobileStage?.id || 'NEW'} onChange={(event) => setMobileStageId(event.target.value)}>
+              {stageColumns.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+            </Select>
+          </label>
+          {can('customers.create') && <Button onClick={() => openCreateForStage(mobileStage?.id || 'NEW')}>+ Mijoz</Button>}
+        </div>
+      )}
 
       <div className="filters-row customers-filter-row">
         <div className="input-group filters-row__search customers-filter-row__search">
@@ -886,26 +926,20 @@ export function CustomersListPage() {
 
       {!loading && !error && view === 'kanban' && (
         <KanbanBoard
-          columns={stageColumns}
-          items={displayedCustomers}
+          columns={visibleStageColumns}
+          items={visibleCustomers}
           getColumnId={(customer) => customer.stage}
           renderColumnHeader={(column, columnCustomers) => {
-            const totals = columnCustomers.reduce((groups, customer) => {
-              const currency = customer.currency || { code: 'UZS', symbol: 'so\'m' }
-              const key = currency.id || currency.code
-              groups[key] = groups[key] || { currency, amount: 0 }
-              groups[key].amount += getCustomerAmount(customer)
-              return groups
-            }, {})
+            const totals = filterOptions.stageTotals?.[column.id] || []
             return (
               <div className="kanban__column-summary">
                 <div className="kanban__column-summary-top">
                   <InlineStageTitle column={column} canEdit={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected} onSave={handleRenameStage} onDelete={can('customers.edit') && !column.isSystem && !column.isDefault && !column.isProtected ? openDeleteStage : undefined} />
                   <span className="kanban__column-count">{columnCustomers.length}</span>
                 </div>
-                 {!isPartner && <span className="kanban__column-meta">
-                   {Object.values(totals).map((total) => <span className="kanban__column-total" key={total.currency.id || total.currency.code}>{formatCustomerCurrencyAmount(total.amount, total.currency)}</span>)}
-                 </span>}
+                 {canViewPipelineTotal && <span className="kanban__column-meta">
+                    {totals.map((total) => <span className="kanban__column-total" key={total.currency.id || total.currency.code}>{formatCustomerCurrencyAmount(total.amount, total.currency)}</span>)}
+                  </span>}
               </div>
             )
           }}
@@ -916,11 +950,12 @@ export function CustomersListPage() {
           ) : null}
           renderCard={(customer) => (
             <CustomerKanbanCard
-              customer={customer}
+               customer={customer}
               selected={selectedIds.includes(customer.id)}
               onSelect={isPartner ? undefined : toggleSelected}
               onOpen={openCustomer}
-              partner={isPartner}
+               partner={isPartner}
+               canViewAmount={canViewAmount}
               stageLabel={stageLabels[customer.stage] || customer.stage}
             />
           )}
@@ -929,7 +964,7 @@ export function CustomersListPage() {
               +
             </button>
           ) : null}
-          afterColumns={can('customers.edit') ? (
+           afterColumns={!isMobile && can('customers.edit') ? (
             <div className="kanban__after-columns">
               <button type="button" className="kanban__create-column" onClick={() => openCreateStage(stageColumns.at(-1)?.id || null)}>
                 <PlusIcon width={16} height={16} /> Bosqich
@@ -937,7 +972,7 @@ export function CustomersListPage() {
             </div>
           ) : null}
           onCardMove={isPartner ? undefined : handleStageMove}
-          onColumnMove={can('customers.edit') ? handleReorderStages : undefined}
+           onColumnMove={!isMobile && can('customers.edit') ? handleReorderStages : undefined}
         />
       )}
 
@@ -952,7 +987,7 @@ export function CustomersListPage() {
           onSubmit={handleCreate}
           onCancel={createModal.close}
           canManageGroups={canManageCustomerGroups}
-          canViewAmount={isAdmin || can('customers.viewAmount') || can('amount.view')}
+          canViewAmount={canViewAmount}
           canViewDeposit={isAdmin || can('customers.viewDeposit') || can('deposit.view')}
         />
       </Modal>

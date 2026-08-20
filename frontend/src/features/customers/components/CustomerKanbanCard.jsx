@@ -9,7 +9,7 @@ function partnerProgressLabel(customer) {
   return 'Jarayonda'
 }
 
-export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen, onQuickAction, partner = false, stageLabel }) {
+export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpen, onQuickAction, partner = false, stageLabel, canViewAmount = true }) {
   const primaryProgram = customer.programs?.[0]?.name
   const product = primaryProgram || customer.business?.name || '-'
   const amount = getCustomerAmount(customer)
@@ -52,7 +52,7 @@ export function CustomerKanbanCard({ customer, selected = false, onSelect, onOpe
         </>
       ) : (
         <>
-          <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerCurrencyAmount(amount, customer.currency) : '-'}</span>
+          {canViewAmount && <span className="customer-kanban-card__amount">{amount > 0 ? formatCustomerCurrencyAmount(amount, customer.currency) : '-'}</span>}
           {(customer.isFollowUpToday || customer.isFollowUpOverdue) && (
             <span className={customer.isFollowUpOverdue ? 'customer-kanban-card__follow-up customer-kanban-card__follow-up--overdue' : 'customer-kanban-card__follow-up'}>
               {customer.isFollowUpOverdue ? '⚠ Aloqa kechikdi' : 'Bugun'}

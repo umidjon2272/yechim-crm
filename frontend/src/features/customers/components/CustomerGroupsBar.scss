@@ -58,3 +58,15 @@
     }
   }
 }
+
+@media (max-width: 767px) {
+  .customer-groups-bar {
+    align-items: stretch;
+    overflow: visible;
+
+    &__chip,
+    &__add {
+      min-height: 40px;
+    }
+  }
+}

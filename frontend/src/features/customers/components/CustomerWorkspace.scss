@@ -161,3 +161,48 @@
     }
   }
 }
+
+@media (max-width: 767px) {
+  .customer-workspace {
+    &__header {
+      align-items: flex-start;
+      padding: v.$space-4;
+    }
+
+    &__identity {
+      width: 100%;
+    }
+
+    &__name {
+      font-size: v.$font-size-lg;
+    }
+
+    &__actions {
+      width: 100%;
+
+      .btn,
+      > a {
+        flex: 1 1 140px;
+        justify-content: center;
+      }
+    }
+
+    &__body {
+      padding: v.$space-2;
+      gap: v.$space-2;
+    }
+
+    &__edit,
+    &__side-content {
+      padding: v.$space-3;
+    }
+
+    &__facts {
+      align-items: stretch;
+
+      span {
+        flex: 1 1 140px;
+      }
+    }
+  }
+}

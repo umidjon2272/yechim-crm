@@ -185,6 +185,44 @@ body {
   .kanban-summary-bar {
     grid-template-columns: 1fr;
   }
+
+  .filters-row {
+    align-items: stretch;
+
+    > .select,
+    > .input,
+    > .input-group,
+    > .btn {
+      width: 100%;
+      max-width: none !important;
+      min-width: 0;
+    }
+
+    > .view-toggle {
+      width: 100%;
+      justify-content: stretch;
+
+      .view-toggle__btn {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .page-header__actions {
+    width: 100%;
+
+    > .btn {
+      width: 100%;
+    }
+  }
+
+  .card__footer {
+    flex-wrap: wrap;
+
+    .btn {
+      flex: 1 1 140px;
+    }
+  }
 }
 
 // Price/total summary block — reused verbatim by Deal/Business/Quotation
