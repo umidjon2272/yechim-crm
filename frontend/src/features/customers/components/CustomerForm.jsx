@@ -287,7 +287,70 @@ export function CustomerLocationPreview({ customer }) {
   )
 }
 
-export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false }) {
+function quickDateValue(days = 0) {
+  const value = new Date()
+  value.setDate(value.getDate() + days)
+  value.setHours(14, 0, 0, 0)
+  const pad = (number) => String(number).padStart(2, '0')
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`
+}
+
+function QuickActionsFields({ values, setValue, employees = [], loading }) {
+  const actions = Array.isArray(values.quickActions) ? values.quickActions : []
+  const has = (type) => actions.some((action) => action.type === type)
+  const toggle = (type) => {
+    if (has(type)) {
+      setValue('quickActions', actions.filter((action) => action.type !== type))
+      return
+    }
+    const defaults = {
+      CALL: { type: 'CALL', remindAt: quickDateValue(0), note: '' },
+      REMINDER: { type: 'REMINDER', remindAt: quickDateValue(0), note: '' },
+      TASK: { type: 'TASK', title: '', assignedToId: '', dueDate: '', note: '' },
+      NOTE: { type: 'NOTE', text: '' },
+    }
+    setValue('quickActions', [...actions, defaults[type]])
+  }
+  const update = (type, field, value) => setValue('quickActions', actions.map((action) => action.type === type ? { ...action, [field]: value } : action))
+  const action = (type) => actions.find((item) => item.type === type)
+
+  return (
+    <section className="customer-form__quick-actions">
+      <div className="customer-form__quick-actions-title">Keyingi ish <span className="form-field__hint">ixtiyoriy, customer bilan birga saqlanadi</span></div>
+      <div className="customer-form__quick-actions-buttons">
+        {['CALL', 'REMINDER', 'TASK', 'NOTE'].map((type) => <Button key={type} type="button" size="sm" variant={has(type) ? 'primary' : 'secondary'} onClick={() => toggle(type)} disabled={loading}>{type === 'CALL' ? "Qo'ng'iroq" : type === 'REMINDER' ? 'Eslatma' : type === 'TASK' ? 'Vazifa' : 'Izoh'}</Button>)}
+      </div>
+      {action('CALL') && <div className="customer-form__quick-action-detail">
+        <strong>Qo'ng'iroq tafsilotlari</strong>
+        <div className="quick-date-row">
+          <Button type="button" size="sm" variant="secondary" onClick={() => update('CALL', 'remindAt', quickDateValue(0))}>Bugun</Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => update('CALL', 'remindAt', quickDateValue(1))}>Ertaga</Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => update('CALL', 'remindAt', quickDateValue(3))}>3 kun</Button>
+        </div>
+        <FormField label="Qachon"><Input type="datetime-local" value={action('CALL').remindAt} onChange={(event) => update('CALL', 'remindAt', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('CALL').note} onChange={(event) => update('CALL', 'note', event.target.value)} disabled={loading} /></FormField>
+      </div>}
+      {action('REMINDER') && <div className="customer-form__quick-action-detail">
+        <strong>Eslatma tafsilotlari</strong>
+        <FormField label="Sana/vaqt"><Input type="datetime-local" value={action('REMINDER').remindAt} onChange={(event) => update('REMINDER', 'remindAt', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('REMINDER').note} onChange={(event) => update('REMINDER', 'note', event.target.value)} disabled={loading} /></FormField>
+      </div>}
+      {action('TASK') && <div className="customer-form__quick-action-detail">
+        <strong>Vazifa tafsilotlari</strong>
+        <FormField label="Sarlavha" required><Input value={action('TASK').title} onChange={(event) => update('TASK', 'title', event.target.value)} disabled={loading} placeholder="Mijoz bilan bog'lanish" /></FormField>
+        <FormField label="Mas'ul xodim"><Select value={action('TASK').assignedToId} onChange={(event) => update('TASK', 'assignedToId', event.target.value)} disabled={loading}><option value="">O'zim</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</Select></FormField>
+        <FormField label="Deadline"><Input type="date" value={action('TASK').dueDate} onChange={(event) => update('TASK', 'dueDate', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('TASK').note} onChange={(event) => update('TASK', 'note', event.target.value)} disabled={loading} /></FormField>
+      </div>}
+      {action('NOTE') && <div className="customer-form__quick-action-detail">
+        <strong>Izoh tafsilotlari</strong>
+        <FormField label="Matn" required><textarea className="textarea" rows={3} value={action('NOTE').text} onChange={(event) => update('NOTE', 'text', event.target.value)} disabled={loading} placeholder="Izoh yozing" /></FormField>
+      </div>}
+    </section>
+  )
+}
+
+export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canViewAmount = true, canViewDeposit = true }) {
   const isEditing = Boolean(initialValues?.id)
   const { data: currenciesData } = useAsync(currenciesService.list, [])
   const currencies = currenciesData?.items ?? []
@@ -314,6 +377,7 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
     groupIds: Array.isArray(initialValues?.groupIds)
       ? initialValues.groupIds
       : Array.isArray(initialValues?.groups) ? initialValues.groups.map((group) => group.id) : [],
+    quickActions: [],
   }))
   const [errors, setErrors] = useState({})
   const set = (field) => (event) => setValues((current) => ({ ...current, [field]: event.target.value }))
@@ -358,6 +422,8 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
       latitude: Number.isFinite(latitudeValue) ? latitudeValue : null,
       longitude: Number.isFinite(longitudeValue) ? longitudeValue : null,
       ...(canManageGroups ? { groupIds: values.groupIds } : {}),
+      ...(!isEditing && values.quickActions?.length ? { quickActions: values.quickActions } : {}),
+      ...(!isEditing && initialValues?.currentGroupId ? { currentGroupId: initialValues.currentGroupId } : {}),
     }, null)
   }
 
@@ -367,16 +433,18 @@ export function CustomerForm({ initialValues, submitLabel = 'Saqlash', loading, 
         <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
         {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
         <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
-        <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><Input type="number" min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>
+        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><Input type="number" min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>}
         <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>
       </div>
       <div className="detail-grid">
         <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>
          {/* Stage changes are deliberately made from the Kanban drag action so
              deposit/follow-up/installation prompts cannot be bypassed here. */}
-        {isEditing && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><Input type="number" min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
+        {isEditing && canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><Input type="number" min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
       </div>
       <LocationField values={values} setValue={setValue} loading={loading} />
+      {!isEditing && initialValues?.currentGroupName && <div className="form-field__hint">Bu mijoz <strong>{initialValues.currentGroupName}</strong> guruhiga qo'shiladi.</div>}
+      {!isEditing && <QuickActionsFields values={values} setValue={setValue} employees={employees} loading={loading} />}
       {canManageGroups && <FormField label="Guruh" hint="Bir nechta guruh tanlash mumkin"><CustomerGroupsDropdown groups={groups} value={values.groupIds} onChange={(groupIds) => setValue('groupIds', groupIds)} disabled={loading} /></FormField>}
       <div className="card__footer" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {onDelete && <Button type="button" variant="danger-ghost" onClick={onDelete} disabled={loading}>O‘chirish</Button>}

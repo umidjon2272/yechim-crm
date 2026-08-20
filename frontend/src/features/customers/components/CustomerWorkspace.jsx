@@ -82,7 +82,8 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const confirm = useConfirm()
   const { can } = usePermissions()
   const { user } = useAuth()
-  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+  const isPartner = user?.role === 'PARTNER'
+  const canViewAmount = !isPartner && (['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.viewAmount') || can('amount.view'))
   const [sideTab, setSideTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -230,7 +231,11 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
             {customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
             {customer.business?.name && <span> В· {customer.business.name}</span>}
             {customer.assignedEmployee?.name && <span> В· Mas'ul: {customer.assignedEmployee.name}</span>}
-            <Dropdown
+            {isPartner ? (
+              <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[customer.stage] || 'gray'}>
+                {CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage}
+              </Badge>
+            ) : <Dropdown
               trigger={(toggle) => (
                 <button type="button" className="customer-workspace__stage-trigger" onClick={toggle}>
                   <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[customer.stage] || 'gray'}>
@@ -245,15 +250,13 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                   {CUSTOMER_STAGE_LABELS[stage]}
                 </DropdownItem>
               ))}
-            </Dropdown>
+            </Dropdown>}
           </div>
           <div className="customer-workspace__facts">
             <span>
               Stage: <strong>{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</strong>
             </span>
-            <span>
-              {!isPartner && <>Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</strong></>}
-            </span>
+            {canViewAmount && <span>Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</strong></span>}
             <span>
               Mas'ul: <strong>{customer.assignedEmployee?.name || '-'}</strong>
             </span>
@@ -274,7 +277,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
             + Dastur
           </Button>
         </PermissionGate>
-        <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />
+        {!isPartner && <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />}
         <PermissionGate permission="customers.edit">
           <Button
             onClick={() => {
@@ -284,7 +287,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
             Tahrirlash
           </Button>
         </PermissionGate>
-        <Dropdown
+        {!isPartner && <Dropdown
           trigger={(toggle) => (
             <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Boshqa amallar">
               <MoreIcon width={18} height={18} />
@@ -294,7 +297,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
           <PermissionGate permission="customers.delete">
             <DropdownItem onClick={handleDeactivate}>{customer.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}</DropdownItem>
           </PermissionGate>
-        </Dropdown>
+        </Dropdown>}
       </div>
     </div>
   )
@@ -336,16 +339,16 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
       {header}
       <div className="customer-workspace__body">
         <div className="customer-workspace__main">
-          <MessagesPanel customerId={id} variant="flush" />
+          {!isPartner && <MessagesPanel customerId={id} variant="flush" />}
         </div>
         <div className="customer-workspace__side">
-          <CustomerSummaryTiles
+          {!isPartner && <CustomerSummaryTiles
             programs={customer.programs || []}
             deal={primaryDeal}
             payments={paymentsCountData?.items ?? []}
             installationStatus={installationsCountData?.items?.at?.(-1)?.status}
             taskCount={tasksCountData?.total}
-          />
+          />}
           <Tabs items={sideTabs} activeId={sideTab} onChange={setSideTab} />
           <div className="customer-workspace__side-content">
             {sideTab === 'overview' && (
@@ -356,10 +359,10 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                       <div className="detail-field__label">Stage</div>
                       <div className="detail-field__value">{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</div>
                     </div>
-                    <div className="detail-field">
+                    {canViewAmount && <div className="detail-field">
                       <div className="detail-field__label">Savdo summasi</div>
-                      <div className="detail-field__value">{isPartner ? '—' : customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</div>
-                    </div>
+                      <div className="detail-field__value">{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</div>
+                    </div>}
                     <div className="detail-field">
                       <div className="detail-field__label">Dastur</div>
                       <div className="detail-field__value">{primaryProgram}</div>
@@ -403,10 +406,10 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                     </div>
                   )}
                 </Card>
-                <Card title="Guruhlar">
+                {!isPartner && <Card title="Guruhlar">
                   <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
-                </Card>
-                <RelatedList
+                </Card>}
+                {!isPartner && <RelatedList
                   title="Bizneslar"
                   fetcher={() => customersService.getBusinesses(id)}
                   deps={[id, refreshKey]}
@@ -420,8 +423,8 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
                       </Button>
                     </PermissionGate>
                   }
-                />
-                <HistorySection entityType="customer" entityId={id} title="Mijozning toвЂliq tarixi" key={`history-${refreshKey}`} />
+                />}
+                {!isPartner && <HistorySection entityType="customer" entityId={id} title="Mijozning toвЂliq tarixi" key={`history-${refreshKey}`} />}
               </div>
             )}
 

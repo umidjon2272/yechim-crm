@@ -81,7 +81,7 @@ export function CustomerDetailPage() {
   const confirm = useConfirm()
   const { can } = usePermissions()
   const { user } = useAuth()
-  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+  const isPartner = user?.role === 'PARTNER'
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey((k) => k + 1)
@@ -201,15 +201,15 @@ export function CustomerDetailPage() {
               + Dastur
             </Button>
           </PermissionGate>
-          <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />
-          <LogCallButton context={{ customerId: id }} onCreated={bump} />
-          <Button variant="secondary" onClick={() => setActiveTab('messages')}>
+          {!isPartner && <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />}
+          {!isPartner && <LogCallButton context={{ customerId: id }} onCreated={bump} />}
+          {!isPartner && <Button variant="secondary" onClick={() => setActiveTab('messages')}>
             Xabar
-          </Button>
+          </Button>}
           <PermissionGate permission="customers.edit">
             <Button onClick={() => setSearchParams({ edit: '1' })}>Tahrirlash</Button>
           </PermissionGate>
-          <Dropdown
+          {!isPartner && <Dropdown
             trigger={(toggle) => (
               <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Boshqa amallar">
                 <MoreIcon width={18} height={18} />
@@ -219,7 +219,7 @@ export function CustomerDetailPage() {
             <PermissionGate permission="customers.delete">
               <DropdownItem onClick={handleDeactivate}>{customer.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}</DropdownItem>
             </PermissionGate>
-          </Dropdown>
+          </Dropdown>}
         </div>
       </div>
 
@@ -233,6 +233,8 @@ export function CustomerDetailPage() {
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
             canManageGroups={can('customers.edit')}
+            canViewAmount={can('customers.viewAmount') || can('amount.view')}
+            canViewDeposit={can('customers.viewDeposit') || can('deposit.view')}
           />
         </Card>
       ) : (
@@ -284,10 +286,10 @@ export function CustomerDetailPage() {
                   </div>
                 )}
               </Card>
-              <Card title="Guruhlar">
+              {!isPartner && <Card title="Guruhlar">
                 <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
-              </Card>
-              <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />
+              </Card>}
+              {!isPartner && <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />}
               <PermissionGate permission="history.view">
                 <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
               </PermissionGate>

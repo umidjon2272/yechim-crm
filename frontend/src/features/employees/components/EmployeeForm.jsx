@@ -9,7 +9,7 @@ import { ROLE_DEFAULT_PERMISSIONS } from '../../roles/permissions'
 import { validate, rules } from '../../../utils/validators'
 import './EmployeeForm.scss'
 
-const DEFAULT_VALUES = { firstName: '', lastName: '', phone: '+998', username: '', password: '', partnerGroupId: '' }
+const DEFAULT_VALUES = { firstName: '', lastName: '', phone: '+998', username: '', password: '', role: 'EMPLOYEE', partnerGroupId: '', customerVisibility: 'ASSIGNED', allowedGroupIds: [] }
 
 function splitName(name = '') {
   const parts = name.trim().split(/\s+/)
@@ -24,6 +24,9 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [
     ...name,
     ...initialValues,
     phone: initialValues.phone || '+998',
+    role: initialValues.role || 'EMPLOYEE',
+    customerVisibility: initialValues.customerVisibility || 'ASSIGNED',
+    allowedGroupIds: Array.isArray(initialValues.allowedGroupIds) ? initialValues.allowedGroupIds : [],
     permissions: Array.isArray(initialValues.permissions)
       ? initialValues.permissions
       : ROLE_DEFAULT_PERMISSIONS[initialValues.role] || ROLE_DEFAULT_PERMISSIONS.EMPLOYEE,
@@ -31,6 +34,9 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [
   const [errors, setErrors] = useState({})
 
   const set = (field) => (event) => setValues((current) => ({ ...current, [field]: event.target.value }))
+  const isEmployee = values.role === 'EMPLOYEE'
+  const isPartner = values.role === 'PARTNER'
+  const toggleGroup = (groupId) => setValues((current) => ({ ...current, allowedGroupIds: current.allowedGroupIds.includes(groupId) ? current.allowedGroupIds.filter((id) => id !== groupId) : [...current.allowedGroupIds, groupId] }))
   const handlePhone = (event) => {
     let phone = event.target.value.replace(/[^\d+]/g, '')
     if (!phone.startsWith('+998')) phone = `+998${phone.replace(/^\+?998/, '')}`
@@ -55,7 +61,10 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [
     const payload = { name: `${values.firstName} ${values.lastName}`.trim(), phone: values.phone }
     if (!isEditing || canManageAccess) payload.username = values.username.trim()
     if (canManageAccess) {
-      payload.partnerGroupId = values.partnerGroupId || null
+      payload.role = values.role
+      payload.partnerGroupId = isPartner ? values.partnerGroupId || null : null
+      payload.customerVisibility = isEmployee ? values.customerVisibility : 'ASSIGNED'
+      payload.allowedGroupIds = isEmployee && values.customerVisibility === 'GROUPS' ? values.allowedGroupIds : []
       payload.permissions = values.permissions
     }
     if (!isEditing) payload.password = values.password
@@ -77,12 +86,39 @@ export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [
       )}
 
       {canManageAccess && (
-        <FormField label="Partner guruhi" hint="Faqat shu guruhdagi mijozlar ko'rinadi">
-          <Select value={values.partnerGroupId || ''} onChange={set('partnerGroupId')} disabled={loading}>
-            <option value="">Partner guruhi biriktirilmagan</option>
-            {partnerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-          </Select>
-        </FormField>
+        <>
+          <FormField label="Rol">
+            <Select value={values.role || 'EMPLOYEE'} onChange={(event) => setValues((current) => ({ ...current, role: event.target.value, partnerGroupId: event.target.value === 'PARTNER' ? current.partnerGroupId : '' }))} disabled={loading}>
+              <option value="EMPLOYEE">Xodim</option>
+              <option value="PARTNER">Partner</option>
+              <option value="MANAGER">Menejer</option>
+              <option value="SALES">Sotuvchi</option>
+              <option value="SUPPORT">Qo'llab-quvvatlash</option>
+              <option value="INSTALLER">O'rnatuvchi</option>
+              <option value="DEVELOPER">Dasturchi</option>
+            </Select>
+          </FormField>
+          {isPartner && <FormField label="Partner guruhi" required hint="Partner faqat shu guruh mijozlarini ko'radi">
+            <Select value={values.partnerGroupId || ''} onChange={set('partnerGroupId')} disabled={loading}>
+              <option value="">Partner guruhi tanlang</option>
+              {partnerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </Select>
+          </FormField>}
+          {isEmployee && <>
+            <FormField label="Mijozlar ko'rinishi" hint="Xodimning customer scope'i backendda ham tekshiriladi">
+              <Select value={values.customerVisibility || 'ASSIGNED'} onChange={set('customerVisibility')} disabled={loading}>
+                <option value="ALL">Barcha mijozlar</option>
+                <option value="ASSIGNED">Faqat o'ziga biriktirilgan</option>
+                <option value="GROUPS">Faqat tanlangan guruh(lar)</option>
+              </Select>
+            </FormField>
+            {values.customerVisibility === 'GROUPS' && <div className="employee-form__group-access">
+              <div className="form-field__label">Ruxsat berilgan guruhlar</div>
+              {partnerGroups.length === 0 && <span className="form-field__hint">Hozircha guruhlar mavjud emas.</span>}
+              {partnerGroups.map((group) => <label key={group.id} className="employee-form__group-option"><input type="checkbox" checked={values.allowedGroupIds.includes(group.id)} onChange={() => toggleGroup(group.id)} disabled={loading} /> {group.name}</label>)}
+            </div>}
+          </>}
+        </>
       )}
 
       {!isEditing && (

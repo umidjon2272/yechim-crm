@@ -36,7 +36,7 @@ export function NotificationsProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+    const isPartner = user?.role === 'PARTNER'
     if (!isAuthenticated || isPartner) {
       setNotifications([])
       setUnreadCount(0)

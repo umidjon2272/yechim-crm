@@ -57,7 +57,7 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = tr
     try {
       await deleteAction.run(group.id)
       toast.success("Guruh o'chirildi")
-      if (activeGroupId === group.id) onSelectGroup('')
+      if (activeGroupId === group.id) onSelectGroup('', null)
       refetch()
     } catch (err) {
       toast.error(err.message || "Guruhni o'chirishda xatolik yuz berdi")
@@ -71,13 +71,13 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = tr
       <button
         type="button"
         className={classNames('customer-groups-bar__chip', !activeGroupId && 'customer-groups-bar__chip--active')}
-        onClick={() => onSelectGroup('')}
+        onClick={() => onSelectGroup('', null)}
       >
         Barcha mijozlar
       </button>
       {groups.map((group) => (
         <div key={group.id} className={classNames('customer-groups-bar__chip', activeGroupId === group.id && 'customer-groups-bar__chip--active')}>
-          <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id)}>
+          <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id, group)}>
             {group.name}
           </button>
           {(canEdit || canDelete) && (
@@ -102,7 +102,7 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, canCreate = tr
 
       <Modal open={groupModal.isOpen} title={editingGroup ? 'Guruhni tahrirlash' : 'Yangi guruh'} onClose={groupModal.close}>
         <CustomerGroupForm
-          initialValues={editingGroup ? { name: editingGroup.name, partnerRewardPerCustomer: editingGroup.partnerRewardPerCustomer ?? '' } : undefined}
+          initialValues={editingGroup ? { name: editingGroup.name, partnerRewardPerCustomer: editingGroup.partnerRewardPerCustomer ?? '', rewardStageId: editingGroup.rewardStageId || '' } : undefined}
           submitLabel={editingGroup ? 'Saqlash' : 'Yaratish'}
           loading={saveAction.loading}
           onSubmit={handleSave}

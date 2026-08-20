@@ -271,3 +271,40 @@
   min-height: 88px;
   resize: vertical;
 }
+.customer-form__quick-actions {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+}
+
+.customer-form__quick-actions-title,
+.customer-form__quick-action-detail {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-form__quick-actions-buttons,
+.partner-summary__filters,
+.partner-summary__custom-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.partner-summary__custom-filter {
+  margin: 12px 0;
+}
+
+.employee-form__group-access {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.employee-form__group-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -7,6 +7,7 @@ export const ROLES = {
   SUPPORT: 'SUPPORT',
   INSTALLER: 'INSTALLER',
   DEVELOPER: 'DEVELOPER',
+  PARTNER: 'PARTNER',
 }
 
 export const BUILT_IN_ROLES = [ROLES.ADMIN, ROLES.EMPLOYEE]
@@ -20,10 +21,11 @@ export const ROLE_LABELS = {
   SUPPORT: "Qo'llab-quvvatlash",
   INSTALLER: "O'rnatuvchi",
   DEVELOPER: 'Dasturchi',
+  PARTNER: 'Partner',
 }
 
 export const PERMISSION_SCHEMA = [
-  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'delete'] },
+  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'delete', 'viewPhone', 'viewAmount', 'viewDeposit'] },
   { resource: 'calls', label: "Qo'ng'iroqlar", section: 'Kommunikatsiya', actions: ['view', 'create'] },
   { resource: 'reminders', label: 'Eslatmalar', section: 'Kommunikatsiya', actions: ['view', 'viewAll', 'create', 'edit'] },
   { resource: 'tasks', label: 'Vazifalar', section: 'Vazifalar', actions: ['view', 'viewAll', 'create', 'edit', 'delete'] },
@@ -50,8 +52,10 @@ export const ALL_PERMISSIONS = PERMISSION_SCHEMA.flatMap(({ resource, actions })
 export const ROLE_DEFAULT_PERMISSIONS = {
   ADMIN: ALL_PERMISSIONS,
   SUPER_ADMIN: ALL_PERMISSIONS,
+  PARTNER: ['customers.view'],
   EMPLOYEE: [
     'customers.view', 'customers.create', 'customers.edit',
+    'customers.viewPhone', 'customers.viewAmount', 'customers.viewDeposit',
     'calls.view', 'calls.create', 'reminders.view', 'reminders.create',
     'tasks.view', 'tasks.create', 'comments.view', 'comments.create',
     'activities.view', 'activities.create', 'history.view', 'programs.view',

@@ -52,6 +52,7 @@ function formatPartnerPeriod(period) {
 function CustomerEditModal({ customerId, employees, stages, loadingStages, readOnly = false, onClose, onChanged }) {
   const toast = useToast()
   const confirm = useConfirm()
+  const { can } = usePermissions()
   const { data: customer, loading, error, refetch } = useCustomer(customerId)
   const updateAction = useAction((values) => customersService.update(customerId, values))
   const deleteAction = useAction(() => customersService.remove(customerId))
@@ -120,6 +121,8 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
             onCancel={onClose}
             onDelete={handleDelete}
             canManageGroups={!readOnly}
+            canViewAmount={can('customers.viewAmount') || can('amount.view')}
+            canViewDeposit={can('customers.viewDeposit') || can('deposit.view')}
           />
           <Card title="Guruhlar" className="customer-edit-modal__groups-card">
             <CustomerGroupsField customer={customer} onChanged={async () => { await refetch(); onChanged?.() }} />
@@ -268,19 +271,24 @@ function InstallationPromptModal({ move, employees, loading, onClose, onSubmit }
 }
 
 function PartnerSummaryCard() {
-  const now = new Date()
-  const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
-  const { data, loading, error } = useAsync(() => partnersService.myStatistics({ period }), [period])
+  const [range, setRange] = useState('currentMonth')
+  const [custom, setCustom] = useState({ from: '', to: '' })
+  const query = useMemo(() => range === 'custom' ? { from: custom.from, to: custom.to } : { range }, [range, custom.from, custom.to])
+  const { data, loading, error } = useAsync(() => partnersService.myStatistics(query), [query.range, query.from, query.to])
 
   if (error) return <Alert variant="danger" title="Partner statistikasini yuklab bo'lmadi">{error.message}</Alert>
   if (loading || !data) return null
 
   return (
     <Card title={`${data.group?.name || 'Partner'} — ${formatPartnerPeriod(data.period)}`}>
+      <div className="partner-summary__filters">
+        {[['today', 'Bugun'], ['7d', '7 kun'], ['30d', '30 kun'], ['currentMonth', 'Shu oy'], ['previousMonth', "O'tgan oy"], ['custom', 'Sana tanlash']].map(([value, label]) => <Button key={value} type="button" size="sm" variant={range === value ? 'primary' : 'secondary'} onClick={() => setRange(value)}>{label}</Button>)}
+      </div>
+      {range === 'custom' && <div className="partner-summary__custom-filter"><FormField label="Dan"><Input type="date" value={custom.from} onChange={(event) => setCustom((current) => ({ ...current, from: event.target.value }))} /></FormField><FormField label="Gacha"><Input type="date" value={custom.to} onChange={(event) => setCustom((current) => ({ ...current, to: event.target.value }))} /></FormField></div>}
       <div className="detail-grid">
         <div className="detail-field"><div className="detail-field__label">Kelgan mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
-        <div className="detail-field"><div className="detail-field__label">Yakunlanganlar</div><div className="detail-field__value">{data.completedCustomers}</div></div>
-        <div className="detail-field"><div className="detail-field__label">To'lanadigan summa</div><div className="detail-field__value">${Number(data.payableAmount || 0).toLocaleString('en-US')}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Reward olganlar</div><div className="detail-field__value">{data.rewardedCustomers ?? data.completedCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Jami reward</div><div className="detail-field__value">${Number(data.totalReward ?? data.payableAmount ?? 0).toLocaleString('en-US')}</div></div>
       </div>
       {data.history?.length > 0 && (
         <div className="stack" style={{ marginTop: 16 }}>
@@ -466,11 +474,18 @@ export function CustomersListPage() {
   const [quickAction, setQuickAction] = useState(null)
   const [quickCustomer, setQuickCustomer] = useState(null)
   const [reminderType, setReminderType] = useState(null)
+  const [activeGroupName, setActiveGroupName] = useState('')
   const toast = useToast()
   const { can } = usePermissions()
   const { user } = useAuth()
   const canViewEmployees = can('employees.view')
-  const isPartner = Boolean(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role))
+  const isPartner = user?.role === 'PARTNER'
+  const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
+  const canManageCustomerGroups = !isPartner && (isAdmin || user?.role !== 'EMPLOYEE')
+  const handleGroupSelect = (groupId, group) => {
+    setActiveGroupName(group?.name || '')
+    setGroupId(groupId)
+  }
 
   const createAction = useAction(async (customerPayload, businessPayload) => {
     const customer = await customersService.create(customerPayload)
@@ -544,8 +559,9 @@ export function CustomersListPage() {
   const handleCreate = async (customerPayload, businessPayload) => {
     try {
       const groupIds = Array.isArray(customerPayload.groupIds) ? customerPayload.groupIds : params.groupId ? [params.groupId] : []
-      await createAction.run({ ...customerPayload, groupIds }, businessPayload)
+      const result = await createAction.run({ ...customerPayload, groupIds }, businessPayload)
       toast.success("Mijoz qo'shildi")
+      if (result?.quickActionErrors?.length) toast.error(`${result.quickActionErrors.length} ta keyingi ish saqlanmadi`)
       createModal.close()
       await refetch()
       loadFilterOptions()
@@ -750,14 +766,15 @@ export function CustomersListPage() {
       </div>
 
       {!isPartner && (
-        <CustomerGroupsBar
-          activeGroupId={params.groupId}
-          onSelectGroup={setGroupId}
-          canCreate={can('customers.create')}
-          canEdit={can('customers.edit')}
-          canDelete={can('customers.delete')}
+          <CustomerGroupsBar
+            activeGroupId={params.groupId}
+            onSelectGroup={handleGroupSelect}
+           canCreate={isAdmin && can('customers.create')}
+           canEdit={isAdmin && can('customers.edit')}
+           canDelete={isAdmin && can('customers.delete')}
         />
       )}
+      {!isPartner && params.groupId && <div className="customer-group-context-badge">{activeGroupName || 'Tanlangan guruh'} guruhi</div>}
       {isPartner && <PartnerSummaryCard />}
 
       <div className="filters-row customers-filter-row">
@@ -927,14 +944,16 @@ export function CustomersListPage() {
       <Modal open={createModal.isOpen} title="Mijoz qo'shish" className="customer-edit-modal" onClose={createModal.close}>
         <CustomerForm
           key={createStageId || 'new-customer'}
-          initialValues={{ stage: createStageId || 'NEW', groupIds: params.groupId ? [params.groupId] : [] }}
+          initialValues={{ stage: createStageId || 'NEW', groupIds: params.groupId ? [params.groupId] : [], currentGroupId: params.groupId || '', currentGroupName: activeGroupName }}
           employees={employees}
           stages={stageColumns}
           submitLabel="Qo'shish"
           loading={createAction.loading}
           onSubmit={handleCreate}
           onCancel={createModal.close}
-          canManageGroups={!isPartner}
+          canManageGroups={canManageCustomerGroups}
+          canViewAmount={isAdmin || can('customers.viewAmount') || can('amount.view')}
+          canViewDeposit={isAdmin || can('customers.viewDeposit') || can('deposit.view')}
         />
       </Modal>
 

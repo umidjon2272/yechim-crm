@@ -18,7 +18,7 @@ export function Header({ title }) {
         <h1 className="header__title">{title}</h1>
       </div>
       <div className="header__right">
-        {!(user?.partnerGroupId && !['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) && <NotificationsDropdown />}
+        {user?.role !== 'PARTNER' && <NotificationsDropdown />}
         <UserMenu />
       </div>
     </header>
