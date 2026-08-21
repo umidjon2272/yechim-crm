@@ -30,6 +30,7 @@ function buildUrl(path, params) {
 }
 
 const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout']
+const REQUEST_TIMEOUT_MS = 15000
 
 async function refreshSession() {
   if (!refreshPromise) {
@@ -62,6 +63,21 @@ async function request(
   { method = 'GET', body, params, headers, signal, skipRefresh = false, skipAuth = false, accessToken } = {},
 ) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+  const timeoutController = new AbortController()
+  let timedOut = false
+  const timeoutId = window.setTimeout(() => {
+    timedOut = true
+    timeoutController.abort()
+  }, REQUEST_TIMEOUT_MS)
+  const abortFromCaller = () => timeoutController.abort()
+  const clearRequestTimeout = () => {
+    window.clearTimeout(timeoutId)
+    signal?.removeEventListener('abort', abortFromCaller)
+  }
+  if (signal) {
+    if (signal.aborted) timeoutController.abort()
+    else signal.addEventListener('abort', abortFromCaller, { once: true })
+  }
 
   const token = accessToken === undefined ? getAccessToken() : accessToken
 
@@ -80,10 +96,14 @@ async function request(
         ...headers,
       },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
-      signal,
+      signal: timeoutController.signal,
     })
   } catch (networkError) {
-    if (networkError?.name === 'AbortError') throw networkError
+    clearRequestTimeout()
+    if (networkError?.name === 'AbortError') {
+      if (timedOut) throw new ApiError('So‘rov vaqti tugadi. Qayta urinib ko‘ring.', { status: 408 })
+      throw networkError
+    }
     throw new ApiError('Backend bilan aloqa qilib bo‘lmadi', { status: 0, details: networkError })
   }
 
@@ -92,6 +112,7 @@ async function request(
   if (res.status === 401 && !skipRefresh && !AUTH_PATHS_WITHOUT_REFRESH.includes(path)) {
     try {
       await refreshSession()
+      clearRequestTimeout()
       return request(path, { method, body, params, headers, signal, skipRefresh: true, accessToken: undefined })
     } catch (refreshError) {
       // Only an invalid/expired refresh session is an auth failure. A network
@@ -102,10 +123,19 @@ async function request(
 
   const contentType = res.headers.get('content-type') || ''
   if (res.headers.has('x-vercel-error') || !contentType.includes('application/json')) {
+    clearRequestTimeout()
     throw new ApiError(`API noto‘g‘ri javob qaytardi (${res.status})`, { status: res.status })
   }
 
-  const data = await res.json().catch(() => null)
+  let data = null
+  try {
+    data = await res.json()
+  } catch (parseError) {
+    if (timedOut) throw new ApiError('Request timed out. Please try again.', { status: 408 })
+    if (parseError?.name === 'AbortError') throw parseError
+  } finally {
+    clearRequestTimeout()
+  }
 
   if (res.status === 401 && (skipRefresh || refreshFailed || AUTH_PATHS_WITHOUT_REFRESH.includes(path))) {
     unauthorizedHandler?.()

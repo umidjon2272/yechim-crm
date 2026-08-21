@@ -25,7 +25,7 @@ export const ROLE_LABELS = {
 }
 
 export const PERMISSION_SCHEMA = [
-  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'delete', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials'] },
+  { resource: 'customers', label: 'Mijozlar', section: 'CRM', actions: ['view', 'viewAll', 'create', 'edit', 'editCore', 'delete', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials', 'viewCreatedBy'] },
   { resource: 'calls', label: "Qo'ng'iroqlar", section: 'Kommunikatsiya', actions: ['view', 'create'] },
   { resource: 'reminders', label: 'Eslatmalar', section: 'Kommunikatsiya', actions: ['view', 'viewAll', 'create', 'edit'] },
   { resource: 'tasks', label: 'Vazifalar', section: 'Vazifalar', actions: ['view', 'viewAll', 'create', 'edit', 'delete'] },

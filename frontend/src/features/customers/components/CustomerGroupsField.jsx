@@ -10,7 +10,7 @@ import './CustomerGroupsBar.scss'
 // list is usually short (a handful of admin-defined tags).
 export function CustomerGroupsField({ customer, onChanged }) {
   const { data } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
-  const groups = data?.items ?? []
+  const groups = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
   const toast = useToast()
 
   const toggleAction = useAction((nextGroupIds) => customersService.setGroups(customer.id, nextGroupIds))

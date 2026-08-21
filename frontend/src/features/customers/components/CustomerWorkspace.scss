@@ -11,7 +11,7 @@
   &__header {
     @include m.flex(center, space-between, v.$space-4);
     flex-wrap: wrap;
-    padding: v.$space-5 v.$space-6;
+    padding: v.$space-4 v.$space-5;
     border-bottom: 1px solid rgba(255, 255, 255, 0.58);
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(245, 243, 255, 0.22)),
@@ -70,6 +70,20 @@
     }
   }
 
+  &__created-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: v.$space-2 v.$space-4;
+    margin-top: v.$space-2;
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+
+    strong {
+      color: v.$color-text-secondary;
+      font-weight: v.$font-weight-semibold;
+    }
+  }
+
   &__actions {
     display: flex;
     align-items: center;
@@ -77,10 +91,123 @@
     flex-wrap: wrap;
   }
 
+  &__edit-button {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    color: v.$color-primary-700;
+    font-size: 22px;
+    line-height: 1;
+    background: rgba(125, 92, 246, 0.1);
+    border: 1px solid rgba(125, 92, 246, 0.18);
+    border-radius: v.$radius-md;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(125, 92, 246, 0.18);
+      outline: none;
+    }
+  }
+
+  &__compact-overview {
+    display: flex;
+    flex-direction: column;
+    gap: v.$space-4;
+    width: 100%;
+    padding: v.$space-4;
+  }
+
+  &__number-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: v.$space-3;
+  }
+
+  &__number-card,
+  &__next-work,
+  &__latest-activity {
+    padding: v.$space-3;
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    border-radius: v.$radius-lg;
+  }
+
+  &__number-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span,
+    .customer-workspace__section-label {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    strong {
+      color: v.$color-text-primary;
+      font-size: v.$font-size-base;
+    }
+  }
+
+  &__section-label {
+    margin-bottom: v.$space-2;
+    color: v.$color-primary-700;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+  }
+
+  &__next-work-item {
+    display: grid;
+    gap: 4px;
+
+    span,
+    small {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    &--overdue strong {
+      color: #b42318;
+    }
+  }
+
+  &__short-info {
+    display: grid;
+    gap: v.$space-3;
+
+    div {
+      display: grid;
+      gap: 3px;
+    }
+
+    span {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    strong {
+      color: v.$color-text-primary;
+      font-size: v.$font-size-sm;
+      font-weight: v.$font-weight-medium;
+    }
+  }
+
+  &__latest-activity {
+    color: v.$color-text-primary;
+    font-size: v.$font-size-sm;
+    line-height: 1.5;
+  }
+
   &__stage-trigger {
     display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 5px 2px 7px;
     cursor: pointer;
     border-radius: v.$radius-full;
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.58);
     transition: transform v.$transition-fast;
 
     &:hover {
@@ -88,16 +215,24 @@
     }
   }
 
+  &__stage-trigger-label {
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-medium;
+  }
+
   &__body {
     flex: 1;
     min-height: 0;
     display: flex;
+    flex-direction: column;
     gap: v.$space-4;
     padding: v.$space-4;
+    overflow-y: auto;
+    @include m.custom-scrollbar;
   }
 
-  &__main,
-  &__side {
+  &__main {
     border-radius: v.$radius-xl;
     border: 1px solid rgba(255, 255, 255, 0.66);
     background:
@@ -109,29 +244,11 @@
   }
 
   &__main {
-    flex: 1.45;
+    flex: 0 0 auto;
+    width: 100%;
     min-width: 0;
     display: flex;
-  }
-
-  &__side {
-    flex: 1;
-    min-width: 360px;
-    max-width: 480px;
-    display: flex;
     flex-direction: column;
-
-    .tabs {
-      flex-shrink: 0;
-      padding: v.$space-3 v.$space-4 0;
-    }
-  }
-
-  &__side-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: v.$space-4;
-    @include m.custom-scrollbar;
   }
 
   &__edit {
@@ -142,22 +259,8 @@
   }
 
   @include m.respond-down(v.$breakpoint-lg) {
-    &__body {
-      flex-direction: column;
-      overflow-y: auto;
-    }
-
     &__main {
       min-height: 360px;
-    }
-
-    &__side {
-      max-width: none;
-      min-width: 0;
-    }
-
-    &__side-content {
-      overflow-y: visible;
     }
   }
 }
@@ -179,10 +282,13 @@
 
     &__actions {
       width: 100%;
+      flex-wrap: wrap;
+      padding-bottom: 0;
 
       .btn,
-      > a {
-        flex: 1 1 140px;
+      > a,
+      > button {
+        flex: 0 0 auto;
         justify-content: center;
       }
     }
@@ -192,8 +298,7 @@
       gap: v.$space-2;
     }
 
-    &__edit,
-    &__side-content {
+    &__edit {
       padding: v.$space-3;
     }
 
@@ -204,5 +309,27 @@
         flex: 1 1 140px;
       }
     }
+
+    &__number-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__compact-overview {
+      padding: v.$space-3;
+    }
+
+    &__main {
+      border-radius: v.$radius-lg;
+    }
+
+    &__header {
+      gap: v.$space-3;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .customer-workspace__number-grid {
+    grid-template-columns: 1fr;
   }
 }

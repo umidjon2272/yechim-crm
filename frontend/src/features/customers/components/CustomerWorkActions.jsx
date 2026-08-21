@@ -10,6 +10,7 @@ import { FormField } from '../../../components/FormField/FormField'
 import { Modal } from '../../../components/Modal/Modal'
 import { DateTimePicker } from '../../../components/DateTimePicker/DateTimePicker'
 import { Timeline } from '../../../components/Timeline/Timeline'
+import { ErrorBoundary } from '../../../components/ErrorBoundary/ErrorBoundary'
 import { formatDateTime } from '../../../utils/formatDate'
 import { localDateTimeFromNow, localDateTimeToISOString } from '../../../utils/dateTime'
 import { timelineService } from '../../../services/timeline.service'
@@ -120,8 +121,9 @@ export function CustomerWorkPanel({ customer, onChanged }) {
   const { can } = usePermissions()
   const canSeeHistory = can('history.view')
   const canSeeComments = can('comments.view')
-  const { data, loading, refetch } = useAsync(() => canSeeHistory ? timelineService.get('customer', customer.id) : Promise.resolve({ items: [] }), [customer.id, canSeeHistory])
-  const items = data?.items ?? data ?? []
+  const { data, error, loading, refetch } = useAsync(() => canSeeHistory ? timelineService.get('customer', customer.id) : Promise.resolve({ items: [] }), [customer.id, canSeeHistory])
+  const rawItems = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
+  const items = rawItems.filter((item) => item && typeof item === 'object')
   const latestNote = useMemo(() => canSeeComments ? items.find((item) => item.type === 'NOTE') : null, [items, canSeeComments])
   const handleChanged = () => {
     refetch()
@@ -143,7 +145,17 @@ export function CustomerWorkPanel({ customer, onChanged }) {
       </div>
       {canSeeHistory && <div className="customer-work-panel__timeline">
         <strong>Tarix</strong>
-        {loading ? <span className="text-muted text-xs">Yuklanmoqda...</span> : <Timeline items={items.slice(0, 8)} />}
+        {loading ? <span className="text-muted text-xs">Yuklanmoqda...</span> : error ? (
+          <div className="text-muted text-xs">
+            <span>Tarixni yuklab bo‘lmadi.</span>{' '}
+            <Button size="sm" variant="ghost" onClick={() => refetch().catch(() => {})}>Qayta urinish</Button>
+          </div>
+        ) : <ErrorBoundary
+          resetKey={`${customer.id}-${loading}-${items.length}`}
+          fallback={<span className="text-muted text-xs">Tarixni ko‘rsatib bo‘lmadi.</span>}
+        >
+          <Timeline items={items.slice(0, 8)} />
+        </ErrorBoundary>}
       </div>}
       <QuickActionModal action={action} customer={customer} onClose={() => setAction(null)} onChanged={handleChanged} />
       <ReminderModal open={Boolean(reminderType)} type={reminderType || 'CALL'} customer={customer} onClose={() => setReminderType(null)} onCreated={handleChanged} />

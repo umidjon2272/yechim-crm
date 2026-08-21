@@ -7,6 +7,7 @@ import { employeesService } from '../../../services/employees.service'
 import { CustomerTable } from '../components/CustomerTable'
 import { CustomerKanbanCard } from '../components/CustomerKanbanCard'
 import { CustomerForm } from '../components/CustomerForm'
+import { CustomerWorkspace } from '../components/CustomerWorkspace'
 import { CreateStageModal } from '../components/CreateStageModal'
 import { CustomerGroupsBar } from '../components/CustomerGroupsBar'
 import { formatCustomerCurrencyAmount } from '../customerAmount'
@@ -23,6 +24,7 @@ import { Card } from '../../../components/Card/Card'
 import { EmptyState } from '../../../components/EmptyState/EmptyState'
 import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
+import { ErrorBoundary } from '../../../components/ErrorBoundary/ErrorBoundary'
 import { Pagination } from '../../../components/Pagination/Pagination'
 import { KanbanBoard } from '../../../components/Kanban/KanbanBoard'
 import { PermissionGate } from '../../roles/PermissionGate'
@@ -51,6 +53,12 @@ function formatPartnerPeriod(period) {
   if (!year || !month) return period
   const label = new Intl.DateTimeFormat('uz-UZ', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1, 1)))
   return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function customerErrorTitle(error) {
+  if (error?.status === 403) return 'Ruxsat yo‘q'
+  if (error?.status === 404) return 'Mijoz topilmadi'
+  return 'Mijozni ochib bo‘lmadi'
 }
 
 function CustomerEditModal({ customerId, employees, stages, loadingStages, readOnly = false, canViewFinancials = true, canViewAmount = true, canViewDeposit = true, onClose, onChanged }) {
@@ -93,15 +101,18 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
   }
 
   return (
-    <Modal open={!!customerId} title={customer?.name || 'Mijoz'} className="customer-edit-modal" onClose={onClose}>
+    <Modal open={!!customerId} title={customer?.name || 'Mijoz'} className="customer-detail-modal" onClose={onClose}>
       {loading && (
         <div className="page-loading">
           <Spinner size="lg" />
         </div>
       )}
       {error && (
-        <Alert variant="danger" title="Mijozni ochib bo'lmadi">
-          {error.message}
+        <Alert variant="danger" title={customerErrorTitle(error)}>
+          <div className="stack stack--sm">
+            <span>{error.message}</span>
+            <Button size="sm" variant="secondary" onClick={() => refetch()}>Qayta urinish</Button>
+          </div>
         </Alert>
       )}
       {!loading && !error && customer && readOnly && (
@@ -113,28 +124,7 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
           <div className="detail-field"><div className="detail-field__label">O‘rnatish</div><div className="detail-field__value">{customer.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</div></div>
         </div>
       )}
-      {!loading && !error && customer && !readOnly && (
-        <>
-          <CustomerForm
-            initialValues={customer}
-            employees={employees}
-            stages={stages}
-            submitLabel="Saqlash"
-            loading={updateAction.loading || loadingStages || deleteAction.loading}
-            onSubmit={handleUpdate}
-            onCancel={onClose}
-            onDelete={handleDelete}
-            canManageGroups={!readOnly}
-            canViewFinancials={canViewFinancials}
-            canViewAmount={canViewAmount}
-            canViewDeposit={canViewDeposit}
-          />
-          <Card title="Guruhlar" className="customer-edit-modal__groups-card">
-            <CustomerGroupsField customer={customer} onChanged={async () => { await refetch(); onChanged?.() }} />
-          </Card>
-          <CustomerWorkPanel customer={customer} onChanged={refetch} />
-        </>
-      )}
+      {!loading && !error && customer && !readOnly && <CustomerWorkspace customerId={customerId} initialCustomer={customer} stages={stages} onChanged={onChanged} onDelete={handleDelete} />}
     </Modal>
   )
 }
@@ -1017,18 +1007,20 @@ export function CustomersListPage() {
       <ReminderModal open={Boolean(reminderType)} type={reminderType || 'CALL'} customer={quickCustomer} onClose={closeQuickAction} onCreated={handleCustomerChanged} />
 
       {activeCustomerId && (
-        <CustomerEditModal
-          customerId={activeCustomerId}
-          employees={employees}
-          stages={stageColumns}
-          readOnly={isPartner}
-          loadingStages={saveStageAction.loading}
-          onClose={closeCustomer}
-          onChanged={handleCustomerChanged}
-          canViewFinancials={canViewFinancials}
-          canViewAmount={canViewAmount}
-          canViewDeposit={canViewDeposit}
-        />
+        <ErrorBoundary>
+          <CustomerEditModal
+            customerId={activeCustomerId}
+            employees={employees}
+            stages={stageColumns}
+            readOnly={isPartner}
+            loadingStages={saveStageAction.loading}
+            onClose={closeCustomer}
+            onChanged={handleCustomerChanged}
+            canViewFinancials={canViewFinancials}
+            canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
+          />
+        </ErrorBoundary>
       )}
     </div>
   )

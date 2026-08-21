@@ -21,7 +21,7 @@ import './ProgramsPanel.scss'
 
 export function ProgramsPanel({ customerId, programs = [], employees = [], onChanged }) {
   const { data: catalogData } = useAsync(() => programCatalogService.list({ pageSize: 100 }), [])
-  const catalog = catalogData?.items ?? []
+  const catalog = Array.isArray(catalogData?.items) ? catalogData.items : Array.isArray(catalogData) ? catalogData : []
 
   const [editingProgram, setEditingProgram] = useState(null)
   const [taskProgram, setTaskProgram] = useState(null)

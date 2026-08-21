@@ -87,6 +87,34 @@
     line-height: 1.1;
   }
 
+  &__summary {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 8px 10px;
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-xs;
+    line-height: 1.35;
+    background: rgba(246, 244, 255, 0.72);
+    border-radius: v.$radius-md;
+
+    strong {
+      color: v.$color-primary-700;
+      font-weight: v.$font-weight-semibold;
+    }
+
+    span,
+    time {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    &--overdue strong {
+      color: #b42318;
+    }
+  }
+
   &__stage {
     font-size: v.$font-size-sm;
     font-weight: v.$font-weight-medium;
@@ -116,6 +144,14 @@
 
   &__stage-duration {
     color: v.$color-text-muted;
+  }
+
+  &__creator {
+    overflow: hidden;
+    color: v.$color-text-muted;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__quick-actions {

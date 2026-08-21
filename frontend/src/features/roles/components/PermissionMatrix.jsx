@@ -6,6 +6,7 @@ const ACTION_LABELS = {
   view: "Ko'rish",
   create: "Qo'shish",
   edit: 'Tahrirlash',
+  editCore: "Asosiy ma'lumotlarni tahrirlash",
   delete: "O'chirish",
   viewAll: "Barchasini ko'rish",
   viewPhone: "Telefonni ko'rish",
@@ -13,11 +14,12 @@ const ACTION_LABELS = {
   viewPipelineTotal: "Voronka jami summasini ko'rish",
   viewDeposit: "Zaklad summasini ko'rish",
   viewFinancials: "Moliyaviy ma'lumotlarni ko'rish",
+  viewCreatedBy: "Kim qo'shganini ko'rish",
   convert: "Aylantirish",
   changeStage: "Bosqichni o'zgartirish",
 }
 
-const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials', 'changeStage', 'convert', 'delete']
+const ACTION_ORDER = ['view', 'viewAll', 'create', 'edit', 'editCore', 'viewPhone', 'viewAmount', 'viewPipelineTotal', 'viewDeposit', 'viewFinancials', 'viewCreatedBy', 'changeStage', 'convert', 'delete']
 const ALL_ACTIONS = ACTION_ORDER.filter((action) => PERMISSION_SCHEMA.some((resource) => resource.actions.includes(action)))
 
 export function PermissionMatrix({ value = [], onChange }) {

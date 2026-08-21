@@ -10,6 +10,7 @@ import { localDateTimeFromNow, localDateTimeToISOString } from '../../../utils/d
 import { SearchIcon } from '../../../components/icons/Icons'
 import { useAsync } from '../../../hooks/useAsync'
 import { currenciesService } from '../../../services/currencies.service'
+import { BusinessTypeDropdown } from './BusinessTypeDropdown'
 import { customerGroupsService } from '../../../services/customers.service'
 import { nominatimLabel, reverseNominatim, searchNominatim } from './nominatim'
 import './CustomerForm.scss'
@@ -276,17 +277,23 @@ export function CustomerLocationPreview({ customer }) {
   const latitude = coordinateValue(customer?.latitude)
   const longitude = coordinateValue(customer?.longitude)
   const position = latitude !== null && longitude !== null ? [latitude, longitude] : null
+  const [mapOpen, setMapOpen] = useState(false)
 
   if (!address && !position) return null
   return (
     <div className="customer-location__preview">
       {address && <div className="customer-location__preview-address">{address}</div>}
       {position && (
-        <Suspense fallback={<MapLoading preview />}>
-          <CustomerLocationMap position={position} interactive={false} className="customer-location__map customer-location__map--preview" />
-        </Suspense>
+        <>
+          <Button type="button" size="sm" variant="secondary" onClick={() => setMapOpen((open) => !open)}>
+            {mapOpen ? 'Xaritani yopish' : 'Xaritani ko‘rish'}
+          </Button>
+          {mapOpen && <Suspense fallback={<MapLoading preview />}>
+            <CustomerLocationMap position={position} interactive={false} className="customer-location__map customer-location__map--preview" />
+          </Suspense>}
+        </>
       )}
-      {position && <a className="customer-location__map-link" href={`https://www.openstreetmap.org/?mlat=${position[0]}&mlon=${position[1]}#map=16/${position[0]}/${position[1]}`} target="_blank" rel="noreferrer">Xaritada ochish</a>}
+      {position && mapOpen && <a className="customer-location__map-link" href={`https://www.openstreetmap.org/?mlat=${position[0]}&mlon=${position[1]}#map=16/${position[0]}/${position[1]}`} target="_blank" rel="noreferrer">Xaritada ochish</a>}
     </div>
   )
 }
@@ -360,7 +367,7 @@ function QuickActionsFields({ values, setValue, employees = [], loading }) {
   )
 }
 
-export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canViewFinancials = true, canViewAmount = true, canViewDeposit = true }) {
+export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canEditCore = true, canViewFinancials = true, canViewAmount = true, canViewDeposit = true }) {
   const isEditing = Boolean(initialValues?.id)
   const { data: currenciesData } = useAsync(currenciesService.list, [])
   const currencies = currenciesData?.items ?? []
@@ -377,6 +384,7 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     phone: initialValues?.phone || '+998',
     amount: initialValues?.amount ?? '',
     currencyId: initialValues?.currencyId || initialValues?.currency?.id || '',
+    businessTypeId: initialValues?.businessTypeId || initialValues?.businessType?.id || '',
     note: initialValues?.note || initialValues?.notes || '',
     depositAmount: initialValues?.depositAmount ?? '',
     programName: initialValues?.service || initialValues?.programs?.[0]?.name || '',
@@ -426,11 +434,12 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
       note: values.note.trim() || null,
       notes: values.note.trim() || null,
       ...(canViewFinancials && canViewAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
-      ...(canViewFinancials ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
+      ...(canViewAmount ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
+      ...(canEditCore ? { businessTypeId: values.businessTypeId || null } : {}),
       ...(canViewFinancials && canViewDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
-      ...(canViewFinancials ? { service: primaryProgramName || null, programs } : {}),
+      ...(canEditCore ? { service: primaryProgramName || null, programs } : {}),
       stage: values.stage,
-      ...(canViewFinancials ? {
+      ...(canEditCore ? {
         address: values.address.trim() || null,
         latitude: Number.isFinite(latitudeValue) ? latitudeValue : null,
         longitude: Number.isFinite(longitudeValue) ? longitudeValue : null,
@@ -447,16 +456,16 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
         <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
         {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
         <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
-        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><NumberInput min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="10 000 000" /></FormField>}
-        {canViewFinancials && <FormField label="Valyuta"><Select value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0}><option value="">Valyuta tanlanmagan</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code} — {currency.name}</option>)}</Select></FormField>}
+        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><div className="amount-currency-control"><NumberInput min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="5 000 000" /><Select className="amount-currency-control__currency" value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0} aria-label="Valyuta"><option value="">—</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code}</option>)}</Select></div></FormField>}
       </div>
-      {canViewFinancials && <div className="detail-grid">
+      {canEditCore && <div className="detail-grid">
+        <FormField label="Biznes turi"><BusinessTypeDropdown value={values.businessTypeId} onChange={(value) => setValue('businessTypeId', value)} disabled={loading} /></FormField>
         <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>
          {/* Stage changes are deliberately made from the Kanban drag action so
              deposit/follow-up/installation prompts cannot be bypassed here. */}
-        {isEditing && canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><NumberInput min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
+        {canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><NumberInput min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
       </div>}
-      {canViewFinancials && <LocationField values={values} setValue={setValue} loading={loading} />}
+      {canEditCore && <LocationField values={values} setValue={setValue} loading={loading} />}
       <FormField label="Izoh"><textarea className="textarea" rows={3} value={values.note} onChange={(event) => setValue('note', event.target.value)} disabled={loading} placeholder="Mijoz haqida qisqa izoh" /></FormField>
       {!isEditing && initialValues?.currentGroupName && <div className="form-field__hint">Bu mijoz <strong>{initialValues.currentGroupName}</strong> guruhiga qo'shiladi.</div>}
       {!isEditing && <QuickActionsFields values={values} setValue={setValue} employees={employees} loading={loading} />}

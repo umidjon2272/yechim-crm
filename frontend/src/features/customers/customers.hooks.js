@@ -109,5 +109,12 @@ async function loadKanbanCustomers(params) {
 }
 
 export function useCustomer(id) {
-  return useAsync(() => customersService.get(id), [id])
+  return useAsync(() => {
+    if (!id) {
+      const error = new Error('Mijoz ID topilmadi')
+      error.status = 400
+      return Promise.reject(error)
+    }
+    return customersService.get(id)
+  }, [id])
 }

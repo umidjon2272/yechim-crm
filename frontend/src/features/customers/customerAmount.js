@@ -7,7 +7,12 @@ export function formatCustomerAmount(value, currency) {
 }
 
 export function formatCustomerCurrencyAmount(value, currency) {
-  const amount = Number(value || 0).toLocaleString('ru-RU')
-  if (currency?.symbol && currency.code !== 'UZS') return `${currency.symbol}${amount}`
-  return `${amount} ${currency?.code || 'UZS'}`
+  const amount = Number(value || 0).toLocaleString('ru-RU').replace(/\u00a0/g, ' ')
+  const code = String(currency?.code || 'UZS').toUpperCase()
+  if (code === 'UZS') return `${amount} so‘m`
+  if (code === 'USD') return `$${amount}`
+  if (code === 'EUR') return `€${amount}`
+  if (code === 'RUB') return `${amount} ₽`
+  if (currency?.symbol) return `${currency.symbol}${amount}`
+  return `${amount} ${code}`
 }

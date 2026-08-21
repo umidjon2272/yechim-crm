@@ -7,6 +7,7 @@ import { employeesService } from '../../../services/employees.service'
 import { paymentsService } from '../../../services/payments.service'
 import { installationsService } from '../../../services/installations.service'
 import { CustomerForm, CustomerLocationPreview, formatAddress } from '../components/CustomerForm'
+import { CustomerWorkspace } from '../components/CustomerWorkspace'
 import { ProgramsPanel } from '../components/ProgramsPanel'
 import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { CUSTOMER_STATUS_LABELS } from '../customers.constants'
@@ -18,6 +19,7 @@ import { Badge } from '../../../components/Badge/Badge'
 import { Button } from '../../../components/Button/Button'
 import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
+import { ErrorBoundary } from '../../../components/ErrorBoundary/ErrorBoundary'
 import { RelatedList } from '../../../components/RelatedList/RelatedList'
 import { Tabs } from '../../../components/Tabs/Tabs'
 import { Modal } from '../../../components/Modal/Modal'
@@ -174,11 +176,13 @@ export function CustomerDetailPage() {
 
   if (error || !customer) {
     return (
-      <Alert variant="danger" title="Mijoz topilmadi">
+      <Alert variant="danger" title={error?.status === 403 ? 'Ruxsat yo‘q' : error?.status === 404 ? 'Mijoz topilmadi' : 'Mijozni ochib bo‘lmadi'}>
         {error?.message || 'Bu mijoz mavjud emas yoki o‘chirilgan.'}
       </Alert>
     )
   }
+
+  return <ErrorBoundary><CustomerWorkspace customerId={id} initialCustomer={customer} onBack={() => navigate('/admin/crm/customers')} startEditing={isEditing} onChanged={() => { refetch(); bump() }} /></ErrorBoundary>
 
   return (
     <div className="stack">

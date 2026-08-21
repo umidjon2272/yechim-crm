@@ -67,6 +67,37 @@
   max-width: 720px;
 }
 
+.customer-detail-modal {
+  width: min(920px, calc(100vw - 32px));
+  max-width: 920px;
+  height: min(820px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
+
+  .modal__body {
+    display: flex;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .customer-workspace {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .customer-detail-modal {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+
+    .modal__body {
+      overflow: hidden;
+    }
+  }
+}
+
 .pipeline-manager-modal {
   max-width: 780px;
 }

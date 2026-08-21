@@ -9,6 +9,11 @@ import './CustomerCard.scss'
 // replacing the page.
 export function CustomerCard({ customer, onOpen }) {
   const programs = customer.programs || []
+  const summary = customer.nextReminder?.remindAt
+    ? `${customer.nextReminder.title || 'Eslatma'} · ${new Date(customer.nextReminder.remindAt).toLocaleString('uz-UZ', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+    : customer.latestNote?.message
+      ? `Oxirgi izoh: ${customer.latestNote.message}`
+      : customer.businessType?.name || customer.service || programs[0]?.name || (typeof customer.address === 'string' ? customer.address : '')
 
   return (
     <div className="customer-card" onClick={() => onOpen(customer.id)}>
@@ -31,6 +36,7 @@ export function CustomerCard({ customer, onOpen }) {
       )}
 
       {customer.business?.name && <div className="customer-card__business">{customer.business.name}</div>}
+      {summary && <div className="customer-card__summary">{summary}</div>}
 
       <div className="customer-card__footer">
         <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[customer.stage] || 'gray'}>

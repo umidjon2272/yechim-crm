@@ -82,6 +82,11 @@ export const CUSTOMER_GROUPS = {
   PARTNER_SUMMARY: (id) => `/customer-groups/${id}/partner-summary`,
 }
 
+export const BUSINESS_TYPES = {
+  LIST: '/business-types',
+  CREATE: '/business-types',
+}
+
 export const PARTNERS = {
   ME_CUSTOMERS: '/partners/me/customers',
   ME_STATISTICS: '/partners/me/statistics',

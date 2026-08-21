@@ -16,7 +16,7 @@ export function HistorySection({ entityType, entityId, title = 'Tarix' }) {
   const { can } = usePermissions()
   const canView = can('history.view')
   const { data, loading, error } = useAsync(() => canView ? timelineService.get(entityType, entityId) : Promise.resolve({ items: [] }), [entityType, entityId, canView])
-  const items = data?.items ?? data ?? []
+  const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
 
   if (!canView) return null
 

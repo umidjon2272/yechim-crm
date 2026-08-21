@@ -47,6 +47,16 @@
     @include m.truncate;
   }
 
+  &__summary {
+    display: -webkit-box;
+    overflow: hidden;
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-xs;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   &__programs {
     display: flex;
     flex-wrap: wrap;

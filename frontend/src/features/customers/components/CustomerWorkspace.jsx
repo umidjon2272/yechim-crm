@@ -1,84 +1,155 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useCustomer } from '../customers.hooks'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { customersService } from '../../../services/customers.service'
 import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
-import { dealsService } from '../../../services/deals.service'
-import { paymentsService } from '../../../services/payments.service'
 import { CustomerForm, CustomerLocationPreview, formatAddress } from './CustomerForm'
 import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
 import { canViewCustomerField, canViewCustomerFinancials } from '../financialPermissions'
-import { ProgramsPanel } from './ProgramsPanel'
-import { InstallationsPanel } from './InstallationsPanel'
-import { CustomerGroupsField } from './CustomerGroupsField'
-import { CustomerSummaryTiles } from './CustomerSummaryTiles'
 import { CUSTOMER_STAGES, CUSTOMER_STAGE_LABELS, CUSTOMER_STAGE_BADGE_VARIANTS } from '../customers.constants'
-import { PAYMENT_STATUS_LABELS } from '../../payments/payments.constants'
 import { Card } from '../../../components/Card/Card'
 import { Avatar } from '../../../components/Avatar/Avatar'
 import { Badge } from '../../../components/Badge/Badge'
 import { Button } from '../../../components/Button/Button'
 import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
-import { EmptyState } from '../../../components/EmptyState/EmptyState'
-import { RelatedList } from '../../../components/RelatedList/RelatedList'
-import { Tabs } from '../../../components/Tabs/Tabs'
-import { Modal } from '../../../components/Modal/Modal'
 import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
 import { PermissionGate } from '../../roles/PermissionGate'
 import { usePermissions } from '../../roles/usePermissions'
 import { useAuth } from '../../auth/useAuth'
-import { ActivitiesSection } from '../../activities/ActivitiesSection'
-import { CommentsSection } from '../../comments/CommentsSection'
-import { AttachmentsSection } from '../../attachments/AttachmentsSection'
-import { HistorySection } from '../../timeline/HistorySection'
-import { ScheduleFollowUpButton } from '../../tasks/components/ScheduleFollowUpButton'
-import { MessagesPanel } from '../../messages/MessagesPanel'
-import { PaymentForm } from '../../payments/components/PaymentForm'
-import { DealItemsEditor } from '../../deals/components/DealItemsEditor'
+import { CustomerWorkPanel } from './CustomerWorkActions'
 import { useAction } from '../../../hooks/useAction'
 import { useAsync } from '../../../hooks/useAsync'
-import { useDisclosure } from '../../../hooks/useDisclosure'
 import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
-import { formatDate } from '../../../utils/formatDate'
-import { MoreIcon, PlusIcon, PhoneIcon, InboxIcon } from '../../../components/icons/Icons'
+import { MoreIcon, PhoneIcon } from '../../../components/icons/Icons'
 import './CustomerWorkspace.scss'
 
-const BASE_SIDE_TABS = [
-  { id: 'overview', label: 'Umumiy' },
-  { id: 'programs', label: 'Dasturlar' },
-  { id: 'order', label: 'Buyurtma' },
-  { id: 'leads', label: 'Murojaatlar' },
-  { id: 'deals', label: 'Savdolar' },
-  { id: 'payments', label: 'ToвЂlovlar' },
-  { id: 'tasks', label: 'Vazifalar' },
-  { id: 'activities', label: 'Faoliyatlar' },
-  { id: 'installations', label: 'OвЂrnatishlar' },
-  { id: 'attachments', label: 'Fayllar' },
-  { id: 'comments', label: 'Izohlar' },
-]
+function normalizeStageOptions(stages, currentStage) {
+  const source = Array.isArray(stages) && stages.length ? stages : CUSTOMER_STAGES
+  const options = source
+    .map((stage) => {
+      const id = typeof stage === 'object' ? stage?.id : stage
+      if (!id) return null
+      return {
+        id,
+        label: typeof stage === 'object' ? stage.label || CUSTOMER_STAGE_LABELS[id] || id : CUSTOMER_STAGE_LABELS[id] || id,
+      }
+    })
+    .filter(Boolean)
 
-const SIDE_TAB_PERMISSIONS = {
-  programs: 'programs.view',
-  order: 'deals.view',
-  leads: 'leads.view',
-  deals: 'deals.view',
-  payments: 'payments.view',
-  tasks: 'tasks.view',
-  activities: 'activities.view',
-  installations: 'installations.view',
-  attachments: 'attachments.create',
-  comments: 'comments.view',
+  if (currentStage && !options.some((stage) => stage.id === currentStage)) {
+    options.push({ id: currentStage, label: CUSTOMER_STAGE_LABELS[currentStage] || currentStage })
+  }
+  return options
 }
 
-// The Bitrix-style "customer element" panel: chat is the main, always-
-// visible column (no click required to reach it) вЂ” everything else
-// (programs, deals, payments, tasks...) lives in a compact tab strip in the
-// side column, so working a customer never leaves this one panel.
-export function CustomerWorkspace({ customerId: id, onChanged }) {
-  const navigate = useNavigate()
+function formatWorkspaceDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('uz-UZ', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+function workspaceErrorTitle(error) {
+  if (error?.status === 403) return 'Ruxsat yo‘q'
+  if (error?.status === 404) return 'Mijoz topilmadi'
+  return 'Mijozni yuklab bo‘lmadi'
+}
+
+function CompactCustomerOverview({ customer, canViewAmount, customerAmount, primaryProgram, address, payments = [] }) {
+  const paidTotal = payments
+    .filter((payment) => ['PAID', 'COMPLETED'].includes(payment.status))
+    .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0)
+  const reminder = customer.nextReminder || customer.nextAction
+  const latestNote = customer.latestNote?.message
+  const latestActivity = customer.latestActivity?.message
+
+  return (
+    <div className="customer-workspace__compact-overview">
+      <div className="customer-workspace__number-grid">
+        {canViewAmount && customerAmount > 0 && <div className="customer-workspace__number-card"><span>Savdo summasi</span><strong>{formatCustomerAmount(customerAmount, customer.currency)}</strong></div>}
+        {customer.depositAmount != null && <div className="customer-workspace__number-card"><span>Zaklad summasi</span><strong>{formatCustomerAmount(customer.depositAmount, customer.currency)}</strong></div>}
+        {paidTotal > 0 && <div className="customer-workspace__number-card"><span>To‘langan</span><strong>{formatCustomerAmount(paidTotal, customer.currency)}</strong></div>}
+      </div>
+
+      <div className="customer-workspace__next-work">
+        <div className="customer-workspace__section-label">Keyingi ish</div>
+        {reminder ? (
+          <div className={customer.isFollowUpOverdue ? 'customer-workspace__next-work-item customer-workspace__next-work-item--overdue' : 'customer-workspace__next-work-item'}>
+            <strong>{reminder.title || (reminder.type === 'FOLLOW_UP' ? 'Qayta aloqa' : 'Eslatma')}</strong>
+            <span>{formatWorkspaceDate(reminder.remindAt || reminder.at)}</span>
+            {reminder.note && <small>{reminder.note}</small>}
+          </div>
+        ) : <span className="text-muted text-xs">Keyingi aloqa belgilanmagan</span>}
+      </div>
+
+      <Card title="Qisqa ma’lumot">
+        <div className="customer-workspace__short-info">
+          {customer.businessType?.name && <div><span>Biznes turi</span><strong>{customer.businessType.name}</strong></div>}
+          {primaryProgram && <div><span>Dastur/xizmat</span><strong>{primaryProgram}</strong></div>}
+          {address && <div><span>Manzil</span><strong>{address}</strong></div>}
+        </div>
+        <CustomerLocationPreview customer={customer} />
+      </Card>
+
+      {(latestNote || latestActivity) && <div className="customer-workspace__latest-activity">
+        <div className="customer-workspace__section-label">Oxirgi activity</div>
+        {latestNote && <div>Oxirgi izoh: <strong>{latestNote}</strong></div>}
+        {!latestNote && latestActivity && <div>{latestActivity}</div>}
+      </div>}
+    </div>
+  )
+}
+
+function useWorkspaceCustomer(id, initialCustomer) {
+  const [data, setData] = useState(initialCustomer || null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(!initialCustomer)
+  const requestId = useRef(0)
+
+  const refetch = useCallback(async () => {
+    if (!id) {
+      const invalidIdError = new Error('Mijoz ID topilmadi')
+      invalidIdError.status = 400
+      setData(null)
+      setError(invalidIdError)
+      setLoading(false)
+      return null
+    }
+
+    const currentRequest = ++requestId.current
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await customersService.get(id)
+      if (requestId.current === currentRequest) setData(result)
+      return result
+    } catch (requestError) {
+      if (requestId.current === currentRequest) setError(requestError)
+      throw requestError
+    } finally {
+      if (requestId.current === currentRequest) setLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    const hasMatchingInitialCustomer = initialCustomer?.id && String(initialCustomer.id) === String(id)
+    if (hasMatchingInitialCustomer) {
+      setData(initialCustomer)
+      setError(null)
+      setLoading(false)
+      return
+    }
+
+    setData(null)
+    refetch().catch(() => {})
+  }, [id, initialCustomer, refetch])
+
+  return { data, error, loading, refetch }
+}
+
+export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onChanged, onDelete, onBack, startEditing = false }) {
   const toast = useToast()
   const confirm = useConfirm()
   const { can } = usePermissions()
@@ -87,60 +158,37 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   const canViewFinancials = canViewCustomerFinancials(user)
   const canViewAmount = canViewCustomerField(user, 'amount')
   const canViewDeposit = canViewCustomerField(user, 'deposit')
-  const [sideTab, setSideTab] = useState('overview')
-  const [isEditing, setIsEditing] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
-  const bump = () => setRefreshKey((k) => k + 1)
+  const canEditCore = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.editCore')
+  const canEditStage = !isPartner && (['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.edit'))
+  const [isEditing, setIsEditing] = useState(startEditing)
 
-  const { data: customer, loading, error, refetch } = useCustomer(id)
+  const { data: customer, loading, error, refetch } = useWorkspaceCustomer(id, initialCustomer)
+  const stageOptions = normalizeStageOptions(stages, customer?.stage)
   const updateAction = useAction((values) => customersService.update(id, values))
   const deactivateAction = useAction(() => customersService.deactivate(id))
   const stageAction = useAction((stage) => customersService.setStage(id, typeof stage === 'object' ? stage?.id || stage?.stageId || stage?.value : stage))
   const [employees, setEmployees] = useState([])
-  // sideTab is in the deps so leaving the "Buyurtma" tab (where
-  // DealItemsEditor mutates items вЂ” and, via syncDealValue, deal.value вЂ”
-  // outside this component's own actions) picks up the fresh total for the
-  // summary tiles/PaymentForm without needing DealItemsEditor to expose an
-  // onChange hook.
-  const { data: dealsData } = useAsync(() => canViewFinancials ? customersService.getDeals(id) : Promise.resolve(null), [id, refreshKey, sideTab, canViewFinancials])
-  const customerDeals = dealsData?.items ?? []
-  // "Buyurtma" вЂ” mijozning eng birinchi/asosiy savdosi: bir mijoz uchun bir
-  // vaqtda bitta faol buyurtma degan sodda modelga mos, ko'p savdo tarixi
-  // esa Savdolar tab'ida to'liq ko'rinadi.
-  const primaryDeal = customerDeals[0] || null
-  const createOrderAction = useAction((payload) => dealsService.create(payload))
-  // Cheap counts for the side-tab labels (section 14: "Savdolar: 2,
-  // To'lovlar: 3..." at a glance) вЂ” separate from each tab's own RelatedList
-  // fetch, which still owns the actual list rendering.
-  const { data: paymentsCountData } = useAsync(() => canViewFinancials ? customersService.getPayments(id) : Promise.resolve(null), [id, refreshKey, canViewFinancials])
-  const { data: tasksCountData } = useAsync(() => customersService.getTasks(id), [id, refreshKey])
-  const { data: installationsCountData } = useAsync(() => customersService.getInstallations(id), [id, refreshKey])
-
-  const paymentModal = useDisclosure()
-  const createPaymentAction = useAction(paymentsService.create)
+  const { data: paymentsData } = useAsync(() => canViewFinancials ? customersService.getPayments(id) : Promise.resolve(null), [id, canViewFinancials])
+  const paymentItems = Array.isArray(paymentsData?.items) ? paymentsData.items : Array.isArray(paymentsData) ? paymentsData : []
 
   useEffect(() => {
     employeesService
       .list({ pageSize: 100 })
-      .then((res) => setEmployees((res?.items ?? []).filter((e) => e.status === 'active')))
+      .then((res) => setEmployees((res?.items ?? []).filter((employee) => employee.status === 'active')))
       .catch(() => setEmployees([]))
   }, [])
 
   useEffect(() => {
-    setSideTab('overview')
-    setIsEditing(false)
-  }, [id])
+    setIsEditing(Boolean(startEditing))
+  }, [id, startEditing])
 
   const handleUpdate = async (values, businessPayload) => {
     try {
       await updateAction.run(values)
-      if (businessPayload) {
-        await businessesService.create({ ...businessPayload, customerId: id })
-      }
-      toast.success('Mijoz maвЂ™lumotlari yangilandi')
+      if (businessPayload) await businessesService.create({ ...businessPayload, customerId: id })
+      toast.success('Mijoz ma’lumotlari yangilandi')
       setIsEditing(false)
       refetch()
-      bump()
       onChanged?.()
     } catch (err) {
       toast.error(err.message || 'Yangilashda xatolik yuz berdi')
@@ -165,41 +213,15 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     }
   }
 
-  const handleRecordPayment = async (values) => {
-    try {
-      await createPaymentAction.run(values)
-      toast.success('ToвЂlov qayd etildi')
-      paymentModal.close()
-      bump()
-    } catch (err) {
-      toast.error(err.message || 'ToвЂlovni saqlashda xatolik yuz berdi')
-    }
-  }
-
   const handleChangeStage = async (stage) => {
     if (stage === customer.stage) return
     try {
       await stageAction.run(stage)
-      toast.success(`Status: ${CUSTOMER_STAGE_LABELS[stage]}`)
-      refetch()
+      toast.success(`Status: ${CUSTOMER_STAGE_LABELS[stage] || stage}`)
+      await refetch()
       onChanged?.()
     } catch (err) {
       toast.error(err.message || 'Statusni yangilashda xatolik yuz berdi')
-    }
-  }
-
-  const handleCreateOrder = async () => {
-    try {
-      await createOrderAction.run({
-        name: `${customer.name} вЂ” buyurtma`,
-        customerId: id,
-        businessId: customer.business?.id,
-        stage: 'NEW',
-      })
-      toast.success('Buyurtma yaratildi')
-      bump()
-    } catch (err) {
-      toast.error(err.message || 'Buyurtma yaratishda xatolik yuz berdi')
     }
   }
 
@@ -214,15 +236,17 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
   if (error || !customer) {
     return (
       <div style={{ padding: 24, width: '100%' }}>
-        <Alert variant="danger" title="Mijoz topilmadi">
-          {error?.message || 'Bu mijoz mavjud emas yoki oвЂchirilgan.'}
+        <Alert variant="danger" title={workspaceErrorTitle(error)}>
+          {error?.message || 'Mijoz ma’lumotlari mavjud emas.'}
         </Alert>
       </div>
     )
   }
 
   const customerAmount = getCustomerAmount(customer)
-  const primaryProgram = customer.programs?.[0]?.name || '-'
+  const customerPrograms = Array.isArray(customer.programs) ? customer.programs : []
+  const primaryProgram = customer.service || customerPrograms[0]?.name || ''
+  const address = formatAddress(customer.address)
 
   const header = (
     <div className="customer-workspace__header">
@@ -232,64 +256,49 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
           <div className="customer-workspace__name">{customer.name}</div>
           <div className="customer-workspace__meta">
             {customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
-            {customer.business?.name && <span> В· {customer.business.name}</span>}
-            {customer.assignedEmployee?.name && <span> В· Mas'ul: {customer.assignedEmployee.name}</span>}
-            {isPartner ? (
+            {customer.businessType?.name && <span> · {customer.businessType.name}</span>}
+            {customer.business?.name && <span> · {customer.business.name}</span>}
+            {customer.assignedEmployee?.name && <span> · Mas'ul: {customer.assignedEmployee.name}</span>}
+            {!canEditStage ? (
               <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[customer.stage] || 'gray'}>
                 {CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage}
               </Badge>
             ) : <Dropdown
               trigger={(toggle) => (
-                <button type="button" className="customer-workspace__stage-trigger" onClick={toggle}>
+                <button type="button" className="customer-workspace__stage-trigger" onClick={toggle} aria-label="Bosqichni o'zgartirish" title="Bosqichni o'zgartirish">
+                  <span className="customer-workspace__stage-trigger-label">Bosqich</span>
                   <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[customer.stage] || 'gray'}>
                     {CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage}
                   </Badge>
+                  <span aria-hidden="true">⌄</span>
                 </button>
               )}
               align="left"
             >
-              {CUSTOMER_STAGES.map((stage) => (
-                <DropdownItem key={stage} onClick={() => handleChangeStage(stage)}>
-                  {CUSTOMER_STAGE_LABELS[stage]}
+              {stageOptions.map((stage) => (
+                <DropdownItem key={stage.id} onClick={() => handleChangeStage(stage.id)}>
+                  {stage.label}
                 </DropdownItem>
               ))}
             </Dropdown>}
           </div>
           <div className="customer-workspace__facts">
-            <span>
-              Stage: <strong>{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</strong>
-            </span>
-            {canViewAmount && <span>Savdo summasi: <strong>{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</strong></span>}
-            <span>
-              Mas'ul: <strong>{customer.assignedEmployee?.name || '-'}</strong>
-            </span>
-            <span>
-              Dastur: <strong>{primaryProgram}</strong>
-            </span>
+            <span>Stage: <strong>{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</strong></span>
+            {customer.status && <span>Status: <strong>{customer.status === 'active' ? 'Faol' : 'Nofaol'}</strong></span>}
+            {canViewAmount && customerAmount > 0 && <span><strong>{formatCustomerAmount(customerAmount, customer.currency)}</strong></span>}
+            <span>Mas'ul: <strong>{customer.assignedEmployee?.name || ''}</strong></span>
+            {primaryProgram && <span>Dastur: <strong>{primaryProgram}</strong></span>}
+          </div>
+          <div className="customer-workspace__created-meta">
+            {customer.createdBy?.name && <span>Qo‘shgan: <strong>{customer.createdBy.name}</strong></span>}
+            {customer.createdAt && <span>Qo‘shilgan sana: <strong>{formatWorkspaceDate(customer.createdAt)}</strong></span>}
           </div>
         </div>
       </div>
       <div className="customer-workspace__actions">
-        {customer.phone && (
-          <a className="btn btn--secondary" href={`tel:${customer.phone}`}>
-            <PhoneIcon width={15} height={15} /> Telefon
-          </a>
-        )}
-        <PermissionGate permission="customers.edit">
-          <Button variant="secondary" onClick={() => setSideTab('programs')}>
-            + Dastur
-          </Button>
-        </PermissionGate>
-        {!isPartner && <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />}
-        <PermissionGate permission="customers.edit">
-          <Button
-            onClick={() => {
-              setIsEditing(true)
-            }}
-          >
-            Tahrirlash
-          </Button>
-        </PermissionGate>
+        {onBack && <Button variant="secondary" onClick={onBack}>Ortga</Button>}
+        {customer.phone && <a className="btn btn--secondary" href={`tel:${customer.phone}`}><PhoneIcon width={15} height={15} /> Telefon</a>}
+        {canEditCore && <button type="button" className="customer-workspace__edit-button" onClick={() => setIsEditing(true)} aria-label="Asosiy ma'lumotlarni tahrirlash" title="Tahrirlash">✎</button>}
         {!isPartner && <Dropdown
           trigger={(toggle) => (
             <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Boshqa amallar">
@@ -300,6 +309,7 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
           <PermissionGate permission="customers.delete">
             <DropdownItem onClick={handleDeactivate}>{customer.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}</DropdownItem>
           </PermissionGate>
+          {onDelete && <PermissionGate permission="customers.delete"><DropdownItem danger onClick={onDelete}>O‘chirish</DropdownItem></PermissionGate>}
         </Dropdown>}
       </div>
     </div>
@@ -316,12 +326,13 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
               employees={employees}
               submitLabel="Saqlash"
               loading={updateAction.loading}
-            onSubmit={handleUpdate}
-            onCancel={() => setIsEditing(false)}
-            canManageGroups={can('customers.edit')}
-            canViewFinancials={canViewFinancials}
-            canViewAmount={canViewAmount}
-            canViewDeposit={canViewDeposit}
+              onSubmit={handleUpdate}
+              onCancel={() => setIsEditing(false)}
+              canManageGroups={can('customers.edit')}
+              canEditCore={canEditCore}
+              canViewFinancials={canViewFinancials}
+              canViewAmount={canViewAmount}
+              canViewDeposit={canViewDeposit}
             />
           </Card>
         </div>
@@ -329,236 +340,22 @@ export function CustomerWorkspace({ customerId: id, onChanged }) {
     )
   }
 
-  const tabCounts = {
-    programs: customer.programs?.length,
-    deals: customerDeals.length,
-    payments: paymentsCountData?.total,
-    tasks: tasksCountData?.total,
-    installations: installationsCountData?.total,
-  }
-  const sideTabs = BASE_SIDE_TABS.filter((tab) => {
-    if (isPartner) return tab.id === 'overview'
-    if (!canViewFinancials && ['order', 'deals', 'payments'].includes(tab.id)) return false
-    return !SIDE_TAB_PERMISSIONS[tab.id] || can(SIDE_TAB_PERMISSIONS[tab.id])
-  }).map((tab) =>
-    tabCounts[tab.id] != null ? { ...tab, label: `${tab.label} (${tabCounts[tab.id]})` } : tab
-  )
-
   return (
     <div className="customer-workspace">
       {header}
       <div className="customer-workspace__body">
         <div className="customer-workspace__main">
-          {!isPartner && <MessagesPanel customerId={id} variant="flush" />}
-        </div>
-        <div className="customer-workspace__side">
-          {!isPartner && canViewFinancials && <CustomerSummaryTiles
-            programs={customer.programs || []}
-            deal={primaryDeal}
-            payments={paymentsCountData?.items ?? []}
-            installationStatus={installationsCountData?.items?.at?.(-1)?.status}
-            taskCount={tasksCountData?.total}
-          />}
-          <Tabs items={sideTabs} activeId={sideTab} onChange={setSideTab} />
-          <div className="customer-workspace__side-content">
-            {sideTab === 'overview' && (
-              <div className="stack">
-                <Card title="Umumiy ma'lumot">
-                  <div className="detail-grid">
-                    <div className="detail-field">
-                      <div className="detail-field__label">Stage</div>
-                      <div className="detail-field__value">{CUSTOMER_STAGE_LABELS[customer.stage] || customer.stage || '-'}</div>
-                    </div>
-                    {canViewAmount && <div className="detail-field">
-                      <div className="detail-field__label">Savdo summasi</div>
-                      <div className="detail-field__value">{customerAmount > 0 ? formatCustomerAmount(customerAmount, customer.currency) : 'Belgilanmagan'}</div>
-                    </div>}
-                    <div className="detail-field">
-                      <div className="detail-field__label">Dastur</div>
-                      <div className="detail-field__value">{primaryProgram}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">Mas'ul xodim</div>
-                      <div className="detail-field__value">{customer.assignedEmployee?.name || '-'}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">QoвЂshimcha telefon</div>
-                      <div className="detail-field__value">{customer.phone2 || 'вЂ”'}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">Telegram</div>
-                      <div className="detail-field__value">{customer.telegram || 'вЂ”'}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">Elektron pochta</div>
-                      <div className="detail-field__value">{customer.email || 'вЂ”'}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">Manzil</div>
-                      <div className="detail-field__value">
-                        {formatAddress(customer.address) || '—'}
-                      </div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">Mijoz manbasi</div>
-                      <div className="detail-field__value">{customer.source || 'вЂ”'}</div>
-                    </div>
-                    <div className="detail-field">
-                      <div className="detail-field__label">QoвЂshilgan sana</div>
-                      <div className="detail-field__value">{formatDate(customer.createdAt)}</div>
-                    </div>
-                  </div>
-                  <CustomerLocationPreview customer={customer} />
-                  {customer.notes && (
-                    <div className="detail-field" style={{ marginTop: 16 }}>
-                      <div className="detail-field__label">Izoh</div>
-                      <div className="detail-field__value">{customer.notes}</div>
-                    </div>
-                  )}
-                </Card>
-                {!isPartner && <Card title="Guruhlar">
-                  <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
-                </Card>}
-                {!isPartner && <RelatedList
-                  title="Bizneslar"
-                  fetcher={() => customersService.getBusinesses(id)}
-                  deps={[id, refreshKey]}
-                  linkTo={(item) => `/admin/crm/businesses/${item.id}`}
-                  renderItem={(item) => <span>{item.name}</span>}
-                  emptyHint="Bu mijozga hali biznes biriktirilmagan."
-                  action={
-                    <PermissionGate permission="businesses.create">
-                      <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/crm/businesses?customerId=${id}`)}>
-                        + QoвЂshish
-                      </Button>
-                    </PermissionGate>
-                  }
-                />}
-                {!isPartner && <HistorySection entityType="customer" entityId={id} title="Mijozning toвЂliq tarixi" key={`history-${refreshKey}`} />}
-              </div>
-            )}
-
-            {sideTab === 'programs' && (
-              <ProgramsPanel
-                customerId={id}
-                programs={customer.programs || []}
-                employees={employees}
-                onChanged={() => {
-                  refetch()
-                  bump()
-                }}
-              />
-            )}
-
-            {sideTab === 'order' && (
-              <>
-                {primaryDeal ? (
-                  <DealItemsEditor dealId={primaryDeal.id} />
-                ) : (
-                  <Card
-                    title="Buyurtma"
-                    actions={
-                      <PermissionGate permission="deals.create">
-                        <Button size="sm" onClick={handleCreateOrder} loading={createOrderAction.loading}>
-                          <PlusIcon width={14} height={14} /> Buyurtma yaratish
-                        </Button>
-                      </PermissionGate>
-                    }
-                  >
-                    <EmptyState compact icon={<InboxIcon width={20} height={20} />} title="Hali buyurtma yoвЂq" description="Dastur/mahsulot qoвЂshish uchun avval buyurtma yarating." />
-                  </Card>
-                )}
-              </>
-            )}
-
-            {sideTab === 'leads' && (
-              <RelatedList
-                title="Murojaatlar"
-                fetcher={() => customersService.getLeads(id)}
-                deps={[id]}
-                linkTo={(item) => `/admin/crm/leads/${item.id}`}
-                renderItem={(item) => <span>{item.title}</span>}
-                emptyHint="Bu mijoz uchun hali murojaat yaratilmagan."
-              />
-            )}
-
-            {sideTab === 'deals' && (
-              <RelatedList
-                title="Savdolar"
-                fetcher={() => customersService.getDeals(id)}
-                deps={[id, refreshKey]}
-                linkTo={(item) => `/admin/crm/deals/${item.id}`}
-                renderItem={(item) => <span>{item.name}</span>}
-                emptyHint="Bu mijoz uchun hali savdo yaratilmagan."
-              />
-            )}
-
-            {sideTab === 'payments' && (
-              <div className="stack">
-                <RelatedList
-                  title="ToвЂlovlar"
-                  fetcher={() => customersService.getPayments(id)}
-                  deps={[id, refreshKey]}
-                  renderItem={(item) => <span>{item.amount} вЂ” {PAYMENT_STATUS_LABELS[item.status] || item.status}</span>}
-                  emptyHint="Bu mijoz uchun hali toвЂlov qayd etilmagan."
-                  action={
-                    customerDeals.length > 0 && (
-                      <PermissionGate permission="payments.create">
-                        <Button size="sm" variant="ghost" onClick={paymentModal.open}>
-                          <PlusIcon width={14} height={14} /> ToвЂlov
-                        </Button>
-                      </PermissionGate>
-                    )
-                  }
-                />
-                {customerDeals.length === 0 && (
-                  <p className="text-muted text-xs">ToвЂlov qoвЂshish uchun avval bu mijozga savdo yaratilishi kerak.</p>
-                )}
-              </div>
-            )}
-
-            {sideTab === 'tasks' && (
-              <RelatedList
-                title="Vazifalar"
-                fetcher={() => customersService.getTasks(id)}
-                deps={[id, refreshKey]}
-                renderItem={(item) => <span>{item.title}</span>}
-                emptyHint="Bu mijoz bilan bogвЂliq vazifa yoвЂq."
-              />
-            )}
-
-            {sideTab === 'activities' && (
-              <ActivitiesSection fetcher={() => customersService.getActivities(id)} deps={[id, refreshKey]} context={{ customerId: id }} />
-            )}
-
-            {sideTab === 'installations' && (
-              <InstallationsPanel
-                customerId={id}
-                deals={customerDeals}
-                employees={employees}
-                onChanged={() => {
-                  refetch()
-                  bump()
-                }}
-              />
-            )}
-
-            {sideTab === 'attachments' && <AttachmentsSection entityType="customer" entityId={id} />}
-
-            {sideTab === 'comments' && <CommentsSection entityType="customer" entityId={id} />}
-          </div>
+          <CompactCustomerOverview
+            customer={customer}
+            canViewAmount={canViewAmount}
+            customerAmount={customerAmount}
+            primaryProgram={primaryProgram}
+            address={address}
+            payments={paymentItems}
+          />
+          {!isPartner && <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); onChanged?.() }} />}
         </div>
       </div>
-
-      <Modal open={paymentModal.isOpen} title="ToвЂlov qoвЂshish" onClose={paymentModal.close}>
-        <PaymentForm
-          deals={customerDeals}
-          submitLabel="Saqlash"
-          loading={createPaymentAction.loading}
-          onSubmit={handleRecordPayment}
-          onCancel={paymentModal.close}
-        />
-      </Modal>
     </div>
   )
 }
