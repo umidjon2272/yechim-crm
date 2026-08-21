@@ -586,7 +586,7 @@ export function CustomersListPage() {
   }
 
   const handleStageMove = async (customer, fromStage, toStage) => {
-    if (toStage === 'DEPOSIT_RECEIVED' && customer.depositAmount == null) {
+    if (toStage === 'DEPOSIT_RECEIVED' && canViewDeposit && customer.depositAmount == null) {
       setDepositMove({ customer, fromStage, toStage })
       return
     }

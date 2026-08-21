@@ -56,7 +56,7 @@ function workspaceErrorTitle(error) {
   return 'Mijozni yuklab bo‘lmadi'
 }
 
-function CompactCustomerOverview({ customer, canViewAmount, customerAmount, primaryProgram, address, payments = [] }) {
+function CompactCustomerOverview({ customer, canViewAmount, canViewDeposit, customerAmount, primaryProgram, address, payments = [] }) {
   const paidTotal = payments
     .filter((payment) => ['PAID', 'COMPLETED'].includes(payment.status))
     .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0)
@@ -68,7 +68,7 @@ function CompactCustomerOverview({ customer, canViewAmount, customerAmount, prim
     <div className="customer-workspace__compact-overview">
       <div className="customer-workspace__number-grid">
         {canViewAmount && customerAmount > 0 && <div className="customer-workspace__number-card"><span>Savdo summasi</span><strong>{formatCustomerAmount(customerAmount, customer.currency)}</strong></div>}
-        {customer.depositAmount != null && <div className="customer-workspace__number-card"><span>Zaklad summasi</span><strong>{formatCustomerAmount(customer.depositAmount, customer.currency)}</strong></div>}
+        {canViewDeposit && customer.depositAmount != null && <div className="customer-workspace__number-card"><span>Zaklad summasi</span><strong>{formatCustomerAmount(customer.depositAmount, customer.currency)}</strong></div>}
         {paidTotal > 0 && <div className="customer-workspace__number-card"><span>To‘langan</span><strong>{formatCustomerAmount(paidTotal, customer.currency)}</strong></div>}
       </div>
 
@@ -348,6 +348,7 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
           <CompactCustomerOverview
             customer={customer}
             canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
             customerAmount={customerAmount}
             primaryProgram={primaryProgram}
             address={address}

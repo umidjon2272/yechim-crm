@@ -1,6 +1,8 @@
 const ACCESS_TOKEN_KEY = 'yechim.auth.accessToken'
 const REFRESH_TOKEN_KEY = 'yechim.auth.refreshToken'
 
+export const AUTH_STORAGE_KEYS = [ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]
+
 // These keys belong to older/demo builds. Remove only those exact keys during
 // migration; never clear localStorage wholesale because it may contain
 // unrelated UI preferences.
@@ -37,21 +39,24 @@ function getSessionStorage() {
 
 export function readAuthTokens() {
   const persistentStorage = getPersistentStorage()
-  const accessToken = persistentStorage?.getItem(ACCESS_TOKEN_KEY) || null
-  const refreshToken = persistentStorage?.getItem(REFRESH_TOKEN_KEY) || null
-  if (accessToken || refreshToken) return { accessToken, refreshToken }
-
-  // Migrate a session created by the previous tab-scoped build. Do not store
-  // a user object: the backend remains the source of truth for identity and
-  // permissions on every app launch.
   const sessionStorage = getSessionStorage()
-  const legacyAccessToken = sessionStorage?.getItem(ACCESS_TOKEN_KEY) || null
-  const legacyRefreshToken = sessionStorage?.getItem(REFRESH_TOKEN_KEY) || null
-  if (persistentStorage && (legacyAccessToken || legacyRefreshToken)) {
-    if (legacyAccessToken) persistentStorage.setItem(ACCESS_TOKEN_KEY, legacyAccessToken)
-    if (legacyRefreshToken) persistentStorage.setItem(REFRESH_TOKEN_KEY, legacyRefreshToken)
+  const persistentAccessToken = persistentStorage?.getItem(ACCESS_TOKEN_KEY) || null
+  const persistentRefreshToken = persistentStorage?.getItem(REFRESH_TOKEN_KEY) || null
+  const sessionAccessToken = sessionStorage?.getItem(ACCESS_TOKEN_KEY) || null
+  const sessionRefreshToken = sessionStorage?.getItem(REFRESH_TOKEN_KEY) || null
+
+  // During the migration from tab-scoped sessionStorage to persistent PWA
+  // storage, the two token keys can briefly be split across storages (for
+  // example after an interrupted write). Keep the pair together so an old
+  // access token cannot hide a still-valid refresh token.
+  const accessToken = persistentAccessToken || sessionAccessToken
+  const refreshToken = persistentRefreshToken || sessionRefreshToken
+  if (persistentStorage && (sessionAccessToken || sessionRefreshToken)) {
+    if (!persistentAccessToken && sessionAccessToken) persistentStorage.setItem(ACCESS_TOKEN_KEY, sessionAccessToken)
+    if (!persistentRefreshToken && sessionRefreshToken) persistentStorage.setItem(REFRESH_TOKEN_KEY, sessionRefreshToken)
   }
-  return { accessToken: legacyAccessToken, refreshToken: legacyRefreshToken }
+
+  return { accessToken, refreshToken }
 }
 
 export function getAccessToken() {
@@ -72,8 +77,11 @@ export function writeAuthTokens({ accessToken, refreshToken }) {
 export function clearAuthTokens() {
   for (const storage of [getPersistentStorage(), getSessionStorage()]) {
     if (!storage) continue
-    storage.removeItem(ACCESS_TOKEN_KEY)
-    storage.removeItem(REFRESH_TOKEN_KEY)
+    try {
+      AUTH_STORAGE_KEYS.forEach((key) => storage.removeItem(key))
+    } catch {
+      // Storage can become unavailable between reads and writes.
+    }
   }
 }
 

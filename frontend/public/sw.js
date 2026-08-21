@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yechim-crm-shell-v1'
+const CACHE_NAME = 'yechim-crm-shell-v2'
 const SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',

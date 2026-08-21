@@ -34,6 +34,13 @@ export function PermissionMatrix({ value = [], onChange }) {
       onChange(value.includes(key) ? value.filter((item) => !financialKeys.includes(item)) : Array.from(new Set([...value, ...financialKeys])))
       return
     }
+    if (financialKeys.includes(key) && value.includes(key)) {
+      // The master permission grants all financial fields. Removing one
+      // granular field must also remove the master key, otherwise the
+      // backend would correctly keep exposing the field through the master.
+      onChange(value.filter((item) => item !== key && item !== 'customers.viewFinancials'))
+      return
+    }
     onChange(value.includes(key) ? value.filter((item) => item !== key) : [...value, key])
   }
 

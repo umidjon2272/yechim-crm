@@ -57,6 +57,7 @@ export const customerGroupsService = {
 export const businessTypesService = {
   list: () => httpClient.get(BUSINESS_TYPES.LIST),
   create: (payload) => httpClient.post(BUSINESS_TYPES.CREATE, payload),
+  remove: (id) => httpClient.delete(BUSINESS_TYPES.DELETE(id)),
 }
 
 export const partnersService = {

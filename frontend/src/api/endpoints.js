@@ -85,6 +85,7 @@ export const CUSTOMER_GROUPS = {
 export const BUSINESS_TYPES = {
   LIST: '/business-types',
   CREATE: '/business-types',
+  DELETE: (id) => `/business-types/${id}`,
 }
 
 export const PARTNERS = {

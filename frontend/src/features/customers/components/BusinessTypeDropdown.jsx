@@ -4,17 +4,23 @@ import { useAsync } from '../../../hooks/useAsync'
 import { useAuth } from '../../auth/useAuth'
 import { Button } from '../../../components/Button/Button'
 import { Input } from '../../../components/Input/Input'
+import { TrashIcon } from '../../../components/icons/Icons'
+import { useConfirm } from '../../../store/ConfirmContext'
+import { useToast } from '../../../store/ToastContext'
 import './CustomerForm.scss'
 
 export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
   const { user } = useAuth()
   const { data, error: loadError, loading, refetch } = useAsync(businessTypesService.list, [])
+  const confirm = useConfirm()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState('')
   const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
-  const canCreate = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
+  const canManage = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
   const selected = items.find((item) => item.id === value)
 
   const create = async (event) => {
@@ -49,6 +55,37 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
     create(event)
   }
 
+  const remove = async (event, item) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (deletingId) return
+
+    const accepted = await confirm({
+      title: 'Biznes turini o‘chirish',
+      description: 'Bu biznes turini o‘chirmoqchimisiz?',
+      confirmLabel: 'O‘chirish',
+      cancelLabel: 'Bekor qilish',
+      danger: true,
+    })
+    if (!accepted) return
+
+    setDeletingId(item.id)
+    setError('')
+    try {
+      const result = await businessTypesService.remove(item.id)
+      await refetch()
+      // An unused type is hard-deleted. Clear it from an unsaved customer
+      // form so the form cannot submit an id that no longer exists. A type
+      // used by customers is only deactivated, so existing references stay.
+      if (result?.action === 'deleted' && value === item.id) onChange('')
+      toast.success(result?.action === 'deactivated' ? 'Biznes turi faolsizlantirildi' : 'Biznes turi o‘chirildi')
+    } catch (err) {
+      toast.error(err.message || 'Biznes turini o‘chirib bo‘lmadi')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="business-type-dropdown">
       <button
@@ -66,12 +103,35 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
           <button type="button" className="business-type-dropdown__option" onClick={() => { onChange(''); setOpen(false) }}>
             Biznes turi tanlanmagan
           </button>
-          {items.map((item) => (
-            <button key={item.id} type="button" className="business-type-dropdown__option" onClick={() => { onChange(item.id); setOpen(false) }}>
-              {item.name}
-            </button>
-          ))}
-          {canCreate && (
+          {items.map((item) => {
+            const isActive = item.isActive !== false
+            return (
+              <div key={item.id} className="business-type-dropdown__option-row">
+                <button
+                  type="button"
+                  className="business-type-dropdown__option"
+                  onClick={() => { if (isActive) { onChange(item.id); setOpen(false) } }}
+                  disabled={!isActive}
+                >
+                  <span>{item.name}</span>
+                  {!isActive && <span className="business-type-dropdown__inactive">Faol emas</span>}
+                </button>
+                {canManage && isActive && (
+                  <button
+                    type="button"
+                    className="business-type-dropdown__delete"
+                    onClick={(event) => remove(event, item)}
+                    disabled={deletingId === item.id}
+                    aria-label={`${item.name} biznes turini o‘chirish`}
+                    title="O‘chirish"
+                  >
+                    <TrashIcon width={14} height={14} />
+                  </button>
+                )}
+              </div>
+            )
+            })}
+          {canManage && (
             <div className="business-type-dropdown__create">
               <button type="button" className="business-type-dropdown__new-action" onClick={() => setDraft((current) => current || ' ')}>
                 + Yangi biznes turi

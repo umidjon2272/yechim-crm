@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { authService } from '../../services/auth.service'
 import { setUnauthorizedHandler } from '../../api/httpClient'
-import { clearAuthTokens, clearLegacyAuthStorage, readAuthTokens, writeAuthTokens } from './authStorage'
+import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTokens, writeAuthTokens } from './authStorage'
 
 const AuthContext = createContext(null)
 
@@ -68,6 +68,7 @@ export function AuthProvider({ children }) {
   const handleUnauthorized = useCallback(() => {
     authEpochRef.current += 1
     clearAuthTokens()
+    clearLegacyAuthStorage()
     updateUser(null)
     setStatus('unauthenticated')
   }, [updateUser])
@@ -75,6 +76,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setUnauthorizedHandler(handleUnauthorized)
     return () => setUnauthorizedHandler(null)
+  }, [handleUnauthorized])
+
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      // localStorage is shared by the browser and installed PWA. If another
+      // context logs out or replaces the account, immediately hide protected
+      // UI here too; waiting for the next API call would leave stale account
+      // content visible.
+      if (AUTH_STORAGE_KEYS.includes(event.key) && event.newValue === null) {
+        handleUnauthorized()
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [handleUnauthorized])
 
   const login = useCallback(
@@ -118,6 +133,7 @@ export function AuthProvider({ children }) {
     // Hide protected UI and clear the persisted token pair immediately. The
     // captured tokens let the server revoke exactly this UserSession below.
     clearAuthTokens()
+    clearLegacyAuthStorage()
     updateUser(null)
     setStatus('unauthenticated')
     setLoginError(null)
@@ -126,6 +142,7 @@ export function AuthProvider({ children }) {
     } finally {
       if (requestEpoch === authEpochRef.current) {
         clearAuthTokens()
+        clearLegacyAuthStorage()
         updateUser(null)
         setStatus('unauthenticated')
       }

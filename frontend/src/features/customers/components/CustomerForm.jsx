@@ -367,7 +367,7 @@ function QuickActionsFields({ values, setValue, employees = [], loading }) {
   )
 }
 
-export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canEditCore = true, canViewFinancials = true, canViewAmount = true, canViewDeposit = true }) {
+export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canEditCore = true, canViewAmount = true, canViewDeposit = true }) {
   const isEditing = Boolean(initialValues?.id)
   const { data: currenciesData } = useAsync(currenciesService.list, [])
   const currencies = currenciesData?.items ?? []
@@ -411,8 +411,8 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     event.preventDefault()
     const nextErrors = validate(values, { firstName: [rules.required('Ism kiritilishi shart')], phone: [rules.required('Telefon kiritilishi shart')] })
     if (values.phone.replace(/\D/g, '').length !== 12) nextErrors.phone = 'Telefon raqami noto‘g‘ri'
-    if (values.amount !== '' && (!Number.isFinite(Number(values.amount)) || Number(values.amount) < 0)) nextErrors.amount = 'Zakaz summasi 0 dan kam bo‘lmasligi kerak'
-    if (values.depositAmount !== '' && (!Number.isFinite(Number(values.depositAmount)) || Number(values.depositAmount) < 0)) nextErrors.depositAmount = 'Zaklad summasi 0 dan kam bo‘lmasligi kerak'
+    if (canViewAmount && values.amount !== '' && (!Number.isFinite(Number(values.amount)) || Number(values.amount) < 0)) nextErrors.amount = 'Zakaz summasi 0 dan kam bo‘lmasligi kerak'
+    if (canViewDeposit && values.depositAmount !== '' && (!Number.isFinite(Number(values.depositAmount)) || Number(values.depositAmount) < 0)) nextErrors.depositAmount = 'Zaklad summasi 0 dan kam bo‘lmasligi kerak'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -433,10 +433,10 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
       phone: values.phone,
       note: values.note.trim() || null,
       notes: values.note.trim() || null,
-      ...(canViewFinancials && canViewAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
+      ...(canViewAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
       ...(canViewAmount ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
       ...(canEditCore ? { businessTypeId: values.businessTypeId || null } : {}),
-      ...(canViewFinancials && canViewDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
+      ...(canViewDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
       ...(canEditCore ? { service: primaryProgramName || null, programs } : {}),
       stage: values.stage,
       ...(canEditCore ? {
