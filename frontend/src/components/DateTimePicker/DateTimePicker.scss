@@ -160,8 +160,7 @@
     }
   }
 
-  &__days button,
-  &__options button {
+  &__days button {
     min-width: 40px;
     min-height: 40px;
     border: 1px solid transparent;
@@ -192,46 +191,121 @@
   }
 
   &__time-panel {
-    max-height: 430px;
-    overflow-y: auto;
-    padding-right: 2px;
+    padding: 0 v.$space-1;
   }
 
   &__time-value {
     color: v.$color-primary-700;
-    font-size: 2rem;
+    font-size: 2.1rem;
     font-weight: v.$font-weight-semibold;
     letter-spacing: 0.04em;
     text-align: center;
   }
 
-  &__time-label,
-  &__time-section-label {
+  &__time-label {
     display: block;
-    margin: 2px 0 v.$space-2;
+    margin: 2px 0 v.$space-3;
+    color: v.$color-text-muted;
     font-size: v.$font-size-xs;
+    text-align: center;
   }
 
-  &__time-section {
-    margin-top: v.$space-3;
-  }
-
-  &__options {
+  &__wheels {
     display: grid;
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    align-items: center;
+    gap: v.$space-2;
+  }
 
-    &--hours {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
+  &__wheels-separator {
+    align-self: end;
+    padding-bottom: 18px;
+    color: v.$color-primary-700;
+    font-size: 1.45rem;
+    font-weight: v.$font-weight-semibold;
+    text-align: center;
+  }
 
-    &--minutes {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+  &__wheel-label {
+    display: block;
+    margin-bottom: v.$space-2;
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+    text-align: center;
+  }
+
+  &__wheel-wrap {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    border-radius: v.$radius-lg;
+    background: linear-gradient(180deg, rgba(239, 237, 247, 0.72), rgba(255, 255, 255, 0.9) 30%, rgba(255, 255, 255, 0.9) 70%, rgba(239, 237, 247, 0.72));
+  }
+
+  &__wheel-selection {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    right: v.$space-1;
+    left: v.$space-1;
+    height: 44px;
+    transform: translateY(-50%);
+    border-top: 1px solid rgba(125, 92, 246, 0.5);
+    border-bottom: 1px solid rgba(125, 92, 246, 0.5);
+    border-radius: v.$radius-md;
+    background: rgba(125, 92, 246, 0.1);
+    pointer-events: none;
+  }
+
+  &__wheel {
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0;
+    scroll-snap-type: y mandatory;
+    scroll-padding-block: 88px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-y;
+
+    &::-webkit-scrollbar {
+      display: none;
     }
 
     button {
-      min-height: 44px;
-      background: v.$color-gray-100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      color: v.$color-text-muted;
+      background: transparent;
+      font-size: 1.05rem;
+      font-variant-numeric: tabular-nums;
+      scroll-snap-align: center;
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        color: v.$color-primary-700;
+        outline: none;
+      }
+
+      &.is-selected {
+        color: v.$color-primary-700;
+        font-size: 1.2rem;
+        font-weight: v.$font-weight-semibold;
+      }
     }
+
+  &__wheel-spacer {
+    display: block;
+    height: 88px;
+  }
   }
 
   &__footer {
@@ -261,8 +335,7 @@
     min-width: 0;
   }
 
-  .date-time-picker__days button,
-  .date-time-picker__options button {
+  .date-time-picker__days button {
     min-width: 0;
   }
 }
