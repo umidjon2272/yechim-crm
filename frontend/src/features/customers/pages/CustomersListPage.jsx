@@ -17,6 +17,7 @@ import { Input } from '../../../components/Input/Input'
 import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { FormField } from '../../../components/FormField/FormField'
+import { DateTimePicker } from '../../../components/DateTimePicker/DateTimePicker'
 import { Modal } from '../../../components/Modal/Modal'
 import { Card } from '../../../components/Card/Card'
 import { EmptyState } from '../../../components/EmptyState/EmptyState'
@@ -37,6 +38,7 @@ import { CustomerWorkPanel, QuickActionModal, ReminderModal } from '../component
 import { TodayWorkPanel } from '../components/TodayWorkPanel'
 import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { classNames } from '../../../utils/classNames'
+import { localDateTimeFromNow, localDateTimeToISOString } from '../../../utils/dateTime'
 import { canViewCustomerField, canViewCustomerFinancials, canViewPipelineTotal as canViewCustomerPipelineTotal } from '../financialPermissions'
 import './CustomersListPage.scss'
 
@@ -224,21 +226,11 @@ function FollowUpPromptModal({ move, loading, onClose, onSubmit }) {
   const [remindAt, setRemindAt] = useState('')
   useEffect(() => {
     if (move) {
-      const date = new Date()
-      date.setDate(date.getDate() + 1)
-      date.setHours(14, 0, 0, 0)
-      const pad = (value) => String(value).padStart(2, '0')
-      setRemindAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
+      setRemindAt(localDateTimeFromNow(1, 14, 0))
     }
   }, [move])
   if (!move) return null
-  const quick = (days) => {
-    const date = new Date()
-    date.setDate(date.getDate() + days)
-    date.setHours(14, 0, 0, 0)
-    const pad = (value) => String(value).padStart(2, '0')
-    setRemindAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
-  }
+  const quick = (days) => setRemindAt(localDateTimeFromNow(days, 14, 0))
   return <Modal open title="Qachon qayta aloqaga chiqamiz?" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={() => onSubmit(remindAt)} loading={loading} disabled={!remindAt}>Saqlash</Button></>}>
     <p className="text-muted">{move.customer.name} uchun keyingi aloqa vaqtini tanlang.</p>
     <div className="quick-date-row">
@@ -246,7 +238,7 @@ function FollowUpPromptModal({ move, loading, onClose, onSubmit }) {
       <Button size="sm" variant="secondary" onClick={() => quick(3)}>3 kun</Button>
       <Button size="sm" variant="secondary" onClick={() => quick(7)}>1 hafta</Button>
     </div>
-    <FormField label="Sana va vaqt"><Input type="datetime-local" value={remindAt} onChange={(event) => setRemindAt(event.target.value)} /></FormField>
+    <FormField label="Sana va vaqt"><DateTimePicker value={remindAt} onChange={(event) => setRemindAt(event.target.value)} /></FormField>
   </Modal>
 }
 
@@ -255,11 +247,7 @@ function InstallationPromptModal({ move, employees, loading, onClose, onSubmit }
   const [installerEmployeeId, setInstallerEmployeeId] = useState('')
   useEffect(() => {
     if (move) {
-      const date = new Date()
-      date.setDate(date.getDate() + 1)
-      date.setHours(10, 0, 0, 0)
-      const pad = (value) => String(value).padStart(2, '0')
-      setInstallationAt(`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`)
+      setInstallationAt(localDateTimeFromNow(1, 10, 0))
       setInstallerEmployeeId(move.customer.installerEmployeeId || '')
     }
   }, [move])
@@ -267,7 +255,7 @@ function InstallationPromptModal({ move, employees, loading, onClose, onSubmit }
   return <Modal open title="O'rnatishni rejalash" onClose={onClose} footer={<><Button variant="secondary" onClick={onClose}>Bekor qilish</Button><Button onClick={() => onSubmit({ installationAt, installerEmployeeId })} loading={loading} disabled={!installationAt}>Saqlash</Button></>}>
     <p className="text-muted">{move.customer.name} uchun o'rnatish sanasi va o'rnatuvchini tanlang.</p>
     <div className="detail-grid">
-      <FormField label="O'rnatish sanasi"><Input type="datetime-local" value={installationAt} onChange={(event) => setInstallationAt(event.target.value)} /></FormField>
+      <FormField label="O'rnatish sanasi"><DateTimePicker value={installationAt} onChange={(event) => setInstallationAt(event.target.value)} /></FormField>
       <FormField label="O'rnatuvchi"><Select value={installerEmployeeId} onChange={(event) => setInstallerEmployeeId(event.target.value)}><option value="">Tanlang</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</Select></FormField>
     </div>
   </Modal>
@@ -645,13 +633,13 @@ export function CustomersListPage() {
   const handleFollowUpMove = async (remindAt) => {
     const move = followUpMove
     setFollowUpMove(null)
-    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { nextContactAt: new Date(remindAt).toISOString(), reminderType: 'FOLLOW_UP' })
+    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { nextContactAt: localDateTimeToISOString(remindAt), reminderType: 'FOLLOW_UP' })
   }
 
   const handleInstallationMove = async ({ installationAt, installerEmployeeId }) => {
     const move = installationMove
     setInstallationMove(null)
-    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { installationAt: new Date(installationAt).toISOString(), installerEmployeeId })
+    await performStageMove(move.customer, move.fromStage, move.toStage, undefined, { installationAt: localDateTimeToISOString(installationAt), installerEmployeeId })
   }
 
   const handleQuickAction = (action, customer) => {

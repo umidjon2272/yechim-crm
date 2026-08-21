@@ -4,7 +4,9 @@ import { Input } from '../../../components/Input/Input'
 import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
+import { DateTimePicker } from '../../../components/DateTimePicker/DateTimePicker'
 import { validate, rules } from '../../../utils/validators'
+import { localDateTimeFromNow, localDateTimeToISOString } from '../../../utils/dateTime'
 import { SearchIcon } from '../../../components/icons/Icons'
 import { useAsync } from '../../../hooks/useAsync'
 import { currenciesService } from '../../../services/currencies.service'
@@ -290,11 +292,17 @@ export function CustomerLocationPreview({ customer }) {
 }
 
 function quickDateValue(days = 0) {
-  const value = new Date()
-  value.setDate(value.getDate() + days)
-  value.setHours(14, 0, 0, 0)
-  const pad = (number) => String(number).padStart(2, '0')
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`
+  return localDateTimeFromNow(days, 14, 0)
+}
+
+function serializeQuickAction(action) {
+  if (action.type === 'CALL' || action.type === 'REMINDER') {
+    return { ...action, remindAt: localDateTimeToISOString(action.remindAt) }
+  }
+  if (action.type === 'TASK') {
+    return { ...action, dueDate: action.dueDate ? localDateTimeToISOString(action.dueDate) : null }
+  }
+  return action
 }
 
 function QuickActionsFields({ values, setValue, employees = [], loading }) {
@@ -329,19 +337,19 @@ function QuickActionsFields({ values, setValue, employees = [], loading }) {
           <Button type="button" size="sm" variant="secondary" onClick={() => update('CALL', 'remindAt', quickDateValue(1))}>Ertaga</Button>
           <Button type="button" size="sm" variant="secondary" onClick={() => update('CALL', 'remindAt', quickDateValue(3))}>3 kun</Button>
         </div>
-        <FormField label="Qachon"><Input type="datetime-local" value={action('CALL').remindAt} onChange={(event) => update('CALL', 'remindAt', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Qachon"><DateTimePicker value={action('CALL').remindAt} onChange={(event) => update('CALL', 'remindAt', event.target.value)} disabled={loading} /></FormField>
         <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('CALL').note} onChange={(event) => update('CALL', 'note', event.target.value)} disabled={loading} /></FormField>
       </div>}
       {action('REMINDER') && <div className="customer-form__quick-action-detail">
         <strong>Eslatma tafsilotlari</strong>
-        <FormField label="Sana/vaqt"><Input type="datetime-local" value={action('REMINDER').remindAt} onChange={(event) => update('REMINDER', 'remindAt', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Sana/vaqt"><DateTimePicker value={action('REMINDER').remindAt} onChange={(event) => update('REMINDER', 'remindAt', event.target.value)} disabled={loading} /></FormField>
         <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('REMINDER').note} onChange={(event) => update('REMINDER', 'note', event.target.value)} disabled={loading} /></FormField>
       </div>}
       {action('TASK') && <div className="customer-form__quick-action-detail">
         <strong>Vazifa tafsilotlari</strong>
         <FormField label="Sarlavha" required><Input value={action('TASK').title} onChange={(event) => update('TASK', 'title', event.target.value)} disabled={loading} placeholder="Mijoz bilan bog'lanish" /></FormField>
         <FormField label="Mas'ul xodim"><Select value={action('TASK').assignedToId} onChange={(event) => update('TASK', 'assignedToId', event.target.value)} disabled={loading}><option value="">O'zim</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</Select></FormField>
-        <FormField label="Deadline"><Input type="date" value={action('TASK').dueDate} onChange={(event) => update('TASK', 'dueDate', event.target.value)} disabled={loading} /></FormField>
+        <FormField label="Deadline"><DateTimePicker value={action('TASK').dueDate} onChange={(event) => update('TASK', 'dueDate', event.target.value)} disabled={loading} /></FormField>
         <FormField label="Izoh"><textarea className="textarea" rows={2} value={action('TASK').note} onChange={(event) => update('TASK', 'note', event.target.value)} disabled={loading} /></FormField>
       </div>}
       {action('NOTE') && <div className="customer-form__quick-action-detail">
@@ -428,7 +436,7 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
         longitude: Number.isFinite(longitudeValue) ? longitudeValue : null,
       } : {}),
       ...(canManageGroups ? { groupIds: values.groupIds } : {}),
-      ...(!isEditing && values.quickActions?.length ? { quickActions: values.quickActions } : {}),
+      ...(!isEditing && values.quickActions?.length ? { quickActions: values.quickActions.map(serializeQuickAction) } : {}),
       ...(!isEditing && initialValues?.currentGroupId ? { currentGroupId: initialValues.currentGroupId } : {}),
     }, null)
   }

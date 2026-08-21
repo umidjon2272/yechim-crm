@@ -7,27 +7,18 @@ import { useAsync } from '../../../hooks/useAsync'
 import { useToast } from '../../../store/ToastContext'
 import { Button } from '../../../components/Button/Button'
 import { FormField } from '../../../components/FormField/FormField'
-import { Input } from '../../../components/Input/Input'
 import { Modal } from '../../../components/Modal/Modal'
+import { DateTimePicker } from '../../../components/DateTimePicker/DateTimePicker'
 import { Timeline } from '../../../components/Timeline/Timeline'
 import { formatDateTime } from '../../../utils/formatDate'
+import { localDateTimeFromNow, localDateTimeToISOString } from '../../../utils/dateTime'
 import { timelineService } from '../../../services/timeline.service'
 import { PermissionGate } from '../../roles/PermissionGate'
 import { usePermissions } from '../../roles/usePermissions'
 import './CustomerWorkActions.scss'
 
-function localInputValue(date) {
-  const value = new Date(date)
-  value.setMinutes(Math.ceil(value.getMinutes() / 15) * 15, 0, 0)
-  const pad = (number) => String(number).padStart(2, '0')
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`
-}
-
 function quickDate(days) {
-  const value = new Date()
-  value.setDate(value.getDate() + days)
-  value.setHours(14, 0, 0, 0)
-  return localInputValue(value)
+  return localDateTimeFromNow(days, 14, 0)
 }
 
 export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreated }) {
@@ -45,7 +36,7 @@ export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreate
 
   const submit = async () => {
     try {
-      await createAction.run({ customerId: customer.id, remindAt: new Date(remindAt).toISOString(), type, note: note.trim() || null })
+      await createAction.run({ customerId: customer.id, remindAt: localDateTimeToISOString(remindAt), type, note: note.trim() || null })
       toast.success('Eslatma saqlandi')
       onCreated?.()
       onClose()
@@ -68,7 +59,7 @@ export function ReminderModal({ open, customer, type = 'CALL', onClose, onCreate
         ))}
       </div>
       <FormField label="Sana va vaqt">
-        <Input type="datetime-local" value={remindAt} onChange={(event) => setRemindAt(event.target.value)} />
+        <DateTimePicker value={remindAt} onChange={(event) => setRemindAt(event.target.value)} />
       </FormField>
       <FormField label="Izoh / Kommentariya" hint="Ixtiyoriy">
         <textarea className="textarea" rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Masalan: Narxni direktor bilan kelishish" />
@@ -98,7 +89,7 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
     if (!text.trim()) return
     try {
       if (action === 'NOTE') await createNote.run({ customerId: customer.id, type: 'NOTE', message: text.trim() })
-      else await createTask.run({ customerId: customer.id, title: text.trim(), description: taskNote.trim() || null, dueDate: dueDate || null })
+      else await createTask.run({ customerId: customer.id, title: text.trim(), description: taskNote.trim() || null, dueDate: localDateTimeToISOString(dueDate) })
       toast.success(action === 'NOTE' ? 'Izoh qo\'shildi' : 'Vazifa yaratildi')
       onChanged?.()
       onClose()
@@ -117,7 +108,7 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
       <FormField label={action === 'NOTE' ? 'Izoh' : 'Vazifa nomi'}>
         <textarea className="textarea" rows={3} value={text} onChange={(event) => setText(event.target.value)} autoFocus placeholder={action === 'NOTE' ? 'Masalan: Direktor bilan narxni kelishadi' : "Masalan: Mijoz bilan bog'lanish"} />
       </FormField>
-      {action === 'TASK' && <FormField label="Muddat" hint="Ixtiyoriy"><Input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></FormField>}
+      {action === 'TASK' && <FormField label="Muddat" hint="Ixtiyoriy"><DateTimePicker value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></FormField>}
       {action === 'TASK' && <FormField label="Izoh / Kommentariya" hint="Ixtiyoriy"><textarea className="textarea" rows={3} value={taskNote} onChange={(event) => setTaskNote(event.target.value)} /></FormField>}
     </Modal>
   )

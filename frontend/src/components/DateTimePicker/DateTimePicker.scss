@@ -1,0 +1,268 @@
+@use '../../styles/abstracts/variables' as v;
+
+.date-time-picker {
+  position: relative;
+  width: 100%;
+  z-index: 1;
+
+  &--open {
+    z-index: 5;
+  }
+
+  &__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: v.$space-3;
+    width: 100%;
+    min-height: 48px;
+    padding: v.$space-2 v.$space-3;
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    border-radius: v.$radius-lg;
+    background: rgba(255, 255, 255, 0.5);
+    color: v.$color-text-primary;
+    font-size: v.$font-size-base;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color v.$transition-fast, box-shadow v.$transition-fast, background-color v.$transition-fast;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: v.$color-primary-400;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 0 0 4px rgba(125, 92, 246, 0.14), v.$shadow-sm;
+    }
+
+    &:disabled {
+      background: rgba(239, 237, 247, 0.58);
+      color: v.$color-text-muted;
+      cursor: not-allowed;
+    }
+
+    &--error {
+      border-color: v.$color-danger-500;
+    }
+  }
+
+  &__placeholder,
+  &__time-label {
+    color: v.$color-text-muted;
+  }
+
+  &__trigger-icon {
+    flex: 0 0 auto;
+    color: v.$color-primary-500;
+    font-size: 1.1rem;
+  }
+
+  &__popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: min(100%, 360px);
+    min-width: 320px;
+    padding: v.$space-3;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: v.$radius-xl;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: v.$shadow-lg;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 10;
+  }
+
+  &__tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: v.$space-3;
+    border-radius: v.$radius-lg;
+    background: v.$color-gray-100;
+
+    button,
+    .date-time-picker__footer button {
+      min-height: 40px;
+      border: 0;
+      border-radius: v.$radius-md;
+      color: v.$color-text-secondary;
+      background: transparent;
+      font-size: v.$font-size-sm;
+      cursor: pointer;
+
+      &.is-active {
+        color: v.$color-primary-700;
+        background: #fff;
+        box-shadow: v.$shadow-sm;
+        font-weight: v.$font-weight-semibold;
+      }
+
+      &:disabled {
+        color: v.$color-text-muted;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__calendar-header,
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: v.$space-2;
+  }
+
+  &__calendar-header {
+    margin-bottom: v.$space-3;
+
+    strong {
+      font-size: v.$font-size-sm;
+    }
+
+    button {
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 50%;
+      color: v.$color-primary-700;
+      background: v.$color-gray-100;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+
+      &:hover,
+      &:focus-visible {
+        background: v.$color-primary-100;
+      }
+    }
+  }
+
+  &__weekdays,
+  &__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  &__weekdays {
+    margin-bottom: 4px;
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+    text-align: center;
+
+    span {
+      padding: 4px 0;
+    }
+  }
+
+  &__days button,
+  &__options button {
+    min-width: 40px;
+    min-height: 40px;
+    border: 1px solid transparent;
+    border-radius: v.$radius-md;
+    color: v.$color-text-primary;
+    background: transparent;
+    font-size: v.$font-size-sm;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: v.$color-primary-300;
+      background: v.$color-primary-100;
+      outline: none;
+    }
+
+    &.is-selected {
+      border-color: v.$color-primary-500;
+      color: #fff;
+      background: v.$color-primary-500;
+      font-weight: v.$font-weight-semibold;
+    }
+
+    &:disabled {
+      visibility: hidden;
+      cursor: default;
+    }
+  }
+
+  &__time-panel {
+    max-height: 430px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  &__time-value {
+    color: v.$color-primary-700;
+    font-size: 2rem;
+    font-weight: v.$font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  &__time-label,
+  &__time-section-label {
+    display: block;
+    margin: 2px 0 v.$space-2;
+    font-size: v.$font-size-xs;
+  }
+
+  &__time-section {
+    margin-top: v.$space-3;
+  }
+
+  &__options {
+    display: grid;
+    gap: 6px;
+
+    &--hours {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    &--minutes {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    button {
+      min-height: 44px;
+      background: v.$color-gray-100;
+    }
+  }
+
+  &__footer {
+    margin-top: v.$space-3;
+    padding-top: v.$space-3;
+    border-top: 1px solid v.$color-border;
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+
+    button {
+      flex: 0 0 auto;
+      min-height: 40px;
+      padding: 0 v.$space-3;
+      border: 0;
+      border-radius: v.$radius-md;
+      color: #fff;
+      background: v.$color-primary-500;
+      font-weight: v.$font-weight-semibold;
+      cursor: pointer;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .date-time-picker__popover {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .date-time-picker__days button,
+  .date-time-picker__options button {
+    min-width: 0;
+  }
+}
