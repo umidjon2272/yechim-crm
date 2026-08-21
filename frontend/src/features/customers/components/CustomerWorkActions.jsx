@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { activitiesService } from '../../../services/activities.service'
+import { commentsService } from '../../../services/comments.service'
 import { remindersService } from '../../../services/reminders.service'
 import { tasksService } from '../../../services/tasks.service'
 import { useAction } from '../../../hooks/useAction'
@@ -115,33 +116,83 @@ export function QuickActionModal({ action, customer, onClose, onChanged }) {
   )
 }
 
+function InlineCustomerComment({ customer, onChanged }) {
+  const { can } = usePermissions()
+  const canView = can('comments.view')
+  const canCreate = can('comments.create')
+  const createAction = useAction(commentsService.create)
+  const toast = useToast()
+  const [text, setText] = useState('')
+
+  if (!canView) return null
+
+  const submit = async (event) => {
+    event.preventDefault()
+    const message = text.trim()
+    if (!message) return
+    try {
+      await createAction.run({ entityType: 'customer', entityId: customer.id, text: message })
+      setText('')
+      toast.success('Izoh qo\'shildi')
+      onChanged?.()
+    } catch (error) {
+      toast.error(error.message || 'Izohni saqlab bo\'lmadi')
+    }
+  }
+
+  return (
+    <section className="customer-inline-comment" aria-label="Izoh">
+      <div className="customer-inline-comment__title">Izoh</div>
+      {customer.latestNote?.message && <div className="customer-inline-comment__latest">
+        <span>Oxirgi izoh</span>
+        <p>{customer.latestNote.message}</p>
+        {(customer.latestNote.createdBy?.name || customer.latestNote.createdAt) && <small>
+          {customer.latestNote.createdBy?.name || ''}{customer.latestNote.createdBy?.name && customer.latestNote.createdAt ? ' · ' : ''}{customer.latestNote.createdAt ? formatDateTime(customer.latestNote.createdAt) : ''}
+        </small>}
+      </div>}
+      {canCreate && <form className="customer-inline-comment__form" onSubmit={submit}>
+        <textarea
+          className="textarea"
+          rows={3}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          disabled={createAction.loading}
+          placeholder="Mijoz haqida izoh yozing..."
+        />
+        <div className="customer-inline-comment__actions">
+          <Button type="submit" size="sm" loading={createAction.loading} disabled={!text.trim()}>Saqlash</Button>
+        </div>
+      </form>}
+      {createAction.error && <p className="form-field__error">{createAction.error.message}</p>}
+    </section>
+  )
+}
+
 export function CustomerWorkPanel({ customer, onChanged }) {
   const [action, setAction] = useState(null)
   const [reminderType, setReminderType] = useState(null)
   const { can } = usePermissions()
   const canSeeHistory = can('history.view')
-  const canSeeComments = can('comments.view')
   const { data, error, loading, refetch } = useAsync(() => canSeeHistory ? timelineService.get('customer', customer.id) : Promise.resolve({ items: [] }), [customer.id, canSeeHistory])
   const rawItems = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
   const items = rawItems.filter((item) => item && typeof item === 'object')
-  const latestNote = useMemo(() => canSeeComments ? items.find((item) => item.type === 'NOTE') : null, [items, canSeeComments])
   const handleChanged = () => {
     refetch()
     onChanged?.()
   }
 
   return (
-    <div className="customer-work-panel">
+    <>
+      <InlineCustomerComment customer={customer} onChanged={handleChanged} />
+      <div className="customer-work-panel">
       <div className="customer-work-panel__header">
         <strong>Keyingi ish</strong>
         {customer.nextContactAt ? <span className={customer.isFollowUpOverdue ? 'customer-work-panel__overdue' : ''}>{customer.isFollowUpOverdue ? 'Aloqa kechikdi' : formatDateTime(customer.nextContactAt)}</span> : <span className="text-muted">Belgilanmagan</span>}
       </div>
-      {latestNote && <div className="customer-work-panel__note"><span>Oxirgi izoh</span>{latestNote.description || latestNote.message}</div>}
       <div className="customer-work-panel__actions">
         <PermissionGate permission="calls.create"><Button size="sm" variant="secondary" onClick={() => setReminderType('CALL')}>Qo'ng'iroq</Button></PermissionGate>
         <PermissionGate permission="reminders.create"><Button size="sm" variant="secondary" onClick={() => setReminderType('REPEAT_SALE')}>Eslatma</Button></PermissionGate>
         <PermissionGate permission="tasks.create"><Button size="sm" variant="secondary" onClick={() => setAction('TASK')}>Vazifa</Button></PermissionGate>
-        <PermissionGate permission="comments.create"><Button size="sm" variant="secondary" onClick={() => setAction('NOTE')}>Izoh</Button></PermissionGate>
       </div>
       {canSeeHistory && <div className="customer-work-panel__timeline">
         <strong>Tarix</strong>
@@ -159,6 +210,7 @@ export function CustomerWorkPanel({ customer, onChanged }) {
       </div>}
       <QuickActionModal action={action} customer={customer} onClose={() => setAction(null)} onChanged={handleChanged} />
       <ReminderModal open={Boolean(reminderType)} type={reminderType || 'CALL'} customer={customer} onClose={() => setReminderType(null)} onCreated={handleChanged} />
-    </div>
+      </div>
+    </>
   )
 }

@@ -57,6 +57,23 @@
     -webkit-line-clamp: 2;
   }
 
+  &__meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: v.$space-2;
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+
+    strong {
+      min-width: 0;
+      color: v.$color-text-secondary;
+      font-weight: v.$font-weight-medium;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   &__programs {
     display: flex;
     flex-wrap: wrap;

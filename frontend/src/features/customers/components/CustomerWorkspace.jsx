@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { customersService } from '../../../services/customers.service'
 import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
-import { CustomerForm, CustomerLocationPreview, formatAddress } from './CustomerForm'
+import { CustomerForm } from './CustomerForm'
 import { formatCustomerAmount, getCustomerAmount } from '../customerAmount'
+import { formatCustomerBusinessTypes } from '../businessTypes'
 import { canViewCustomerField, canViewCustomerFinancials } from '../financialPermissions'
 import { CUSTOMER_STAGES, CUSTOMER_STAGE_LABELS, CUSTOMER_STAGE_BADGE_VARIANTS } from '../customers.constants'
 import { Card } from '../../../components/Card/Card'
@@ -56,14 +57,11 @@ function workspaceErrorTitle(error) {
   return 'Mijozni yuklab bo‘lmadi'
 }
 
-function CompactCustomerOverview({ customer, canViewAmount, canViewDeposit, customerAmount, primaryProgram, address, payments = [] }) {
+function CompactCustomerOverview({ customer, canViewAmount, canViewDeposit, customerAmount, payments = [] }) {
   const paidTotal = payments
     .filter((payment) => ['PAID', 'COMPLETED'].includes(payment.status))
     .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0)
   const reminder = customer.nextReminder || customer.nextAction
-  const latestNote = customer.latestNote?.message
-  const latestActivity = customer.latestActivity?.message
-
   return (
     <div className="customer-workspace__compact-overview">
       <div className="customer-workspace__number-grid">
@@ -83,20 +81,6 @@ function CompactCustomerOverview({ customer, canViewAmount, canViewDeposit, cust
         ) : <span className="text-muted text-xs">Keyingi aloqa belgilanmagan</span>}
       </div>
 
-      <Card title="Qisqa ma’lumot">
-        <div className="customer-workspace__short-info">
-          {customer.businessType?.name && <div><span>Biznes turi</span><strong>{customer.businessType.name}</strong></div>}
-          {primaryProgram && <div><span>Dastur/xizmat</span><strong>{primaryProgram}</strong></div>}
-          {address && <div><span>Manzil</span><strong>{address}</strong></div>}
-        </div>
-        <CustomerLocationPreview customer={customer} />
-      </Card>
-
-      {(latestNote || latestActivity) && <div className="customer-workspace__latest-activity">
-        <div className="customer-workspace__section-label">Oxirgi activity</div>
-        {latestNote && <div>Oxirgi izoh: <strong>{latestNote}</strong></div>}
-        {!latestNote && latestActivity && <div>{latestActivity}</div>}
-      </div>}
     </div>
   )
 }
@@ -159,6 +143,7 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
   const canViewAmount = canViewCustomerField(user, 'amount')
   const canViewDeposit = canViewCustomerField(user, 'deposit')
   const canEditCore = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.editCore')
+  const canEditBusinessType = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.edit') || canEditCore
   const canEditStage = !isPartner && (['ADMIN', 'SUPER_ADMIN'].includes(user?.role) || can('customers.edit'))
   const [isEditing, setIsEditing] = useState(startEditing)
 
@@ -246,7 +231,6 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
   const customerAmount = getCustomerAmount(customer)
   const customerPrograms = Array.isArray(customer.programs) ? customer.programs : []
   const primaryProgram = customer.service || customerPrograms[0]?.name || ''
-  const address = formatAddress(customer.address)
 
   const header = (
     <div className="customer-workspace__header">
@@ -256,7 +240,7 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
           <div className="customer-workspace__name">{customer.name}</div>
           <div className="customer-workspace__meta">
             {customer.phone && <a href={`tel:${customer.phone}`}>{customer.phone}</a>}
-            {customer.businessType?.name && <span> · {customer.businessType.name}</span>}
+            {formatCustomerBusinessTypes(customer, 1) && <span> · {formatCustomerBusinessTypes(customer, 1)}</span>}
             {customer.business?.name && <span> · {customer.business.name}</span>}
             {customer.assignedEmployee?.name && <span> · Mas'ul: {customer.assignedEmployee.name}</span>}
             {!canEditStage ? (
@@ -298,7 +282,7 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
       <div className="customer-workspace__actions">
         {onBack && <Button variant="secondary" onClick={onBack}>Ortga</Button>}
         {customer.phone && <a className="btn btn--secondary" href={`tel:${customer.phone}`}><PhoneIcon width={15} height={15} /> Telefon</a>}
-        {canEditCore && <button type="button" className="customer-workspace__edit-button" onClick={() => setIsEditing(true)} aria-label="Asosiy ma'lumotlarni tahrirlash" title="Tahrirlash">✎</button>}
+        {(canEditCore || canEditBusinessType) && <button type="button" className="customer-workspace__edit-button" onClick={() => setIsEditing(true)} aria-label="Asosiy ma'lumotlarni tahrirlash" title="Tahrirlash">✎</button>}
         {!isPartner && <Dropdown
           trigger={(toggle) => (
             <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Boshqa amallar">
@@ -330,6 +314,7 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
               onCancel={() => setIsEditing(false)}
               canManageGroups={can('customers.edit')}
               canEditCore={canEditCore}
+              canEditBusinessType={canEditBusinessType}
               canViewFinancials={canViewFinancials}
               canViewAmount={canViewAmount}
               canViewDeposit={canViewDeposit}
@@ -350,8 +335,6 @@ export function CustomerWorkspace({ customerId: id, initialCustomer, stages, onC
             canViewAmount={canViewAmount}
             canViewDeposit={canViewDeposit}
             customerAmount={customerAmount}
-            primaryProgram={primaryProgram}
-            address={address}
             payments={paymentItems}
           />
           {!isPartner && <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); onChanged?.() }} />}

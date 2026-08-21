@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { businessTypesService } from '../../../services/customers.service'
 import { useAsync } from '../../../hooks/useAsync'
 import { useAuth } from '../../auth/useAuth'
@@ -9,7 +9,12 @@ import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
 import './CustomerForm.scss'
 
-export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
+function normalizeIds(value) {
+  const values = Array.isArray(value) ? value : value ? [value] : []
+  return [...new Set(values.map((id) => String(id || '').trim()).filter(Boolean))]
+}
+
+export function BusinessTypeDropdown({ value, onChange, selectedOptions = [], disabled = false }) {
   const { user } = useAuth()
   const { data, error: loadError, loading, refetch } = useAsync(businessTypesService.list, [])
   const confirm = useConfirm()
@@ -19,9 +24,26 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState('')
+  const containerRef = useRef(null)
   const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
+  const selectedIds = normalizeIds(value)
+  const fallbackSelected = Array.isArray(selectedOptions) ? selectedOptions : []
+  const selectedItems = selectedIds.map((id) => items.find((item) => item.id === id) || fallbackSelected.find((item) => item.id === id) || { id, name: id })
   const canManage = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)
-  const selected = items.find((item) => item.id === value)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [open])
+
+  const toggle = (item) => {
+    if (item.isActive === false && !selectedIds.includes(item.id)) return
+    onChange(selectedIds.includes(item.id) ? selectedIds.filter((id) => id !== item.id) : [...selectedIds, item.id])
+  }
 
   const create = async (event) => {
     event?.preventDefault()
@@ -38,21 +60,14 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
     try {
       const item = await businessTypesService.create({ name })
       await refetch()
-      onChange(item.id)
+      onChange([...selectedIds, item.id])
       setDraft('')
-      setOpen(false)
+      setOpen(true)
     } catch (err) {
       setError(err.message || 'Biznes turini qo\'shib bo\'lmadi')
     } finally {
       setCreating(false)
     }
-  }
-
-  const handleCreateKeyDown = (event) => {
-    if (event.key !== 'Enter') return
-    event.preventDefault()
-    event.stopPropagation()
-    create(event)
   }
 
   const remove = async (event, item) => {
@@ -61,9 +76,9 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
     if (deletingId) return
 
     const accepted = await confirm({
-      title: 'Biznes turini o‘chirish',
-      description: 'Bu biznes turini o‘chirmoqchimisiz?',
-      confirmLabel: 'O‘chirish',
+      title: 'Biznes turini o\'chirish',
+      description: 'Bu biznes turini o\'chirmoqchimisiz?',
+      confirmLabel: 'O\'chirish',
       cancelLabel: 'Bekor qilish',
       danger: true,
     })
@@ -74,20 +89,17 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
     try {
       const result = await businessTypesService.remove(item.id)
       await refetch()
-      // An unused type is hard-deleted. Clear it from an unsaved customer
-      // form so the form cannot submit an id that no longer exists. A type
-      // used by customers is only deactivated, so existing references stay.
-      if (result?.action === 'deleted' && value === item.id) onChange('')
-      toast.success(result?.action === 'deactivated' ? 'Biznes turi faolsizlantirildi' : 'Biznes turi o‘chirildi')
+      if (result?.action === 'deleted') onChange(selectedIds.filter((id) => id !== item.id))
+      toast.success(result?.action === 'deactivated' ? 'Biznes turi faolsizlantirildi' : 'Biznes turi o\'chirildi')
     } catch (err) {
-      toast.error(err.message || 'Biznes turini o‘chirib bo‘lmadi')
+      toast.error(err.message || 'Biznes turini o\'chirib bo\'lmadi')
     } finally {
       setDeletingId(null)
     }
   }
 
   return (
-    <div className="business-type-dropdown">
+    <div className="business-type-dropdown" ref={containerRef}>
       <button
         type="button"
         className="business-type-dropdown__trigger"
@@ -95,42 +107,46 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
         disabled={disabled || loading}
         aria-expanded={open}
       >
-        <span>{selected?.name || 'Biznes turi tanlanmagan'}</span>
-        <span aria-hidden="true">⌄</span>
+        <span className="business-type-dropdown__selected">
+          {selectedItems.length > 0 ? selectedItems.map((item) => <span key={item.id} className="business-type-dropdown__pill">{item.name}</span>) : <span className="business-type-dropdown__placeholder">Biznes turi tanlanmagan</span>}
+        </span>
+        <span className="business-type-dropdown__caret" aria-hidden="true">⌄</span>
       </button>
+
       {open && (
         <div className="business-type-dropdown__menu">
-          <button type="button" className="business-type-dropdown__option" onClick={() => { onChange(''); setOpen(false) }}>
-            Biznes turi tanlanmagan
-          </button>
+          {items.length === 0 && <div className="business-type-dropdown__empty">Biznes turlari topilmadi</div>}
           {items.map((item) => {
-            const isActive = item.isActive !== false
+            const selected = selectedIds.includes(item.id)
+            const inactive = item.isActive === false
             return (
               <div key={item.id} className="business-type-dropdown__option-row">
                 <button
                   type="button"
-                  className="business-type-dropdown__option"
-                  onClick={() => { if (isActive) { onChange(item.id); setOpen(false) } }}
-                  disabled={!isActive}
+                  className={`business-type-dropdown__option${selected ? ' business-type-dropdown__option--selected' : ''}`}
+                  onClick={() => toggle(item)}
+                  disabled={inactive && !selected}
                 >
-                  <span>{item.name}</span>
-                  {!isActive && <span className="business-type-dropdown__inactive">Faol emas</span>}
+                  <span className="business-type-dropdown__check" aria-hidden="true">{selected ? '✓' : ''}</span>
+                  <span className="business-type-dropdown__option-name">{item.name}</span>
+                  {inactive && <span className="business-type-dropdown__inactive">Faol emas</span>}
                 </button>
-                {canManage && isActive && (
+                {canManage && !inactive && (
                   <button
                     type="button"
                     className="business-type-dropdown__delete"
                     onClick={(event) => remove(event, item)}
                     disabled={deletingId === item.id}
-                    aria-label={`${item.name} biznes turini o‘chirish`}
-                    title="O‘chirish"
+                    aria-label={`${item.name} biznes turini o\'chirish`}
+                    title="O\'chirish"
                   >
                     <TrashIcon width={14} height={14} />
                   </button>
                 )}
               </div>
             )
-            })}
+          })}
+
           {canManage && (
             <div className="business-type-dropdown__create">
               <button type="button" className="business-type-dropdown__new-action" onClick={() => setDraft((current) => current || ' ')}>
@@ -138,8 +154,8 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
               </button>
               {(draft !== '' || error) && (
                 <div className="business-type-dropdown__create-row">
-                  <Input value={draft.trimStart()} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleCreateKeyDown} placeholder="Avtoservis" autoFocus />
-                  <Button type="button" size="sm" loading={creating} disabled={!draft.trim()} onClick={create}>Qo‘shish</Button>
+                  <Input value={draft.trimStart()} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && create(event)} placeholder="Avtoservis" autoFocus />
+                  <Button type="button" size="sm" loading={creating} disabled={!draft.trim()} onClick={create}>Qo\'shish</Button>
                 </div>
               )}
               {error && <span className="business-type-dropdown__error">{error}</span>}
@@ -147,9 +163,10 @@ export function BusinessTypeDropdown({ value, onChange, disabled = false }) {
           )}
         </div>
       )}
+
       {loadError && !open && (
         <div className="business-type-dropdown__error">
-          Biznes turlarini yuklab bo‘lmadi.{' '}
+          Biznes turlarini yuklab bo\'lmadi.{' '}
           <Button type="button" size="sm" variant="ghost" onClick={() => refetch().catch(() => {})}>Qayta urinish</Button>
         </div>
       )}

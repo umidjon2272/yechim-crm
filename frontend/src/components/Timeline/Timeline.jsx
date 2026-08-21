@@ -13,7 +13,7 @@ const TYPE_LABELS = {
   CALL: 'Qo‘ng‘iroq',
   MEETING: 'Uchrashuv',
   DEMO: 'Demo',
-  NOTE: 'Izoh',
+  NOTE: 'Izoh qo\'shildi',
   // Synthesized cross-entity history events (see features/timeline) — not
   // logged manually like the types above, they're derived from other
   // records (lead/deal/quotation/payment/installation/task state).

@@ -367,8 +367,10 @@ function QuickActionsFields({ values, setValue, employees = [], loading }) {
   )
 }
 
-export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canEditCore = true, canViewAmount = true, canViewDeposit = true }) {
+export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, onDelete, canManageGroups = false, canEditCore = true, canEditBusinessType = true, canViewAmount = true, canViewDeposit = true }) {
   const isEditing = Boolean(initialValues?.id)
+  const canEditAmount = canViewAmount && (!isEditing || canEditCore)
+  const canEditDeposit = canViewDeposit && (!isEditing || canEditCore)
   const { data: currenciesData } = useAsync(currenciesService.list, [])
   const currencies = currenciesData?.items ?? []
   const { data: groupsData } = useAsync(() => canManageGroups ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] }), [canManageGroups])
@@ -384,7 +386,11 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     phone: initialValues?.phone || '+998',
     amount: initialValues?.amount ?? '',
     currencyId: initialValues?.currencyId || initialValues?.currency?.id || '',
-    businessTypeId: initialValues?.businessTypeId || initialValues?.businessType?.id || '',
+    businessTypeIds: Array.isArray(initialValues?.businessTypeIds)
+      ? initialValues.businessTypeIds
+      : Array.isArray(initialValues?.businessTypes)
+        ? initialValues.businessTypes.map((item) => item.id).filter(Boolean)
+        : initialValues?.businessTypeId ? [initialValues.businessTypeId] : initialValues?.businessType?.id ? [initialValues.businessType.id] : [],
     note: initialValues?.note || initialValues?.notes || '',
     depositAmount: initialValues?.depositAmount ?? '',
     programName: initialValues?.service || initialValues?.programs?.[0]?.name || '',
@@ -411,8 +417,8 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     event.preventDefault()
     const nextErrors = validate(values, { firstName: [rules.required('Ism kiritilishi shart')], phone: [rules.required('Telefon kiritilishi shart')] })
     if (values.phone.replace(/\D/g, '').length !== 12) nextErrors.phone = 'Telefon raqami noto‘g‘ri'
-    if (canViewAmount && values.amount !== '' && (!Number.isFinite(Number(values.amount)) || Number(values.amount) < 0)) nextErrors.amount = 'Zakaz summasi 0 dan kam bo‘lmasligi kerak'
-    if (canViewDeposit && values.depositAmount !== '' && (!Number.isFinite(Number(values.depositAmount)) || Number(values.depositAmount) < 0)) nextErrors.depositAmount = 'Zaklad summasi 0 dan kam bo‘lmasligi kerak'
+    if (canEditAmount && values.amount !== '' && (!Number.isFinite(Number(values.amount)) || Number(values.amount) < 0)) nextErrors.amount = 'Zakaz summasi 0 dan kam bo‘lmasligi kerak'
+    if (canEditDeposit && values.depositAmount !== '' && (!Number.isFinite(Number(values.depositAmount)) || Number(values.depositAmount) < 0)) nextErrors.depositAmount = 'Zaklad summasi 0 dan kam bo‘lmasligi kerak'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -427,16 +433,18 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
     const longitudeValue = values.longitude === '' ? null : Number(values.longitude)
 
     onSubmit({
-      name: `${values.firstName} ${values.lastName}`.trim(),
-      firstName: values.firstName,
-      ...(isEditing ? { lastName: values.lastName } : {}),
-      phone: values.phone,
-      note: values.note.trim() || null,
-      notes: values.note.trim() || null,
-      ...(canViewAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
-      ...(canViewAmount ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
-      ...(canEditCore ? { businessTypeId: values.businessTypeId || null } : {}),
-      ...(canViewDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
+      ...(canEditCore || !isEditing ? {
+        name: `${values.firstName} ${values.lastName}`.trim(),
+        firstName: values.firstName,
+        ...(isEditing ? { lastName: values.lastName } : {}),
+        phone: values.phone,
+        note: values.note.trim() || null,
+        notes: values.note.trim() || null,
+      } : {}),
+      ...(canEditAmount ? { amount: Number.isFinite(amount) ? amount : 0 } : {}),
+      ...(canEditAmount ? { currencyId: values.currencyId || currencies.find((currency) => currency.isDefault)?.id || null } : {}),
+      ...(canEditBusinessType ? { businessTypeIds: values.businessTypeIds } : {}),
+      ...(canEditDeposit ? { depositAmount: Number.isFinite(depositAmount) ? depositAmount : null } : {}),
       ...(canEditCore ? { service: primaryProgramName || null, programs } : {}),
       stage: values.stage,
       ...(canEditCore ? {
@@ -453,17 +461,17 @@ export function CustomerForm({ initialValues, employees = [], submitLabel = 'Saq
   return (
     <form onSubmit={handleSubmit} noValidate className="stack">
       <div className="detail-grid">
-        <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
-        {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>}
-        <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
-        {canViewAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><div className="amount-currency-control"><NumberInput min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="5 000 000" /><Select className="amount-currency-control__currency" value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0} aria-label="Valyuta"><option value="">—</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code}</option>)}</Select></div></FormField>}
+        <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading || (isEditing && !canEditCore)} autoFocus={!isEditing} /></FormField>
+        {isEditing && <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading || !canEditCore} /></FormField>}
+        <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading || (isEditing && !canEditCore)} placeholder="+998 90 123 45 67" /></FormField>
+        {canEditAmount && <FormField label="Savdo summasi" hint="Mijoz buyurtmasining umumiy qiymati" error={errors.amount}><div className="amount-currency-control"><NumberInput min="0" step="0.01" value={values.amount} onChange={set('amount')} error={!!errors.amount} disabled={loading} placeholder="5 000 000" /><Select className="amount-currency-control__currency" value={values.currencyId || currencies.find((currency) => currency.isDefault)?.id || ''} onChange={set('currencyId')} disabled={loading || currencies.length === 0} aria-label="Valyuta"><option value="">—</option>{currencies.map((currency) => <option key={currency.id} value={currency.id}>{currency.code}</option>)}</Select></div></FormField>}
       </div>
-      {canEditCore && <div className="detail-grid">
-        <FormField label="Biznes turi"><BusinessTypeDropdown value={values.businessTypeId} onChange={(value) => setValue('businessTypeId', value)} disabled={loading} /></FormField>
-        <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>
+      {(canEditCore || canEditBusinessType) && <div className="detail-grid">
+        {canEditBusinessType && <FormField label="Biznes turi"><BusinessTypeDropdown value={values.businessTypeIds} selectedOptions={initialValues?.businessTypes} onChange={(value) => setValue('businessTypeIds', value)} disabled={loading} /></FormField>}
+        {canEditCore && <FormField label="Dastur/xizmat"><Input value={values.programName} onChange={set('programName')} disabled={loading} placeholder="Masalan: Bito POS" /></FormField>}
          {/* Stage changes are deliberately made from the Kanban drag action so
              deposit/follow-up/installation prompts cannot be bypassed here. */}
-        {canViewDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><NumberInput min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
+        {canEditCore && canEditDeposit && <FormField label="Zaklad summasi" hint="Ixtiyoriy" error={errors.depositAmount}><NumberInput min="0" step="1000" value={values.depositAmount} onChange={set('depositAmount')} error={!!errors.depositAmount} disabled={loading} placeholder="2 000 000" /></FormField>}
       </div>}
       {canEditCore && <LocationField values={values} setValue={setValue} loading={loading} />}
       <FormField label="Izoh"><textarea className="textarea" rows={3} value={values.note} onChange={(event) => setValue('note', event.target.value)} disabled={loading} placeholder="Mijoz haqida qisqa izoh" /></FormField>
