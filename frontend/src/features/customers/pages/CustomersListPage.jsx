@@ -417,6 +417,8 @@ function InlineStageTitle({ column, canEdit, onSave, onDelete }) {
 export function CustomersListPage() {
   const { id: routeCustomerId } = useParams()
   const navigate = useNavigate()
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  const [mobileStageId, setMobileStageId] = useState('NEW')
   const {
     view,
     setView,
@@ -435,7 +437,7 @@ export function CustomersListPage() {
     loading,
     error,
     refetch,
-  } = useCustomers()
+  } = useCustomers({ isMobile, mobileStageId })
   const createModal = useDisclosure()
   const stageModal = useDisclosure()
   const bulkMoveModal = useDisclosure()
@@ -455,8 +457,6 @@ export function CustomersListPage() {
   const [quickCustomer, setQuickCustomer] = useState(null)
   const [reminderType, setReminderType] = useState(null)
   const [activeGroupName, setActiveGroupName] = useState('')
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
-  const [mobileStageId, setMobileStageId] = useState('NEW')
   const toast = useToast()
   const { can } = usePermissions()
   const { user } = useAuth()
@@ -488,18 +488,18 @@ export function CustomersListPage() {
   const deleteStageAction = useAction(({ id, replacementStageId }) => customersService.deleteStage(id, { replacementStageId }))
   const bulkMoveAction = useAction((payload) => customersService.bulkMove(payload))
 
-  const loadFilterOptions = useCallback(async () => {
+  const loadFilterOptions = useCallback(async ({ includeFilters = false } = {}) => {
     try {
       const [res, stagesRes] = await Promise.all([
-        customersService.getFilterOptions(),
+        includeFilters ? customersService.getFilterOptions() : Promise.resolve(null),
         customersService.listStages().catch(() => ({ items: fallbackStages() })),
       ])
-      setFilterOptions({
-        cities: res?.cities ?? [],
-        stageCounts: res?.stageCounts ?? {},
-        stageTotals: res?.stageTotals ?? {},
+      setFilterOptions((current) => ({
+        cities: res?.cities ?? current.cities,
+        stageCounts: res?.stageCounts ?? current.stageCounts,
+        stageTotals: res?.stageTotals ?? current.stageTotals,
         stages: stagesRes?.items?.length ? stagesRes.items : fallbackStages(),
-      })
+      }))
     } catch {
       setFilterOptions({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
     }
@@ -517,6 +517,10 @@ export function CustomersListPage() {
       .catch(() => setEmployees([]))
     return undefined
   }, [canViewEmployees, loadFilterOptions])
+
+  useEffect(() => {
+    if (advancedFiltersOpen) loadFilterOptions({ includeFilters: true })
+  }, [advancedFiltersOpen, loadFilterOptions])
 
   useEffect(() => {
     setSelectedIds((current) => {

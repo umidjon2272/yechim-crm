@@ -5,7 +5,7 @@ import { customersService } from '../../services/customers.service'
 const KANBAN_PAGE_SIZE = 200
 const EMPTY_CUSTOMERS = []
 
-export function useCustomers() {
+export function useCustomers({ isMobile = false, mobileStageId = 'NEW' } = {}) {
   const [view, setViewState] = useState('kanban')
   const [params, setParams] = useState({
     page: 1,
@@ -44,10 +44,13 @@ export function useCustomers() {
         createdFrom: params.createdFrom,
         createdTo: params.createdTo,
         sort: params.sort,
+        stage: isMobile ? mobileStageId : params.stage,
       }
-      return view === 'kanban' ? loadKanbanCustomers(kanbanParams) : Promise.resolve(null)
+      if (view !== 'kanban') return Promise.resolve(null)
+      if (isMobile) return customersService.list({ ...kanbanParams, page: 1, pageSize: 50 })
+      return loadKanbanCustomers(kanbanParams)
     },
-    [view, params.search, params.status, params.assignedEmployeeId, params.city, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
+    [view, isMobile, mobileStageId, params.search, params.status, params.stage, params.assignedEmployeeId, params.city, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
   )
   const active = view === 'kanban' ? kanbanQuery : listQuery
 

@@ -264,6 +264,21 @@ body {
   color: v.$color-text-muted;
 }
 
+.startup-state__card {
+  width: min(420px, calc(100vw - 32px));
+  padding: v.$space-6;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: v.$radius-xl;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: v.$shadow-md;
+
+  p {
+    margin: v.$space-2 0 v.$space-4;
+    color: v.$color-text-secondary;
+  }
+}
+
 .skeleton {
   background: linear-gradient(90deg, v.$color-gray-100 25%, v.$color-gray-200 37%, v.$color-gray-100 63%);
   background-size: 400% 100%;
@@ -305,6 +320,23 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .ambient-background::before,
+  .ambient-background__accent {
+    filter: blur(24px);
+  }
+
+  .ambient-background::after {
+    display: none;
+  }
+
+  .filters-row,
+  .kanban-summary-bar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

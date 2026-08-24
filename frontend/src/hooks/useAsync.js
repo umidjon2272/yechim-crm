@@ -21,7 +21,8 @@ function withTimeout(promise, timeoutMs = DEFAULT_TIMEOUT_MS) {
 export function useAsync(asyncFn, deps = [], options = {}) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const enabled = options?.enabled ?? true
+  const [loading, setLoading] = useState(enabled)
   const requestId = useRef(0)
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
@@ -51,9 +52,13 @@ export function useAsync(asyncFn, deps = [], options = {}) {
   }, [...deps, timeoutMs])
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false)
+      return undefined
+    }
     run().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run])
+  }, [enabled, run])
 
   return { data, error, loading, refetch: run }
 }

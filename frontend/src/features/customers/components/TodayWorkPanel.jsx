@@ -7,7 +7,7 @@ import './TodayWorkPanel.scss'
 
 export function TodayWorkPanel() {
   const [open, setOpen] = useState(false)
-  const { data, loading } = useAsync(remindersService.todayWork, [])
+  const { data, loading } = useAsync(remindersService.todayWork, [open], { enabled: open })
   const counts = data?.counts || { calls: 0, tasks: 0, installations: 0 }
   const items = data?.items || { reminders: [], tasks: [], installations: [] }
 

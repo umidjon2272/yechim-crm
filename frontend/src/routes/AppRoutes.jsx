@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -7,36 +8,39 @@ import { AdminLayout } from '../layouts/AdminLayout/AdminLayout'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
-import { EmployeesListPage } from '../features/employees/pages/EmployeesListPage'
-import { EmployeeDetailPage } from '../features/employees/pages/EmployeeDetailPage'
-import { SettingsPage } from '../features/settings/pages/SettingsPage'
-import { ProfilePage } from '../features/profile/pages/ProfilePage'
-import { MyWorkPage } from '../features/myWork/pages/MyWorkPage'
-import { CustomersListPage } from '../features/customers/pages/CustomersListPage'
-import { BusinessesListPage } from '../features/businesses/pages/BusinessesListPage'
-import { BusinessDetailPage } from '../features/businesses/pages/BusinessDetailPage'
-import { LeadsListPage } from '../features/leads/pages/LeadsListPage'
-import { LeadDetailPage } from '../features/leads/pages/LeadDetailPage'
-import { DealsListPage } from '../features/deals/pages/DealsListPage'
-import { DealDetailPage } from '../features/deals/pages/DealDetailPage'
-import { QuotationsListPage } from '../features/quotations/pages/QuotationsListPage'
-import { QuotationDetailPage } from '../features/quotations/pages/QuotationDetailPage'
-import { PaymentsListPage } from '../features/payments/pages/PaymentsListPage'
-import { TasksListPage } from '../features/tasks/pages/TasksListPage'
-import { ActivitiesListPage } from '../features/activities/pages/ActivitiesListPage'
-import { InstallationsListPage } from '../features/installations/pages/InstallationsListPage'
-import { InstallationDetailPage } from '../features/installations/pages/InstallationDetailPage'
-import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { Spinner } from '../components/Spinner/Spinner'
+import { AuthStartupState } from './AuthStartupState'
+
+const lazyNamed = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })))
+const EmployeesListPage = lazyNamed(() => import('../features/employees/pages/EmployeesListPage'), 'EmployeesListPage')
+const EmployeeDetailPage = lazyNamed(() => import('../features/employees/pages/EmployeeDetailPage'), 'EmployeeDetailPage')
+const SettingsPage = lazyNamed(() => import('../features/settings/pages/SettingsPage'), 'SettingsPage')
+const ProfilePage = lazyNamed(() => import('../features/profile/pages/ProfilePage'), 'ProfilePage')
+const MyWorkPage = lazyNamed(() => import('../features/myWork/pages/MyWorkPage'), 'MyWorkPage')
+const CustomersListPage = lazyNamed(() => import('../features/customers/pages/CustomersListPage'), 'CustomersListPage')
+const BusinessesListPage = lazyNamed(() => import('../features/businesses/pages/BusinessesListPage'), 'BusinessesListPage')
+const BusinessDetailPage = lazyNamed(() => import('../features/businesses/pages/BusinessDetailPage'), 'BusinessDetailPage')
+const LeadsListPage = lazyNamed(() => import('../features/leads/pages/LeadsListPage'), 'LeadsListPage')
+const LeadDetailPage = lazyNamed(() => import('../features/leads/pages/LeadDetailPage'), 'LeadDetailPage')
+const DealsListPage = lazyNamed(() => import('../features/deals/pages/DealsListPage'), 'DealsListPage')
+const DealDetailPage = lazyNamed(() => import('../features/deals/pages/DealDetailPage'), 'DealDetailPage')
+const QuotationsListPage = lazyNamed(() => import('../features/quotations/pages/QuotationsListPage'), 'QuotationsListPage')
+const QuotationDetailPage = lazyNamed(() => import('../features/quotations/pages/QuotationDetailPage'), 'QuotationDetailPage')
+const PaymentsListPage = lazyNamed(() => import('../features/payments/pages/PaymentsListPage'), 'PaymentsListPage')
+const TasksListPage = lazyNamed(() => import('../features/tasks/pages/TasksListPage'), 'TasksListPage')
+const ActivitiesListPage = lazyNamed(() => import('../features/activities/pages/ActivitiesListPage'), 'ActivitiesListPage')
+const InstallationsListPage = lazyNamed(() => import('../features/installations/pages/InstallationsListPage'), 'InstallationsListPage')
+const InstallationDetailPage = lazyNamed(() => import('../features/installations/pages/InstallationDetailPage'), 'InstallationDetailPage')
+const NotificationsPage = lazyNamed(() => import('../features/notifications/NotificationsPage'), 'NotificationsPage')
+
+function RouteLoading() {
+  return <div className="page-loading"><Spinner size="lg" /></div>
+}
 
 function RootRedirect() {
   const { isChecking, isAuthenticated } = useAuth()
   if (isChecking) {
-    return (
-      <div className="full-page-loading">
-        <Spinner size="lg" />
-      </div>
-    )
+    return <AuthStartupState />
   }
   return <Navigate to={isAuthenticated ? '/admin' : '/login'} replace />
 }
@@ -45,11 +49,7 @@ function GuestRoute() {
   const { isChecking, isAuthenticated } = useAuth()
 
   if (isChecking) {
-    return (
-      <div className="full-page-loading">
-        <Spinner size="lg" />
-      </div>
-    )
+    return <AuthStartupState />
   }
 
   if (isAuthenticated) return <Navigate to="/admin" replace />
@@ -59,7 +59,8 @@ function GuestRoute() {
 
 export function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
       <Route path="/" element={<RootRedirect />} />
 
       <Route element={<AuthLayout />}>
@@ -253,6 +254,7 @@ export function AppRoutes() {
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }

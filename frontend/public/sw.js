@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yechim-crm-shell-v2'
+const CACHE_NAME = 'yechim-crm-shell-v3'
 const SHELL_ASSETS = [
   '/',
   '/manifest.webmanifest',
@@ -30,7 +30,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request
   const url = new URL(request.url)
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return
+
+  // API responses, including auth and customer data, are always network-only.
+  // The backend also sends no-store headers, but keeping this explicit avoids
+  // a stale browser cache becoming a second cache layer in an installed PWA.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }))
+    return
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(

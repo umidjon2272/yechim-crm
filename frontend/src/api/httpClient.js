@@ -12,6 +12,8 @@ export { ApiError }
 
 let unauthorizedHandler = null
 let refreshPromise = null
+let requestSequence = 0
+const inFlightGetRequests = new Map()
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler
@@ -31,6 +33,21 @@ function buildUrl(path, params) {
 
 const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout']
 const REQUEST_TIMEOUT_MS = 15000
+
+function perfEnabled() {
+  return import.meta.env.DEV || import.meta.env.VITE_ENABLE_PERF_TIMING === 'true'
+}
+
+function logRequestTiming(path, method, duration, status, attempt = 1) {
+  if (!perfEnabled()) return
+  const suffix = attempt > 1 ? ` retry=${attempt - 1}` : ''
+  console.info(`[YECHIM perf] ${method} ${path} ${Math.round(duration)}ms status=${status}${suffix}`)
+}
+
+function getRequestKey(path, options) {
+  if ((options.method || 'GET').toUpperCase() !== 'GET' || options.signal) return null
+  return `${buildUrl(path, options.params)}|${getAccessToken() || ''}`
+}
 
 async function refreshSession() {
   if (!refreshPromise) {
@@ -58,9 +75,9 @@ async function refreshSession() {
   return refreshPromise
 }
 
-async function request(
+async function performRequest(
   path,
-  { method = 'GET', body, params, headers, signal, skipRefresh = false, skipAuth = false, accessToken } = {},
+  { method = 'GET', body, params, headers, signal, skipRefresh = false, skipAuth = false, accessToken, attempt = 1 } = {},
 ) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
   const timeoutController = new AbortController()
@@ -80,6 +97,8 @@ async function request(
   }
 
   const token = accessToken === undefined ? getAccessToken() : accessToken
+  const requestStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
+  const requestId = ++requestSequence
 
   let res
   try {
@@ -100,12 +119,17 @@ async function request(
     })
   } catch (networkError) {
     clearRequestTimeout()
+    const failedDuration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartedAt
     if (networkError?.name === 'AbortError') {
+      if (timedOut) logRequestTiming(path, method, failedDuration, 408, attempt)
       if (timedOut) throw new ApiError('So‘rov vaqti tugadi. Qayta urinib ko‘ring.', { status: 408 })
       throw networkError
     }
     throw new ApiError('Backend bilan aloqa qilib bo‘lmadi', { status: 0, details: networkError })
   }
+
+  logRequestTiming(path, method, (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartedAt, res.status, attempt)
+  if (perfEnabled() && typeof performance !== 'undefined') performance.mark(`yechim:request:${requestId}:done`)
 
   let refreshFailed = false
 
@@ -146,6 +170,35 @@ async function request(
   }
 
   return data
+}
+
+async function request(path, options = {}) {
+  const normalizedOptions = { method: 'GET', ...options }
+  const method = normalizedOptions.method.toUpperCase()
+  const key = getRequestKey(path, normalizedOptions)
+  if (key && inFlightGetRequests.has(key)) return inFlightGetRequests.get(key)
+
+  const run = (async () => {
+    try {
+      return await performRequest(path, normalizedOptions)
+    } catch (error) {
+      // Retry one transient network failure for idempotent GETs. A 15s timeout
+      // is surfaced directly so cold starts never become an invisible loop.
+      if (method === 'GET' && !normalizedOptions.signal && normalizedOptions.attempt !== 2 && error?.status === 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, 250))
+        return request(path, { ...normalizedOptions, attempt: 2 })
+      }
+      throw error
+    }
+  })()
+
+  if (key) {
+    inFlightGetRequests.set(key, run)
+    run.finally(() => {
+      if (inFlightGetRequests.get(key) === run) inFlightGetRequests.delete(key)
+    }).catch(() => {})
+  }
+  return run
 }
 
 export const httpClient = {
