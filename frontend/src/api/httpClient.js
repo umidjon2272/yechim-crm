@@ -175,6 +175,12 @@ async function performRequest(
 async function request(path, options = {}) {
   const normalizedOptions = { method: 'GET', ...options }
   const method = normalizedOptions.method.toUpperCase()
+
+  // The map only deduplicates GETs that are currently in flight. A mutation
+  // makes every such response stale, so a following refetch must go to the
+  // API instead of receiving the pre-mutation response.
+  if (method !== 'GET') inFlightGetRequests.clear()
+
   const key = getRequestKey(path, normalizedOptions)
   if (key && inFlightGetRequests.has(key)) return inFlightGetRequests.get(key)
 

@@ -18,12 +18,13 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, showAllCustome
   const groupModal = useDisclosure()
   const confirm = useConfirm()
   const toast = useToast()
+  const [removedGroupIds, setRemovedGroupIds] = useState(() => new Set())
 
   const saveAction = useAction((values) =>
     editingGroup ? customerGroupsService.update(editingGroup.id, values) : customerGroupsService.create(values),
   )
   const deleteAction = useAction((id) => customerGroupsService.remove(id))
-  const groups = data?.items ?? []
+  const groups = (data?.items ?? []).filter((group) => !removedGroupIds.has(group.id))
 
   const openCreate = () => {
     setEditingGroup(null)
@@ -56,6 +57,7 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup, showAllCustome
     if (!ok) return
     try {
       await deleteAction.run(group.id)
+      setRemovedGroupIds((current) => new Set(current).add(group.id))
       toast.success("Guruh o'chirildi")
       if (activeGroupId === group.id) onSelectGroup('', null)
       refetch()
