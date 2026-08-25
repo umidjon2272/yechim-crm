@@ -1,3 +1,0 @@
-ALTER TABLE "Customer" ADD COLUMN "depositAmount" DECIMAL(65,30);
-ALTER TABLE "Customer" ADD COLUMN "latitude" DOUBLE PRECISION;
-ALTER TABLE "Customer" ADD COLUMN "longitude" DOUBLE PRECISION;
