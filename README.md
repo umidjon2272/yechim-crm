@@ -30,6 +30,6 @@ npm start
 
 - Vercel frontend project: set Root Directory to `frontend`.
 - Render backend service: set Root Directory to `backend`.
-- Production frontend authentication uses only the Render API and httpOnly
-  cookies. `backend/mock-server` is local-only test data and is not referenced
-  by the Vercel build.
+- Production frontend authentication uses only the Render API and a validated
+  access/refresh token pair. `backend/mock-server` is local-only test data and
+  is not referenced by the Vercel build.

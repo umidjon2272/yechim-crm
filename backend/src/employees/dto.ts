@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ArrayUnique, IsArray, IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ALL_PERMISSIONS } from '../common/defaults';
 
 export class CreateEmployeeDto {
   @IsString({ message: 'Ism kiritilishi shart' })
@@ -29,6 +30,15 @@ export class CreateEmployeeDto {
   role?: string;
 
   @IsOptional()
+  @IsIn(['ALL', 'ASSIGNED', 'GROUPS'])
+  customerVisibility?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowedGroupIds?: string[];
+
+  @IsOptional()
   @IsString()
   status?: string;
 
@@ -43,4 +53,12 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsString()
   partnerGroupId?: string;
+}
+
+export class UpdateEmployeePermissionsDto {
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @IsIn(ALL_PERMISSIONS, { each: true })
+  permissions: string[];
 }
