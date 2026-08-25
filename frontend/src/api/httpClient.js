@@ -27,8 +27,24 @@ function buildUrl(path, params) {
   return url.toString()
 }
 
-async function request(path, { method = 'GET', body, params, headers, signal } = {}) {
+async function request(path, { method = 'GET', body, params, headers, signal, timeoutMs } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+  const requestController = Number.isFinite(timeoutMs) && timeoutMs > 0 ? new AbortController() : null
+  const requestSignal = requestController?.signal || signal
+  let timedOut = false
+  let timeoutId
+  const abortRequest = () => requestController?.abort()
+
+  if (requestController && signal) {
+    if (signal.aborted) requestController.abort()
+    else signal.addEventListener('abort', abortRequest, { once: true })
+  }
+  if (requestController) {
+    timeoutId = window.setTimeout(() => {
+      timedOut = true
+      requestController.abort()
+    }, timeoutMs)
+  }
 
   let res
   try {
@@ -41,11 +57,17 @@ async function request(path, { method = 'GET', body, params, headers, signal } =
         ...headers,
       },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
-      signal,
+      signal: requestSignal,
     })
   } catch (networkError) {
+    if (timedOut) {
+      throw new ApiError('Backend so‘rovi vaqti tugadi', { status: 408, details: networkError })
+    }
     if (networkError?.name === 'AbortError') throw networkError
     throw new ApiError('Backend bilan aloqa qilib bo‘lmadi', { status: 0, details: networkError })
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId)
+    signal?.removeEventListener('abort', abortRequest)
   }
 
   const contentType = res.headers.get('content-type') || ''

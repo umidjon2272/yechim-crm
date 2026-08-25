@@ -8,5 +8,5 @@ import { AUTH } from '../api/endpoints'
 export const authService = {
   login: (credentials) => httpClient.post(AUTH.LOGIN, credentials),
   logout: () => httpClient.post(AUTH.LOGOUT),
-  getCurrentUser: () => httpClient.get(AUTH.ME),
+  getCurrentUser: (options) => httpClient.get(AUTH.ME, options),
 }

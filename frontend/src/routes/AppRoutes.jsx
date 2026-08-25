@@ -26,17 +26,11 @@ import { TasksListPage } from '../features/tasks/pages/TasksListPage'
 import { ActivitiesListPage } from '../features/activities/pages/ActivitiesListPage'
 import { InstallationsListPage } from '../features/installations/pages/InstallationsListPage'
 import { InstallationDetailPage } from '../features/installations/pages/InstallationDetailPage'
-import { Spinner } from '../components/Spinner/Spinner'
+import { AuthStartupState } from './AuthStartupState'
 
 function RootRedirect() {
-  const { isChecking, isAuthenticated } = useAuth()
-  if (isChecking) {
-    return (
-      <div className="full-page-loading">
-        <Spinner size="lg" />
-      </div>
-    )
-  }
+  const { isChecking, isStartupError, isAuthenticated } = useAuth()
+  if (isChecking || isStartupError) return <AuthStartupState />
   return <Navigate to={isAuthenticated ? '/admin' : '/login'} replace />
 }
 

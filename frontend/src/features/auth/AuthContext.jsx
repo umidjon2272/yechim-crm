@@ -1,16 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { authService } from '../../services/auth.service'
 import { setUnauthorizedHandler } from '../../api/httpClient'
 import { ROLES } from '../roles/permissions'
+import { restoreWithRetry } from './authStartupRetry'
 
 const AuthContext = createContext(null)
 
-// ---------------------------------------------------------------------------
-// TEMPORARY DEMO BYPASS — requested to unblock viewing the deployed UI while
-// the Vercel backend isn't reliable yet. Skips the real /auth/me check and
-// always presents a stub SUPER_ADMIN session instead of showing the login
-// screen. REMOVE this block (and just call hydrateSession's original body)
-// once the real backend is connected and login should be required again.
+// Kept disabled. It exists only for the old local demo mode.
 const DEMO_BYPASS_AUTH = false
 const DEMO_USER = {
   id: 'demo-user',
@@ -20,30 +16,75 @@ const DEMO_USER = {
   permissions: [],
   status: 'active',
 }
-// ---------------------------------------------------------------------------
 
-// status: 'checking' | 'authenticated' | 'unauthenticated'
+// status: checking | authenticated | unauthenticated | retryableError
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [status, setStatus] = useState('checking')
   const [loginError, setLoginError] = useState(null)
   const [loginLoading, setLoginLoading] = useState(false)
+  const [authError, setAuthError] = useState(null)
+  const [startupStartedAt, setStartupStartedAt] = useState(null)
+  const userRef = useRef(null)
+  const startupAttemptRef = useRef(0)
+  const hydratePromiseRef = useRef(null)
 
-  const hydrateSession = useCallback(async () => {
-    try {
-      const currentUser = await authService.getCurrentUser()
-      setUser(currentUser)
-      setStatus('authenticated')
-    } catch {
-      if (DEMO_BYPASS_AUTH) {
-        setUser(DEMO_USER)
-        setStatus('authenticated')
-        return
-      }
-      setUser(null)
-      setStatus('unauthenticated')
-    }
+  const updateUser = useCallback((nextUser) => {
+    userRef.current = nextUser
+    setUser(nextUser)
   }, [])
+
+  const hydrateSession = useCallback(({ force = false } = {}) => {
+    if (hydratePromiseRef.current && !force) return hydratePromiseRef.current
+
+    const attemptId = startupAttemptRef.current + 1
+    startupAttemptRef.current = attemptId
+    const startedAt = Date.now()
+    setStartupStartedAt(startedAt)
+    setAuthError(null)
+    if (!userRef.current) setStatus('checking')
+
+    const promise = (async () => {
+      const result = await restoreWithRetry(({ timeoutMs }) => authService.getCurrentUser({ timeoutMs }))
+      if (startupAttemptRef.current !== attemptId) return null
+
+      if (result.kind === 'success') {
+        updateUser(result.value)
+        setAuthError(null)
+        setStartupStartedAt(null)
+        setStatus('authenticated')
+        return result.value
+      }
+
+      // 401 remains an auth result. It is never treated as a cold start.
+      if (result.kind === 'unauthorized') {
+        if (DEMO_BYPASS_AUTH) {
+          updateUser(DEMO_USER)
+          setStatus('authenticated')
+          return DEMO_USER
+        }
+        updateUser(null)
+        setStartupStartedAt(null)
+        setStatus('unauthenticated')
+        return null
+      }
+
+      if (userRef.current) {
+        // A background refresh failure must not blank an already-open CRM.
+        setStatus('authenticated')
+      } else {
+        setAuthError(result.error)
+        setStatus('retryableError')
+      }
+      return null
+    })()
+
+    hydratePromiseRef.current = promise
+    promise.finally(() => {
+      if (hydratePromiseRef.current === promise) hydratePromiseRef.current = null
+    }).catch(() => {})
+    return promise
+  }, [updateUser])
 
   useEffect(() => {
     hydrateSession()
@@ -51,11 +92,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      setUser(null)
+      startupAttemptRef.current += 1
+      updateUser(null)
+      setAuthError(null)
+      setStartupStartedAt(null)
       setStatus('unauthenticated')
     })
     return () => setUnauthorizedHandler(null)
-  }, [])
+  }, [updateUser])
 
   const login = useCallback(async (credentials) => {
     setLoginLoading(true)
@@ -63,7 +107,7 @@ export function AuthProvider({ children }) {
     try {
       await authService.login(credentials)
       const currentUser = await authService.getCurrentUser()
-      setUser(currentUser)
+      updateUser(currentUser)
       setStatus('authenticated')
       return currentUser
     } catch (err) {
@@ -72,16 +116,19 @@ export function AuthProvider({ children }) {
     } finally {
       setLoginLoading(false)
     }
-  }, [])
+  }, [updateUser])
 
   const logout = useCallback(async () => {
     try {
       await authService.logout()
     } finally {
-      setUser(null)
+      startupAttemptRef.current += 1
+      updateUser(null)
+      setAuthError(null)
+      setStartupStartedAt(null)
       setStatus('unauthenticated')
     }
-  }, [])
+  }, [updateUser])
 
   const value = useMemo(
     () => ({
@@ -89,13 +136,16 @@ export function AuthProvider({ children }) {
       status,
       isAuthenticated: status === 'authenticated',
       isChecking: status === 'checking',
+      isStartupError: status === 'retryableError',
+      authError,
+      startupStartedAt,
       login,
       loginLoading,
       loginError,
       logout,
       refreshUser: hydrateSession,
     }),
-    [user, status, login, loginLoading, loginError, logout, hydrateSession]
+    [user, status, authError, startupStartedAt, login, loginLoading, loginError, logout, hydrateSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
