@@ -3,10 +3,10 @@ import { useAuth } from '../features/auth/useAuth'
 import { AuthStartupState } from './AuthStartupState'
 
 export function ProtectedRoute() {
-  const { isChecking, isAuthenticated } = useAuth()
+  const { isChecking, isStartupError, isAuthenticated } = useAuth()
   const location = useLocation()
 
-  if (isChecking) {
+  if (isChecking || isStartupError) {
     return (
       <AuthStartupState />
     )

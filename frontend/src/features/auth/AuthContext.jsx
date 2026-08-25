@@ -5,7 +5,7 @@ import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTok
 
 const AuthContext = createContext(null)
 
-// status: 'checking' | 'authenticated' | 'unauthenticated'
+// status: 'checking' | 'authenticated' | 'unauthenticated' | 'error'
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const userRef = useRef(null)
@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
       const requestEpoch = ++authEpochRef.current
       clearLegacyAuthStorage()
       setAuthError(null)
+      setStatus('checking')
       const { accessToken, refreshToken } = readAuthTokens()
 
       // Tokens are persisted for the installed PWA, but the user identity is
@@ -71,11 +72,11 @@ export function AuthProvider({ children }) {
         } else if (userRef.current) {
           setStatus('authenticated')
         } else {
-          // Do not leave ProtectedRoute in an unbounded checking state. The
-          // route renders a retryable startup state while this promise can be
-          // retried, preserving the stored session during Render/network wakes.
+          // A transient outage is terminal after bounded request retries.
+          // Preserve stored tokens and expose a retryable startup state rather
+          // than leaving ProtectedRoute in an infinite checking state.
           setAuthError(error)
-          setStatus('checking')
+          setStatus('error')
         }
       }
     })()
@@ -182,6 +183,7 @@ export function AuthProvider({ children }) {
       status,
       isAuthenticated: status === 'authenticated',
       isChecking: status === 'checking',
+      isStartupError: status === 'error',
       login,
       loginLoading,
       loginError,

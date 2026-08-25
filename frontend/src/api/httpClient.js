@@ -33,6 +33,7 @@ function buildUrl(path, params) {
 
 const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout']
 const REQUEST_TIMEOUT_MS = 15000
+const TRANSIENT_RETRY_DELAYS_MS = [250, 750, 1500]
 
 function perfEnabled() {
   return import.meta.env.DEV || import.meta.env.VITE_ENABLE_PERF_TIMING === 'true'
@@ -60,6 +61,9 @@ async function refreshSession() {
       body: { refreshToken },
       skipRefresh: true,
       skipAuth: true,
+      // Render cold starts can affect the refresh endpoint too. Refresh is
+      // safe to retry because the server keeps the refresh token stable.
+      maxRetries: 2,
     })
       .then((data) => {
         if (!data?.accessToken) {
@@ -139,9 +143,11 @@ async function performRequest(
       clearRequestTimeout()
       return request(path, { method, body, params, headers, signal, skipRefresh: true, accessToken: undefined })
     } catch (refreshError) {
-      // Only an invalid/expired refresh session is an auth failure. A network
-      // outage must not turn a temporary API error into an automatic logout.
-      refreshFailed = refreshError?.status === 401
+      // Only an invalid/expired refresh session is an auth failure. Preserve
+      // transient refresh errors so startup can retry instead of treating a
+      // cold start as an invalid session.
+      if (refreshError?.status !== 401) throw refreshError
+      refreshFailed = true
     }
   }
 
@@ -188,11 +194,14 @@ async function request(path, options = {}) {
     try {
       return await performRequest(path, normalizedOptions)
     } catch (error) {
-      // Retry one transient network failure for idempotent GETs. A 15s timeout
-      // is surfaced directly so cold starts never become an invisible loop.
-      if (method === 'GET' && !normalizedOptions.signal && normalizedOptions.attempt !== 2 && error?.status === 0) {
-        await new Promise((resolve) => window.setTimeout(resolve, 250))
-        return request(path, { ...normalizedOptions, attempt: 2 })
+      const retryCount = Number(normalizedOptions.retryCount || 0)
+      const maxRetries = Number(normalizedOptions.maxRetries ?? (method === 'GET' ? 3 : 0))
+      const transientStatus = error?.status === 0 || error?.status === 408 || [500, 502, 503, 504].includes(error?.status)
+      const canRetry = !normalizedOptions.signal && transientStatus && retryCount < maxRetries
+      if (canRetry) {
+        const delay = TRANSIENT_RETRY_DELAYS_MS[Math.min(retryCount, TRANSIENT_RETRY_DELAYS_MS.length - 1)]
+        await new Promise((resolve) => window.setTimeout(resolve, delay))
+        return request(path, { ...normalizedOptions, retryCount: retryCount + 1 })
       }
       throw error
     }
