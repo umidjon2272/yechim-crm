@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../features/auth/useAuth'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -8,7 +8,6 @@ import { AdminLayout } from '../layouts/AdminLayout/AdminLayout'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { UnauthorizedPage } from '../pages/UnauthorizedPage'
-import { Spinner } from '../components/Spinner/Spinner'
 import { AuthStartupState } from './AuthStartupState'
 
 const lazyNamed = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })))
@@ -33,10 +32,6 @@ const InstallationsListPage = lazyNamed(() => import('../features/installations/
 const InstallationDetailPage = lazyNamed(() => import('../features/installations/pages/InstallationDetailPage'), 'InstallationDetailPage')
 const NotificationsPage = lazyNamed(() => import('../features/notifications/NotificationsPage'), 'NotificationsPage')
 
-function RouteLoading() {
-  return <div className="page-loading"><Spinner size="lg" /></div>
-}
-
 function RootRedirect() {
   const { isChecking, isAuthenticated } = useAuth()
   if (isChecking) {
@@ -59,8 +54,7 @@ function GuestRoute() {
 
 export function AppRoutes() {
   return (
-    <Suspense fallback={<RouteLoading />}>
-      <Routes>
+    <Routes>
       <Route path="/" element={<RootRedirect />} />
 
       <Route element={<AuthLayout />}>
@@ -254,7 +248,6 @@ export function AppRoutes() {
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Suspense>
+    </Routes>
   )
 }

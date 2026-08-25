@@ -5,13 +5,19 @@ import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTok
 
 const AuthContext = createContext(null)
 
-// status: 'checking' | 'authenticated' | 'unauthenticated' | 'error'
+export const AUTH_STATES = Object.freeze({
+  IDLE: 'idle',
+  CHECKING: 'checking',
+  AUTHENTICATED: 'authenticated',
+  UNAUTHENTICATED: 'unauthenticated',
+  RETRYABLE_ERROR: 'retryableError',
+})
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const userRef = useRef(null)
   const authEpochRef = useRef(0)
   const hydratePromiseRef = useRef(null)
-  const [status, setStatus] = useState('checking')
+  const [status, setStatus] = useState(AUTH_STATES.IDLE)
   const [authError, setAuthError] = useState(null)
   const [loginError, setLoginError] = useState(null)
   const [loginLoading, setLoginLoading] = useState(false)
@@ -28,7 +34,7 @@ export function AuthProvider({ children }) {
       const requestEpoch = ++authEpochRef.current
       clearLegacyAuthStorage()
       setAuthError(null)
-      setStatus('checking')
+      setStatus(AUTH_STATES.CHECKING)
       const { accessToken, refreshToken } = readAuthTokens()
 
       // Tokens are persisted for the installed PWA, but the user identity is
@@ -36,7 +42,7 @@ export function AuthProvider({ children }) {
       if (!accessToken && !refreshToken) {
         if (requestEpoch !== authEpochRef.current) return
         updateUser(null)
-        setStatus('unauthenticated')
+        setStatus(AUTH_STATES.UNAUTHENTICATED)
         return
       }
 
@@ -55,11 +61,11 @@ export function AuthProvider({ children }) {
         if (!currentUser?.id) {
           clearAuthTokens()
           updateUser(null)
-          setStatus('unauthenticated')
+          setStatus(AUTH_STATES.UNAUTHENTICATED)
           return
         }
         updateUser(currentUser)
-        setStatus('authenticated')
+        setStatus(AUTH_STATES.AUTHENTICATED)
       } catch (error) {
         if (requestEpoch !== authEpochRef.current) return
         // Only an explicit 401 means that the refresh/session is invalid. Keep
@@ -68,15 +74,15 @@ export function AuthProvider({ children }) {
         if (error?.status === 401) {
           clearAuthTokens()
           updateUser(null)
-          setStatus('unauthenticated')
+          setStatus(AUTH_STATES.UNAUTHENTICATED)
         } else if (userRef.current) {
-          setStatus('authenticated')
+          setStatus(AUTH_STATES.AUTHENTICATED)
         } else {
           // A transient outage is terminal after bounded request retries.
           // Preserve stored tokens and expose a retryable startup state rather
           // than leaving ProtectedRoute in an infinite checking state.
           setAuthError(error)
-          setStatus('error')
+          setStatus(AUTH_STATES.RETRYABLE_ERROR)
         }
       }
     })()
@@ -97,7 +103,7 @@ export function AuthProvider({ children }) {
     clearAuthTokens()
     clearLegacyAuthStorage()
     updateUser(null)
-    setStatus('unauthenticated')
+    setStatus(AUTH_STATES.UNAUTHENTICATED)
   }, [updateUser])
 
   useEffect(() => {
@@ -142,7 +148,7 @@ export function AuthProvider({ children }) {
         if (requestEpoch !== authEpochRef.current) return loggedInUser
         if (!loggedInUser?.id) throw new Error('Backend foydalanuvchi sessiyasini qaytarmadi')
         updateUser(loggedInUser)
-        setStatus('authenticated')
+        setStatus(AUTH_STATES.AUTHENTICATED)
         return loggedInUser
       } catch (err) {
         setLoginError(err.message || 'Kirishda xatolik yuz berdi')
@@ -163,7 +169,7 @@ export function AuthProvider({ children }) {
     clearAuthTokens()
     clearLegacyAuthStorage()
     updateUser(null)
-    setStatus('unauthenticated')
+    setStatus(AUTH_STATES.UNAUTHENTICATED)
     setLoginError(null)
     try {
       await authService.logout(tokens)
@@ -172,7 +178,7 @@ export function AuthProvider({ children }) {
         clearAuthTokens()
         clearLegacyAuthStorage()
         updateUser(null)
-        setStatus('unauthenticated')
+        setStatus(AUTH_STATES.UNAUTHENTICATED)
       }
     }
   }, [updateUser])
@@ -181,9 +187,9 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       status,
-      isAuthenticated: status === 'authenticated',
-      isChecking: status === 'checking',
-      isStartupError: status === 'error',
+      isAuthenticated: status === AUTH_STATES.AUTHENTICATED,
+      isChecking: status === AUTH_STATES.IDLE || status === AUTH_STATES.CHECKING,
+      isStartupError: status === AUTH_STATES.RETRYABLE_ERROR,
       login,
       loginLoading,
       loginError,

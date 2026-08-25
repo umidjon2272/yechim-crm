@@ -11,6 +11,10 @@ export const authService = {
       { refreshToken: tokens.refreshToken },
       { accessToken: tokens.accessToken || null, skipAuth: !tokens.accessToken, skipRefresh: true },
     ),
-  getCurrentUser: () => httpClient.get(AUTH.ME),
+  getCurrentUser: () => httpClient.get(AUTH.ME, {
+    startupTrace: true,
+    maxRetries: 2,
+    retryDelaysMs: [1000, 2000],
+  }),
   changePassword: (payload) => httpClient.post('/auth/change-password', payload),
 }

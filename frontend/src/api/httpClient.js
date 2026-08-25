@@ -14,6 +14,8 @@ let unauthorizedHandler = null
 let refreshPromise = null
 let requestSequence = 0
 const inFlightGetRequests = new Map()
+const startupTraceStartedAt = Date.now()
+const STARTUP_TRACE_WINDOW_MS = 120000
 
 export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler
@@ -34,12 +36,35 @@ function buildUrl(path, params) {
 const AUTH_PATHS_WITHOUT_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout']
 const REQUEST_TIMEOUT_MS = 15000
 const TRANSIENT_RETRY_DELAYS_MS = [250, 750, 1500]
+const AUTH_RETRY_DELAYS_MS = [1000, 2000]
 
 function perfEnabled() {
   return import.meta.env.DEV || import.meta.env.VITE_ENABLE_PERF_TIMING === 'true'
 }
 
-function logRequestTiming(path, method, duration, status, attempt = 1) {
+function startupTraceEnabled(explicit) {
+  return explicit === true || Date.now() - startupTraceStartedAt <= STARTUP_TRACE_WINDOW_MS
+}
+
+function tracePath(path) {
+  return String(path).replace(/^\//, '')
+}
+
+function logStartup(path, details) {
+  if (!details.trace) return
+  const parts = [`[YECHIM startup] ${tracePath(path)}`]
+  if (details.phase) parts.push(details.phase)
+  if (details.status !== undefined) parts.push(String(details.status))
+  if (details.duration !== undefined) parts.push(`${Math.round(details.duration)}ms`)
+  parts.push(`start=${details.startedAt}`)
+  parts.push(`attempt=${details.attempt}`)
+  parts.push(`retry=${Math.max(0, details.attempt - 1)}`)
+  if (details.reason) parts.push(`reason=${details.reason}`)
+  console.info(parts.join(' '))
+}
+
+function logRequestTiming(path, method, duration, status, attempt = 1, trace = false, startedAt) {
+  logStartup(path, { trace, status, duration, attempt, startedAt })
   if (!perfEnabled()) return
   const suffix = attempt > 1 ? ` retry=${attempt - 1}` : ''
   console.info(`[YECHIM perf] ${method} ${path} ${Math.round(duration)}ms status=${status}${suffix}`)
@@ -50,7 +75,7 @@ function getRequestKey(path, options) {
   return `${buildUrl(path, options.params)}|${getAccessToken() || ''}`
 }
 
-async function refreshSession() {
+async function refreshSession({ startupTrace = false } = {}) {
   if (!refreshPromise) {
     const refreshToken = getRefreshToken()
     if (!refreshToken) {
@@ -61,6 +86,8 @@ async function refreshSession() {
       body: { refreshToken },
       skipRefresh: true,
       skipAuth: true,
+      startupTrace,
+      retryDelaysMs: AUTH_RETRY_DELAYS_MS,
       // Render cold starts can affect the refresh endpoint too. Refresh is
       // safe to retry because the server keeps the refresh token stable.
       maxRetries: 2,
@@ -81,7 +108,19 @@ async function refreshSession() {
 
 async function performRequest(
   path,
-  { method = 'GET', body, params, headers, signal, skipRefresh = false, skipAuth = false, accessToken, attempt = 1 } = {},
+  {
+    method = 'GET',
+    body,
+    params,
+    headers,
+    signal,
+    skipRefresh = false,
+    skipAuth = false,
+    accessToken,
+    attempt = 1,
+    startupTrace = false,
+    retryDelaysMs,
+  } = {},
 ) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
   const timeoutController = new AbortController()
@@ -102,7 +141,10 @@ async function performRequest(
 
   const token = accessToken === undefined ? getAccessToken() : accessToken
   const requestStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
+  const requestStartedWallTime = new Date().toISOString()
   const requestId = ++requestSequence
+  const trace = startupTraceEnabled(startupTrace)
+  logStartup(path, { trace, phase: 'start', startedAt: requestStartedWallTime, attempt })
 
   let res
   try {
@@ -124,29 +166,60 @@ async function performRequest(
   } catch (networkError) {
     clearRequestTimeout()
     const failedDuration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartedAt
+    logStartup(path, {
+      trace,
+      phase: networkError?.name === 'AbortError' && timedOut ? 'timeout' : 'network-error',
+      duration: failedDuration,
+      startedAt: requestStartedWallTime,
+      attempt,
+      reason: timedOut ? 'request-timeout' : networkError?.message || 'fetch-failed',
+    })
     if (networkError?.name === 'AbortError') {
-      if (timedOut) logRequestTiming(path, method, failedDuration, 408, attempt)
+      if (timedOut) logRequestTiming(path, method, failedDuration, 408, attempt, trace, requestStartedWallTime)
       if (timedOut) throw new ApiError('So‘rov vaqti tugadi. Qayta urinib ko‘ring.', { status: 408 })
+      logStartup(path, {
+        trace,
+        phase: 'aborted',
+        duration: failedDuration,
+        startedAt: requestStartedWallTime,
+        attempt,
+        reason: signal?.aborted ? 'caller' : 'abort',
+      })
       throw networkError
     }
     throw new ApiError('Backend bilan aloqa qilib bo‘lmadi', { status: 0, details: networkError })
   }
 
-  logRequestTiming(path, method, (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartedAt, res.status, attempt)
+  const responseDuration = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartedAt
+  logRequestTiming(path, method, responseDuration, res.status, attempt, trace, requestStartedWallTime)
   if (perfEnabled() && typeof performance !== 'undefined') performance.mark(`yechim:request:${requestId}:done`)
 
   let refreshFailed = false
 
   if (res.status === 401 && !skipRefresh && !AUTH_PATHS_WITHOUT_REFRESH.includes(path)) {
     try {
-      await refreshSession()
+      await refreshSession({ startupTrace: trace })
       clearRequestTimeout()
-      return request(path, { method, body, params, headers, signal, skipRefresh: true, accessToken: undefined })
+      return request(path, {
+        method,
+        body,
+        params,
+        headers,
+        signal,
+        skipRefresh: true,
+        accessToken: undefined,
+        startupTrace: trace,
+        retryDelaysMs,
+        maxRetries: 2,
+      })
     } catch (refreshError) {
       // Only an invalid/expired refresh session is an auth failure. Preserve
       // transient refresh errors so startup can retry instead of treating a
       // cold start as an invalid session.
-      if (refreshError?.status !== 401) throw refreshError
+      if (![400, 401].includes(refreshError?.status)) {
+        refreshError.authRefreshAttempted = true
+        throw refreshError
+      }
       refreshFailed = true
     }
   }
@@ -197,11 +270,15 @@ async function request(path, options = {}) {
       const retryCount = Number(normalizedOptions.retryCount || 0)
       const maxRetries = Number(normalizedOptions.maxRetries ?? (method === 'GET' ? 3 : 0))
       const transientStatus = error?.status === 0 || error?.status === 408 || [500, 502, 503, 504].includes(error?.status)
-      const canRetry = !normalizedOptions.signal && transientStatus && retryCount < maxRetries
+      const canRetry = !normalizedOptions.signal && transientStatus && !error?.authRefreshAttempted && retryCount < maxRetries
       if (canRetry) {
-        const delay = TRANSIENT_RETRY_DELAYS_MS[Math.min(retryCount, TRANSIENT_RETRY_DELAYS_MS.length - 1)]
+        const delays = normalizedOptions.retryDelaysMs || TRANSIENT_RETRY_DELAYS_MS
+        const delay = delays[Math.min(retryCount, delays.length - 1)]
+        if (startupTraceEnabled(normalizedOptions.startupTrace)) {
+          console.info(`[YECHIM startup] ${tracePath(path)} retry ${retryCount + 1} in ${delay}ms reason=${error?.code || error?.status || 'network'}`)
+        }
         await new Promise((resolve) => window.setTimeout(resolve, delay))
-        return request(path, { ...normalizedOptions, retryCount: retryCount + 1 })
+        return request(path, { ...normalizedOptions, retryCount: retryCount + 1, attempt: retryCount + 2 })
       }
       throw error
     }

@@ -264,6 +264,12 @@ body {
   color: v.$color-text-muted;
 }
 
+.route-recovery {
+  @include m.flex(center, center);
+  min-height: 320px;
+  width: 100%;
+}
+
 .startup-state__card {
   width: min(420px, calc(100vw - 32px));
   padding: v.$space-6;
