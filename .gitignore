@@ -26,3 +26,6 @@ Thumbs.db
 # Prisma/local db if applicable
 *.db
 *.db-journal
+
+# Backend is a separate nested repository (yechim-backend).
+/backend/
