@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { useEmployee } from '../employees.hooks'
 import { employeesService } from '../../../services/employees.service'
+import { customerGroupsService } from '../../../services/customers.service'
 import { analyticsService } from '../../../services/analytics.service'
 import { EmployeeForm } from '../components/EmployeeForm'
 import { EmployeeStatusBadge } from '../components/EmployeeStatusBadge'
@@ -12,10 +14,10 @@ import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
 import { Modal } from '../../../components/Modal/Modal'
 import { FormField } from '../../../components/FormField/FormField'
+import { Input } from '../../../components/Input/Input'
 import { PasswordInput } from '../../../components/PasswordInput/PasswordInput'
 import { RelatedList } from '../../../components/RelatedList/RelatedList'
 import { StatCard } from '../../../components/charts/StatCard'
-import { PermissionGate } from '../../roles/PermissionGate'
 import { PermissionMatrix } from '../../roles/components/PermissionMatrix'
 import { useAsync } from '../../../hooks/useAsync'
 import { useAction } from '../../../hooks/useAction'
@@ -65,16 +67,37 @@ function PerformanceSection({ employeeId }) {
   )
 }
 
+function PartnerRewardSection({ groupId }) {
+  const period = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`
+  const { data, loading, error } = useAsync(() => customerGroupsService.partnerSummary(groupId, { period }), [groupId, period])
+  if (error) return <Alert variant="danger" title="Partner hisobotini yuklab bo'lmadi">{error.message}</Alert>
+  if (loading || !data) return null
+  return (
+    <Card title={`Partner mukofoti — ${data.period}`}>
+      <div className="detail-grid">
+        <div className="detail-field"><div className="detail-field__label">Yangi mijozlar</div><div className="detail-field__value">{data.newCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">Yakunlanganlar</div><div className="detail-field__value">{data.completedCustomers}</div></div>
+        <div className="detail-field"><div className="detail-field__label">To'lanadigan summa</div><div className="detail-field__value">${Number(data.payableAmount || 0).toLocaleString('en-US')}</div></div>
+      </div>
+      {data.history?.length > 0 && <div className="stack" style={{ marginTop: 16 }}>{data.history.slice(0, 6).map((item) => <span key={item.period} className="text-muted text-xs">{item.period}: {item.completedCustomers} ta — ${Number(item.payableAmount || 0).toLocaleString('en-US')}</span>)}</div>}
+    </Card>
+  )
+}
+
 function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
   const [permissions, setPermissions] = useState(employee.permissions ?? [])
-  const updateAction = useAction((payload) => employeesService.update(employee.id, payload))
+  const updateAction = useAction((nextPermissions) => employeesService.updatePermissions(employee.id, nextPermissions))
   const toast = useToast()
+
+  useEffect(() => {
+    if (isOpen) setPermissions(employee.permissions ?? [])
+  }, [employee.id, employee.permissions, isOpen])
 
   const handleSave = async () => {
     try {
-      await updateAction.run({ permissions })
+      await updateAction.run(permissions)
       toast.success('Ruxsatlar yangilandi')
-      onSaved()
+      await onSaved()
     } catch (err) {
       toast.error(err.message || 'Ruxsatlarni saqlashda xatolik yuz berdi')
     }
@@ -100,27 +123,28 @@ function ManagePermissionsModal({ employee, isOpen, onClose, onSaved }) {
   )
 }
 
-function UpdatePasswordModal({ employeeId, isOpen, onClose, onSaved }) {
-  const [values, setValues] = useState({ password: '', confirmPassword: '' })
+function UpdatePasswordModal({ employeeId, username: initialUsername, isOpen, onClose, onSaved }) {
+  const [values, setValues] = useState({ username: initialUsername || '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
-  const updateAction = useAction((payload) => employeesService.update(employeeId, payload))
+  const updateAction = useAction((payload) => employeesService.updateCredentials(employeeId, payload))
   const toast = useToast()
 
   const handleChange = (field) => (event) => setValues((v) => ({ ...v, [field]: event.target.value }))
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const nextErrors = validate(values, { password: [rules.required('Yangi parol kiritilishi shart')] })
-    if (!nextErrors.password && values.password !== values.confirmPassword) {
+    const nextErrors = validate(values, { username: [rules.required('Login kiritilishi shart')] })
+    if (values.password && values.password.length < 6) nextErrors.password = 'Parol kamida 6 belgidan iborat bo\'lishi kerak'
+    if (values.password && values.password !== values.confirmPassword) {
       nextErrors.confirmPassword = 'Parollar mos kelmadi'
     }
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     try {
-      await updateAction.run({ password: values.password })
-      toast.success('Parol yangilandi')
-      setValues({ password: '', confirmPassword: '' })
+      await updateAction.run({ username: values.username.trim(), ...(values.password ? { newPassword: values.password } : {}) })
+      toast.success(values.password ? 'Login va parol yangilandi' : 'Login yangilandi')
+      setValues({ username: initialUsername || '', password: '', confirmPassword: '' })
       onSaved()
     } catch (err) {
       toast.error(err.message || 'Parolni yangilashda xatolik yuz berdi')
@@ -128,9 +152,12 @@ function UpdatePasswordModal({ employeeId, isOpen, onClose, onSaved }) {
   }
 
   return (
-    <Modal open={isOpen} title="Parolni yangilash" onClose={onClose}>
+    <Modal open={isOpen} title="Login / parolni boshqarish" onClose={onClose}>
       <form onSubmit={handleSubmit} noValidate>
-        <FormField label="Yangi parol" required error={errors.password}>
+        <FormField label="Login" required error={errors.username}>
+          <Input value={values.username} onChange={handleChange('username')} error={!!errors.username} disabled={updateAction.loading} />
+        </FormField>
+        <FormField label="Yangi parol" hint="Ixtiyoriy — reset qilish uchun kiriting" error={errors.password}>
           <PasswordInput value={values.password} onChange={handleChange('password')} error={!!errors.password} disabled={updateAction.loading} />
         </FormField>
         <FormField label="Parolni tasdiqlash" error={errors.confirmPassword}>
@@ -160,23 +187,29 @@ export function EmployeeDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isEditing = searchParams.get('edit') === '1'
   const toast = useToast()
+  const { user } = useAuth()
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
   const confirm = useConfirm()
   const permissionsModal = useDisclosure()
   const passwordModal = useDisclosure()
 
   const { data: employee, loading, error, refetch } = useEmployee(id)
+  const { data: partnerGroupsData } = useAsync(() => (isAdmin ? customerGroupsService.list({ pageSize: 100 }) : Promise.resolve({ items: [] })), [isAdmin])
   const updateAction = useAction((values) => employeesService.update(id, values))
+  const permissionsAction = useAction((permissions) => employeesService.updatePermissions(id, permissions))
+  const deleteAction = useAction(() => employeesService.remove(id))
   const toggleStatusAction = useAction((payload) =>
     payload.status === 'active' ? employeesService.activate(id) : employeesService.deactivate(id)
   )
-  const [teams] = useState([])
 
   const handleUpdate = async (values) => {
     try {
-      await updateAction.run(values)
+      const { permissions, ...profileValues } = values
+      await updateAction.run(profileValues)
+      if (isAdmin && Array.isArray(permissions)) await permissionsAction.run(permissions)
       toast.success('Ma’lumotlar yangilandi')
       setSearchParams({})
-      refetch()
+      await refetch()
     } catch (err) {
       toast.error(err.message || 'Yangilashda xatolik yuz berdi')
     }
@@ -197,6 +230,23 @@ export function EmployeeDetailPage() {
       refetch()
     } catch (err) {
       toast.error(err.message || 'Holatni yangilashda xatolik yuz berdi')
+    }
+  }
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Xodimni butunlay o\'chirish',
+      description: `${employee.name} o\'chirilsinmi? Bu amalni bekor qilib bo\'lmaydi.`,
+      confirmLabel: 'Butunlay o\'chirish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAction.run()
+      toast.success('Xodim butunlay o\'chirildi')
+      navigate('/admin/employees')
+    } catch (err) {
+      toast.error(err.message || 'Xodimni o\'chirishda xatolik yuz berdi')
     }
   }
 
@@ -231,13 +281,17 @@ export function EmployeeDetailPage() {
           <Button variant="secondary" onClick={() => navigate('/admin/employees')}>
             Ortga
           </Button>
-          <PermissionGate permission="employees.edit">
+          {isAdmin && (
             <Button variant="secondary" onClick={passwordModal.open}>
-              Parolni yangilash
+              Login / parol
             </Button>
+          )}
+          {isAdmin && (
             <Button variant="secondary" onClick={permissionsModal.open}>
               Ruxsatlarni boshqarish
             </Button>
+          )}
+          {isAdmin && (
             <Button
               variant={employee.status === 'active' ? 'danger-ghost' : 'secondary'}
               loading={toggleStatusAction.loading}
@@ -245,8 +299,15 @@ export function EmployeeDetailPage() {
             >
               {employee.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}
             </Button>
+          )}
+          {isAdmin && (
+            <Button variant="danger-ghost" loading={deleteAction.loading} onClick={handleDelete}>
+              Butunlay o'chirish
+            </Button>
+          )}
+          {isAdmin && (
             <Button onClick={() => setSearchParams({ edit: '1' })}>Tahrirlash</Button>
-          </PermissionGate>
+          )}
         </div>
       </div>
 
@@ -254,9 +315,10 @@ export function EmployeeDetailPage() {
         <Card title="Ma'lumotlarni tahrirlash">
           <EmployeeForm
             initialValues={employee}
-            teams={teams}
+            partnerGroups={partnerGroupsData?.items ?? []}
+            canManageAccess={isAdmin}
             submitLabel="Saqlash"
-            loading={updateAction.loading}
+            loading={updateAction.loading || permissionsAction.loading}
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
           />
@@ -281,6 +343,10 @@ export function EmployeeDetailPage() {
               <div className="detail-field__value">{employee.team?.name || '—'}</div>
             </div>
             <div className="detail-field">
+              <div className="detail-field__label">Partner guruhi</div>
+              <div className="detail-field__value">{employee.partnerGroup?.name || '—'}</div>
+            </div>
+            <div className="detail-field">
               <div className="detail-field__label">Qo‘shilgan sana</div>
               <div className="detail-field__value">{formatDate(employee.createdAt)}</div>
             </div>
@@ -291,6 +357,8 @@ export function EmployeeDetailPage() {
       <Card title="Ruxsatlar">
         <PermissionMatrix value={employee.permissions ?? []} />
       </Card>
+
+      {employee.partnerGroupId && <PartnerRewardSection groupId={employee.partnerGroupId} />}
 
       <PerformanceSection employeeId={id} />
 
@@ -332,16 +400,17 @@ export function EmployeeDetailPage() {
         employee={employee}
         isOpen={permissionsModal.isOpen}
         onClose={permissionsModal.close}
-        onSaved={() => {
+        onSaved={async () => {
           permissionsModal.close()
-          refetch()
+          await refetch()
         }}
       />
       <UpdatePasswordModal
         employeeId={id}
+        username={employee.username}
         isOpen={passwordModal.isOpen}
         onClose={passwordModal.close}
-        onSaved={() => passwordModal.close()}
+        onSaved={() => { passwordModal.close(); refetch() }}
       />
     </div>
   )

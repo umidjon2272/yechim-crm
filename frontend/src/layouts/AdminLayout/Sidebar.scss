@@ -152,6 +152,10 @@
     flex-shrink: 0;
   }
 
+  &__account {
+    margin-bottom: v.$space-2;
+  }
+
   &__collapse-btn {
     @include m.flex(center, center);
     width: 100%;
@@ -170,6 +174,7 @@
     position: fixed;
     left: 0;
     top: 0;
+    width: min(v.$sidebar-width, calc(100vw - 32px));
     height: calc(100vh - #{v.$sidebar-margin * 2});
     z-index: v.$z-sidebar-mobile;
     transform: translateX(-120%);

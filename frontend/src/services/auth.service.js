@@ -1,12 +1,21 @@
 import { httpClient } from '../api/httpClient'
 import { AUTH } from '../api/endpoints'
 
-/**
- * Backend is expected to set an httpOnly session cookie on login — the
- * frontend never receives or stores the raw token.
- */
+// Auth tokens are returned by the backend and persisted by AuthContext. This
+// service only transports them; the current user is always resolved by /me.
 export const authService = {
-  login: (credentials) => httpClient.post(AUTH.LOGIN, credentials),
-  logout: () => httpClient.post(AUTH.LOGOUT),
-  getCurrentUser: (options) => httpClient.get(AUTH.ME, options),
+  login: (credentials) => httpClient.post(AUTH.LOGIN, credentials, { skipAuth: true, skipRefresh: true }),
+  logout: (tokens = {}) =>
+    httpClient.post(
+      AUTH.LOGOUT,
+      { refreshToken: tokens.refreshToken },
+      { accessToken: tokens.accessToken || null, skipAuth: !tokens.accessToken, skipRefresh: true },
+    ),
+  getCurrentUser: (options = {}) => httpClient.get(AUTH.ME, {
+    startupTrace: true,
+    maxRetries: 2,
+    retryDelaysMs: [1000, 2000],
+    ...options,
+  }),
+  changePassword: (payload) => httpClient.post('/auth/change-password', payload),
 }

@@ -2,22 +2,11 @@ import { useCallback, useState } from 'react'
 import { useAsync } from '../../hooks/useAsync'
 import { customersService } from '../../services/customers.service'
 
-const VIEW_STORAGE_KEY = 'bold-yechim-customers-view'
-const VALID_VIEWS = ['list', 'kanban']
 const KANBAN_PAGE_SIZE = 200
+const EMPTY_CUSTOMERS = []
 
-function loadStoredView() {
-  if (typeof window !== 'undefined' && window.innerWidth <= 700) return 'kanban'
-  try {
-    const stored = localStorage.getItem(VIEW_STORAGE_KEY)
-    return VALID_VIEWS.includes(stored) ? stored : 'kanban'
-  } catch {
-    return 'kanban'
-  }
-}
-
-export function useCustomers() {
-  const [view, setViewState] = useState(loadStoredView)
+export function useCustomers({ isMobile = false, mobileStageId = 'NEW' } = {}) {
+  const [view, setViewState] = useState('kanban')
   const [params, setParams] = useState({
     page: 1,
     pageSize: 10,
@@ -26,7 +15,6 @@ export function useCustomers() {
     stage: '',
     assignedEmployeeId: '',
     city: '',
-    program: '',
     groupId: '',
     installationStatus: '',
     createdFrom: '',
@@ -40,7 +28,7 @@ export function useCustomers() {
     () => (view !== 'kanban' ? customersService.list(params) : Promise.resolve(null)),
     [
       view, params.page, params.pageSize, params.search, params.status, params.stage, params.assignedEmployeeId,
-      params.city, params.program, params.groupId, params.installationStatus,
+      params.city, params.groupId, params.installationStatus,
       params.createdFrom, params.createdTo, params.sort,
     ]
   )
@@ -51,26 +39,23 @@ export function useCustomers() {
         status: params.status,
         assignedEmployeeId: params.assignedEmployeeId,
         city: params.city,
-        program: params.program,
         groupId: params.groupId,
         installationStatus: params.installationStatus,
         createdFrom: params.createdFrom,
         createdTo: params.createdTo,
         sort: params.sort,
+        stage: isMobile ? mobileStageId : params.stage,
       }
-      return view === 'kanban' ? loadKanbanCustomers(kanbanParams) : Promise.resolve(null)
+      if (view !== 'kanban') return Promise.resolve(null)
+      if (isMobile) return customersService.list({ ...kanbanParams, page: 1, pageSize: 50 })
+      return loadKanbanCustomers(kanbanParams)
     },
-    [view, params.search, params.status, params.assignedEmployeeId, params.city, params.program, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
+    [view, isMobile, mobileStageId, params.search, params.status, params.stage, params.assignedEmployeeId, params.city, params.groupId, params.installationStatus, params.createdFrom, params.createdTo, params.sort]
   )
   const active = view === 'kanban' ? kanbanQuery : listQuery
 
   const setView = useCallback((next) => {
     setViewState(next)
-    try {
-      localStorage.setItem(VIEW_STORAGE_KEY, next)
-    } catch {
-      // Storage unavailable — the choice just won't persist across reloads.
-    }
   }, [])
 
   const setSearch = useCallback((search) => setParams((p) => ({ ...p, search, page: 1 })), [])
@@ -78,7 +63,6 @@ export function useCustomers() {
   const setStage = useCallback((stage) => setParams((p) => ({ ...p, stage, page: 1 })), [])
   const setAssignedEmployeeId = useCallback((assignedEmployeeId) => setParams((p) => ({ ...p, assignedEmployeeId, page: 1 })), [])
   const setCity = useCallback((city) => setParams((p) => ({ ...p, city, page: 1 })), [])
-  const setProgram = useCallback((program) => setParams((p) => ({ ...p, program, page: 1 })), [])
   const setGroupId = useCallback((groupId) => setParams((p) => ({ ...p, groupId, page: 1 })), [])
   const setInstallationStatus = useCallback((installationStatus) => setParams((p) => ({ ...p, installationStatus, page: 1 })), [])
   const setCreatedFrom = useCallback((createdFrom) => setParams((p) => ({ ...p, createdFrom, page: 1 })), [])
@@ -89,7 +73,10 @@ export function useCustomers() {
   return {
     view,
     setView,
-    customers: active.data?.items ?? [],
+    // Keep the empty value referentially stable. A fresh [] on every render
+    // makes consumers that reconcile selection in an effect update forever
+    // while the first request is still loading.
+    customers: active.data?.items ?? EMPTY_CUSTOMERS,
     total: listQuery.data?.total ?? 0,
     params,
     setSearch,
@@ -97,7 +84,6 @@ export function useCustomers() {
     setStage,
     setAssignedEmployeeId,
     setCity,
-    setProgram,
     setGroupId,
     setInstallationStatus,
     setCreatedFrom,
@@ -126,5 +112,12 @@ async function loadKanbanCustomers(params) {
 }
 
 export function useCustomer(id) {
-  return useAsync(() => customersService.get(id), [id])
+  return useAsync(() => {
+    if (!id) {
+      const error = new Error('Mijoz ID topilmadi')
+      error.status = 400
+      return Promise.reject(error)
+    }
+    return customersService.get(id)
+  }, [id])
 }

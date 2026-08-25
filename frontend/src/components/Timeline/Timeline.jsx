@@ -4,10 +4,16 @@ import { InboxIcon } from '../icons/Icons'
 import './Timeline.scss'
 
 const TYPE_LABELS = {
+  ASSIGNED_CHANGED: 'Mas\'ul xodim o\'zgardi',
+  AMOUNT_CHANGED: 'Summa o\'zgardi',
+  DEPOSIT_CHANGED: 'Zaklad o\'zgardi',
+  REMINDER_CREATED: 'Eslatma rejalashtirildi',
+  REMINDER_COMPLETED: 'Eslatma bajarildi',
+  TASK_CREATED: 'Vazifa yaratildi',
   CALL: 'Qo‘ng‘iroq',
   MEETING: 'Uchrashuv',
   DEMO: 'Demo',
-  NOTE: 'Izoh',
+  NOTE: 'Izoh qo\'shildi',
   // Synthesized cross-entity history events (see features/timeline) — not
   // logged manually like the types above, they're derived from other
   // records (lead/deal/quotation/payment/installation/task state).

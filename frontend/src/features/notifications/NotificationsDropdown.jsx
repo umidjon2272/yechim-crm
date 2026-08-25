@@ -1,22 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { Dropdown, DropdownLabel, DropdownDivider } from '../../components/Dropdown/Dropdown'
-import { EmptyState } from '../../components/EmptyState/EmptyState'
 import { classNames } from '../../utils/classNames'
 import { formatDateTime } from '../../utils/formatDate'
 import { BellIcon, InboxIcon, UserIcon, BuildingIcon, DashboardIcon, TeamIcon } from '../../components/icons/Icons'
 import { useNotifications } from './NotificationsContext'
+import { getNotificationHref } from './notificationUtils'
 import './NotificationsDropdown.scss'
-
-const ENTITY_ROUTES = {
-  customer: '/admin/crm/customers',
-  business: '/admin/crm/businesses',
-  lead: '/admin/crm/leads',
-  deal: '/admin/crm/deals',
-  quotation: '/admin/crm/quotations',
-  payment: '/admin/crm/payments',
-  task: '/admin/crm/tasks',
-  installation: '/admin/crm/installations',
-}
 
 // notification.type is expected to be one of: task/lead/deal/payment/
 // installation/follow-up (see spec §14) — matched by prefix so the backend
@@ -42,11 +31,9 @@ export function NotificationsDropdown() {
   const navigate = useNavigate()
 
   const handleClick = (notification) => {
-    if (!notification.read) markRead(notification.id)
-    const basePath = ENTITY_ROUTES[notification.relatedEntityType]
-    if (basePath && notification.relatedEntityId) {
-      navigate(`${basePath}/${notification.relatedEntityId}`)
-    }
+    if (!notification.isRead) markRead(notification.id)
+    const href = getNotificationHref(notification)
+    if (href) navigate(href)
   }
 
   return (
@@ -54,7 +41,7 @@ export function NotificationsDropdown() {
       trigger={(toggle, isOpen) => (
         <button type="button" className="header__icon-btn" onClick={toggle} aria-expanded={isOpen} aria-label="Bildirishnomalar">
           <BellIcon />
-          {unreadCount > 0 && <span className="header__notification-dot" />}
+          {unreadCount > 0 && <span className="header__notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
         </button>
       )}
     >
@@ -63,14 +50,14 @@ export function NotificationsDropdown() {
           Bildirishnomalar {unreadCount > 0 && `(${unreadCount})`}
         </DropdownLabel>
         {notifications.length === 0 ? (
-          <EmptyState compact icon={<InboxIcon width={18} height={18} />} title="Bildirishnoma yo‘q" />
+          <div className="notifications-dropdown__empty">Yangi bildirishnoma yo‘q</div>
         ) : (
           <ul className="notifications-dropdown__list">
             {notifications.map((notification) => (
               <li key={notification.id}>
                 <button
                   type="button"
-                  className={classNames('notifications-dropdown__item', !notification.read && 'notifications-dropdown__item--unread')}
+                  className={classNames('notifications-dropdown__item', !notification.isRead && 'notifications-dropdown__item--unread', notification.isOverdue && 'notifications-dropdown__item--overdue')}
                   onClick={() => handleClick(notification)}
                 >
                   <span className="notifications-dropdown__icon">
@@ -94,6 +81,8 @@ export function NotificationsDropdown() {
             </button>
           </>
         )}
+        <DropdownDivider />
+        <button type="button" className="dropdown__item" onClick={() => navigate('/admin/notifications')}>Barcha bildirishnomalar</button>
       </div>
     </Dropdown>
   )

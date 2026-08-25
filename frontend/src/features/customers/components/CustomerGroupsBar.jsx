@@ -12,27 +12,25 @@ import { classNames } from '../../../utils/classNames'
 import { MoreIcon } from '../../../components/icons/Icons'
 import './CustomerGroupsBar.scss'
 
-// Papka-style tags: a customer can belong to any number of groups
-// (customer.groupIds), admin manages the group list itself right here —
-// no separate Settings page, this is a Mijozlar-page-local concept.
-export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
+export function CustomerGroupsBar({ activeGroupId, onSelectGroup, showAllCustomers = true, canCreate = true, canEdit = true, canDelete = true }) {
   const { data, loading, refetch } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
   const [editingGroup, setEditingGroup] = useState(null)
   const groupModal = useDisclosure()
   const confirm = useConfirm()
   const toast = useToast()
+  const [removedGroupIds, setRemovedGroupIds] = useState(() => new Set())
 
   const saveAction = useAction((values) =>
-    editingGroup ? customerGroupsService.update(editingGroup.id, values) : customerGroupsService.create(values)
+    editingGroup ? customerGroupsService.update(editingGroup.id, values) : customerGroupsService.create(values),
   )
   const deleteAction = useAction((id) => customerGroupsService.remove(id))
-
-  const groups = data?.items ?? []
+  const groups = (data?.items ?? []).filter((group) => !removedGroupIds.has(group.id))
 
   const openCreate = () => {
     setEditingGroup(null)
     groupModal.open()
   }
+
   const openEdit = (group) => {
     setEditingGroup(group)
     groupModal.open()
@@ -51,19 +49,20 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
 
   const handleDelete = async (group) => {
     const ok = await confirm({
-      title: 'Guruhni o‘chirish',
-      description: `"${group.name}" guruhini o‘chirmoqchimisiz? Mijozlar guruhdan chiqariladi, lekin o‘chirilmaydi.`,
-      confirmLabel: 'O‘chirish',
+      title: "Guruhni o'chirish",
+      description: `"${group.name}" guruhini o'chirmoqchimisiz? Mijozlar guruhdan chiqariladi, lekin o'chirilmaydi.`,
+      confirmLabel: "O'chirish",
       danger: true,
     })
     if (!ok) return
     try {
       await deleteAction.run(group.id)
-      toast.success('Guruh o‘chirildi')
-      if (activeGroupId === group.id) onSelectGroup('')
+      setRemovedGroupIds((current) => new Set(current).add(group.id))
+      toast.success("Guruh o'chirildi")
+      if (activeGroupId === group.id) onSelectGroup('', null)
       refetch()
     } catch (err) {
-      toast.error(err.message || 'Guruhni o‘chirishda xatolik yuz berdi')
+      toast.error(err.message || "Guruhni o'chirishda xatolik yuz berdi")
     }
   }
 
@@ -71,39 +70,41 @@ export function CustomerGroupsBar({ activeGroupId, onSelectGroup }) {
 
   return (
     <div className="customer-groups-bar">
-      <button
+      {showAllCustomers && <button
         type="button"
         className={classNames('customer-groups-bar__chip', !activeGroupId && 'customer-groups-bar__chip--active')}
-        onClick={() => onSelectGroup('')}
+        onClick={() => onSelectGroup('', null)}
       >
         Barcha mijozlar
-      </button>
+      </button>}
       {groups.map((group) => (
         <div key={group.id} className={classNames('customer-groups-bar__chip', activeGroupId === group.id && 'customer-groups-bar__chip--active')}>
-          <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id)}>
+          <button type="button" className="customer-groups-bar__chip-label" onClick={() => onSelectGroup(group.id, group)}>
             {group.name}
           </button>
-          <Dropdown
-            trigger={(toggle) => (
-              <button type="button" className="customer-groups-bar__chip-menu" onClick={toggle} aria-label="Guruh amallari">
-                <MoreIcon width={12} height={12} />
-              </button>
-            )}
-          >
-            <DropdownItem onClick={() => openEdit(group)}>Nomini o‘zgartirish</DropdownItem>
-            <DropdownItem danger onClick={() => handleDelete(group)}>
-              O‘chirish
-            </DropdownItem>
-          </Dropdown>
+          {(canEdit || canDelete) && (
+            <Dropdown
+              trigger={(toggle) => (
+                <button type="button" className="customer-groups-bar__chip-menu" onClick={toggle} aria-label="Guruh amallari">
+                  <MoreIcon width={12} height={12} />
+                </button>
+              )}
+            >
+              {canEdit && <DropdownItem onClick={() => openEdit(group)}>Nomini o'zgartirish</DropdownItem>}
+              {canDelete && <DropdownItem danger onClick={() => handleDelete(group)}>O'chirish</DropdownItem>}
+            </Dropdown>
+          )}
         </div>
       ))}
-      <button type="button" className="customer-groups-bar__add" onClick={openCreate}>
-        + Guruh yaratish
-      </button>
+      {canCreate && (
+        <button type="button" className="customer-groups-bar__add" onClick={openCreate}>
+          + Guruh yaratish
+        </button>
+      )}
 
       <Modal open={groupModal.isOpen} title={editingGroup ? 'Guruhni tahrirlash' : 'Yangi guruh'} onClose={groupModal.close}>
         <CustomerGroupForm
-          initialValues={editingGroup ? { name: editingGroup.name } : undefined}
+          initialValues={editingGroup ? { name: editingGroup.name, partnerRewardPerCustomer: editingGroup.partnerRewardPerCustomer ?? '', rewardStageId: editingGroup.rewardStageId || '' } : undefined}
           submitLabel={editingGroup ? 'Saqlash' : 'Yaratish'}
           loading={saveAction.loading}
           onSubmit={handleSave}

@@ -10,6 +10,7 @@ export const AUTH = {
 
 export const USERS = {
   ME: '/users/me',
+  ME_LOGIN: '/users/me/login',
 }
 
 export const EMPLOYEES = {
@@ -17,6 +18,10 @@ export const EMPLOYEES = {
   DETAIL: (id) => `/employees/${id}`,
   CREATE: '/employees',
   UPDATE: (id) => `/employees/${id}`,
+  PERMISSIONS: (id) => `/employees/${id}/permissions`,
+  DELETE: (id) => `/employees/${id}`,
+  RESET_PASSWORD: (id) => `/employees/${id}/password-reset`,
+  CREDENTIALS: (id) => `/employees/${id}/credentials`,
   ACTIVATE: (id) => `/employees/${id}/activate`,
   DEACTIVATE: (id) => `/employees/${id}/deactivate`,
   ASSIGNED_TASKS: (id) => `/employees/${id}/tasks`,
@@ -53,6 +58,7 @@ export const CUSTOMERS = {
   CREATE: '/customers',
   UPDATE: (id) => `/customers/${id}`,
   DEACTIVATE: (id) => `/customers/${id}/deactivate`,
+  DELETE: (id) => `/customers/${id}`,
   // Distinct filter option sets (city, dastur/program) for the customer hub's
   // filter row — cheap to compute from existing records, no separate catalog.
   FILTER_OPTIONS: '/meta/customer-options',
@@ -63,6 +69,8 @@ export const CUSTOMERS = {
   STAGE_UPDATE: (id) => `/customers/${id}/stage`,
   STAGES: '/meta/customer-stages',
   STAGE_DETAIL: (id) => `/meta/customer-stages/${id}`,
+  STAGE_DELETE: (id) => `/stages/${id}`,
+  STAGE_REORDER: '/stages/reorder',
 }
 
 export const CUSTOMER_GROUPS = {
@@ -71,6 +79,18 @@ export const CUSTOMER_GROUPS = {
   CREATE: '/customer-groups',
   UPDATE: (id) => `/customer-groups/${id}`,
   DELETE: (id) => `/customer-groups/${id}`,
+  PARTNER_SUMMARY: (id) => `/customer-groups/${id}/partner-summary`,
+}
+
+export const BUSINESS_TYPES = {
+  LIST: '/business-types',
+  CREATE: '/business-types',
+  DELETE: (id) => `/business-types/${id}`,
+}
+
+export const PARTNERS = {
+  ME_CUSTOMERS: '/partners/me/customers',
+  ME_STATISTICS: '/partners/me/statistics',
 }
 
 export const CUSTOMER_FIELD_DEFS = {
@@ -145,17 +165,14 @@ export const TASKS = {
   DETAIL: (id) => `/tasks/${id}`,
   CREATE: '/tasks',
   UPDATE: (id) => `/tasks/${id}`,
+  CANCEL: (id) => `/tasks/${id}/cancel`,
+  DELETE: (id) => `/tasks/${id}`,
 }
 
 export const ACTIVITIES = {
   LIST: '/activities',
   DETAIL: (id) => `/activities/${id}`,
   CREATE: '/activities',
-}
-
-export const REMINDERS = {
-  LIST: '/reminders',
-  CREATE: '/reminders',
 }
 
 export const INSTALLATIONS = {
@@ -186,7 +203,23 @@ export const NOTIFICATIONS = {
   LIST: '/notifications',
   UNREAD_COUNT: '/notifications/unread-count',
   MARK_READ: (id) => `/notifications/${id}/read`,
-  MARK_ALL_READ: '/notifications/mark-all-read',
+  MARK_ALL_READ: '/notifications/read-all',
+}
+
+export const REMINDERS = {
+  LIST: '/reminders',
+  TODAY: '/reminders/today',
+  OVERDUE: '/reminders/overdue',
+  CREATE: '/reminders',
+  COMPLETE: (id) => `/reminders/${id}/complete`,
+  CANCEL: (id) => `/reminders/${id}/cancel`,
+  TODAY_WORK: '/reminders/work/today',
+}
+
+export const CURRENCIES = {
+  LIST: '/currencies',
+  CREATE: '/currencies',
+  UPDATE: (id) => `/currencies/${id}`,
 }
 
 export const SEARCH = {

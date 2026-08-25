@@ -12,7 +12,7 @@ import { INSTALLATION_STATUS_LABELS, INSTALLATION_STATUS_BADGE_VARIANTS } from '
 // workspace as an overlay over this same list, Bitrix-style. "Tahrirlash"
 // lives inside the workspace itself once it's open, not as a separate entry
 // point here.
-export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, selectedIds = [], onSelect, onSelectAll, onDeactivate, onOpen }) {
+export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, selectedIds = [], onSelect, onSelectAll, onDeactivate, onOpen, partner = false }) {
   const selectedSet = new Set(selectedIds)
   const allVisibleSelected = customers.length > 0 && customers.every((customer) => selectedSet.has(customer.id))
   const columns = [
@@ -58,8 +58,23 @@ export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, 
     },
     {
       key: 'stage',
-      header: 'Status',
+      header: 'Voronka',
       render: (row) => <Badge variant={CUSTOMER_STAGE_BADGE_VARIANTS[row.stage] || 'gray'}>{stageLabels[row.stage] || row.stage}</Badge>,
+    },
+    {
+      key: 'completed',
+      header: 'Jarayon',
+      render: (row) => <Badge variant={row.isCompleted ? 'success' : row.stage === 'NEW' ? 'gray' : 'info'}>{row.isCompleted ? 'Yakunlangan' : row.stage === 'NEW' ? 'Yangi' : 'Jarayonda'}</Badge>,
+    },
+    {
+      key: 'installed',
+      header: 'O‘rnatish',
+      render: (row) => <Badge variant={row.isInstalled ? 'success' : 'gray'}>{row.isInstalled ? 'O‘rnatildi' : 'O‘rnatilmadi'}</Badge>,
+    },
+    {
+      key: 'rewardAmount',
+      header: 'Hisoblangan haq',
+      render: (row) => row.rewardAmount ? `$${Number(row.rewardAmount).toLocaleString('en-US')}` : '$0',
     },
     {
       key: 'paymentStatus',
@@ -110,5 +125,6 @@ export function CustomerTable({ customers, stageLabels = CUSTOMER_STAGE_LABELS, 
     },
   ]
 
-  return <Table columns={columns} data={customers} onRowClick={(row) => onOpen(row.id)} />
+  const visibleColumns = partner ? columns.filter((column) => ['name', 'phone', 'stage', 'completed', 'installed', 'rewardAmount'].includes(column.key)) : columns
+  return <Table columns={visibleColumns} data={customers} onRowClick={(row) => onOpen(row.id)} />
 }

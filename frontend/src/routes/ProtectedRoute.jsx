@@ -6,7 +6,11 @@ export function ProtectedRoute() {
   const { isChecking, isStartupError, isAuthenticated } = useAuth()
   const location = useLocation()
 
-  if (isChecking || isStartupError) return <AuthStartupState />
+  if (isChecking || isStartupError) {
+    return (
+      <AuthStartupState />
+    )
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />

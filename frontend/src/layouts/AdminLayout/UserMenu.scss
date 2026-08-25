@@ -36,4 +36,45 @@
     font-size: v.$font-size-xs;
     color: v.$color-text-muted;
   }
+
+  &--sidebar {
+    width: 100%;
+    justify-content: flex-start;
+    padding: v.$space-2;
+    border-radius: v.$radius-lg;
+
+    .user-menu-trigger__name {
+      max-width: 132px;
+    }
+  }
+}
+
+.user-menu__identity-name,
+.user-menu__identity-role {
+  display: block;
+}
+
+.user-menu__identity-name {
+  color: v.$color-text-primary;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-semibold;
+}
+
+.user-menu__identity-role {
+  margin-top: 2px;
+  color: v.$color-text-muted;
+  font-size: v.$font-size-xs;
+}
+
+.sidebar--collapsed {
+  .user-menu-trigger--sidebar {
+    justify-content: center;
+    padding-left: v.$space-1;
+    padding-right: v.$space-1;
+
+    .user-menu-trigger__meta,
+    > svg {
+      display: none;
+    }
+  }
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dealsService } from '../../../services/deals.service'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -78,8 +79,7 @@ export function PaymentForm({ deals = [], lockDeal = false, initialValues, submi
       </FormField>
 
       <FormField label="Summa" required error={errors.amount}>
-        <Input
-          type="number"
+        <NumberInput
           min="0"
           max={remaining ?? undefined}
           value={values.amount}

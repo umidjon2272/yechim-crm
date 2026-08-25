@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -125,7 +126,7 @@ export function LeadForm({ initialValues = DEFAULT_VALUES, customers = [], busin
           </Select>
         </FormField>
         <FormField label="Kutilayotgan summa">
-          <Input type="number" min="0" value={values.expectedValue} onChange={handleChange('expectedValue')} disabled={loading} />
+          <NumberInput min="0" value={values.expectedValue} onChange={handleChange('expectedValue')} disabled={loading} />
         </FormField>
       </div>
 

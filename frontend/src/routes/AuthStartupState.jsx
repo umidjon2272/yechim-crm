@@ -23,12 +23,12 @@ export function AuthStartupState() {
 
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false
   const title = isStartupError
-    ? 'Serverga ulanib bo‘lmadi'
+    ? "Serverga ulanib bo'lmaydi"
     : offline
-      ? 'Internet aloqasi yo‘q'
+      ? "Internet aloqasi yo'q"
       : elapsedMs >= 10000
         ? 'Server ishga tushmoqda, biroz kuting...'
-        : 'Server uyg‘onmoqda...'
+        : "Server uyg'onmoqda..."
   const description = isStartupError
     ? 'Avtomatik urinishlar tugadi. Sessiyani qayta tekshirish mumkin.'
     : offline

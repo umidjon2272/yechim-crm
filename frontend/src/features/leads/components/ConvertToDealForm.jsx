@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
+import { NumberInput } from '../../../components/NumberInput/NumberInput'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
 import { validate, rules } from '../../../utils/validators'
@@ -58,7 +59,7 @@ export function ConvertToDealForm({ lead, employees = [], loading, onSubmit, onC
 
       <div className="detail-grid">
         <FormField label="Kutilayotgan summa">
-          <Input type="number" min="0" value={values.expectedValue} onChange={handleChange('expectedValue')} disabled={loading} />
+          <NumberInput min="0" value={values.expectedValue} onChange={handleChange('expectedValue')} disabled={loading} />
         </FormField>
         <FormField label="Mas'ul xodim">
           <Select value={values.assignedEmployeeId} onChange={handleChange('assignedEmployeeId')} disabled={loading}>

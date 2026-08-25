@@ -4,7 +4,9 @@ import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
 import { Select } from '../../../components/Select/Select'
 import { Button } from '../../../components/Button/Button'
+import { DateTimePicker } from '../../../components/DateTimePicker/DateTimePicker'
 import { validate, rules } from '../../../utils/validators'
+import { localDateTimeToISOString } from '../../../utils/dateTime'
 import { INSTALLATION_STATUSES, INSTALLATION_STATUS_LABELS } from '../installations.constants'
 
 const DEFAULT_VALUES = {
@@ -47,7 +49,7 @@ export function InstallationForm({ initialValues = DEFAULT_VALUES, deals = [], e
     })
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
-    onSubmit(values)
+    onSubmit({ ...values, scheduledDate: values.scheduledDate ? localDateTimeToISOString(values.scheduledDate, { defaultHour: 10 }) : null })
   }
 
   return (
@@ -91,7 +93,7 @@ export function InstallationForm({ initialValues = DEFAULT_VALUES, deals = [], e
 
       <div className="detail-grid">
         <FormField label="Rejalashtirilgan sana">
-          <Input type="date" value={values.scheduledDate} onChange={handleChange('scheduledDate')} disabled={loading} />
+          <DateTimePicker value={values.scheduledDate} onChange={handleChange('scheduledDate')} disabled={loading} defaultHour={10} />
         </FormField>
         <FormField label="Holat">
           <Select value={values.status} onChange={handleChange('status')} disabled={loading}>

@@ -23,7 +23,7 @@ import './InstallationsPanel.scss'
 // ham ko'rinadi (task customerId/installationId orqali).
 export function InstallationsPanel({ customerId, deals = [], employees = [], onChanged }) {
   const { data, loading, refetch } = useAsync(() => customersService.getInstallations(customerId), [customerId])
-  const installations = data?.items ?? []
+  const installations = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
 
   const [taskInstallation, setTaskInstallation] = useState(null)
   const installationModal = useDisclosure()

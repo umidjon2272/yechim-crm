@@ -54,4 +54,16 @@
     font-weight: v.$font-weight-medium;
     color: v.$color-text-primary;
   }
+
+  &__section td {
+    padding-top: v.$space-3;
+    padding-bottom: v.$space-1;
+    border-bottom: 0;
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+  }
 }

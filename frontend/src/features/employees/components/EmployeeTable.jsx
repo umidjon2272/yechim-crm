@@ -12,7 +12,7 @@ function formatMoney(value) {
   return `${Number(value || 0).toLocaleString('ru-RU')} so‘m`
 }
 
-export function EmployeeTable({ employees, onToggleStatus }) {
+export function EmployeeTable({ employees, onToggleStatus, onDelete }) {
   const navigate = useNavigate()
 
   const columns = [
@@ -73,6 +73,11 @@ export function EmployeeTable({ employees, onToggleStatus }) {
             <PermissionGate permission="employees.edit">
               <DropdownItem danger={row.status === 'active'} onClick={() => onToggleStatus(row)}>
                 {row.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}
+              </DropdownItem>
+            </PermissionGate>
+            <PermissionGate permission="employees.delete">
+              <DropdownItem danger onClick={() => onDelete?.(row)}>
+                Butunlay o'chirish
               </DropdownItem>
             </PermissionGate>
           </Dropdown>

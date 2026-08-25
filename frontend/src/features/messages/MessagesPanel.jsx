@@ -12,9 +12,8 @@ import { classNames } from '../../utils/classNames'
 import { formatDateTime } from '../../utils/formatDate'
 import './MessagesPanel.scss'
 
-// Frontend-only demo conversation (see api/demoEngine.js's `messages`
-// resource) — same entityId convention as comments/attachments, so wiring a
-// real messenger backend later means swapping the service call, not this UI.
+// Conversation data comes from the authenticated backend API. The panel is
+// intentionally small, but it never creates a local/demo thread.
 // variant="flush" drops the Card chrome/title and fills its parent's height
 // with a sticky composer — used as the Customer Workspace's main column,
 // where chat has to be visible immediately, not one click away.
@@ -33,8 +32,8 @@ export function MessagesPanel({ customerId, variant = 'card' }) {
       setText('')
       refetch()
     } catch {
-      // Non-critical demo panel — the send button's own disabled/loading
-      // state already communicates a failed attempt, no toast needed.
+      // The backend error is surfaced by the shared request layer; keep the
+      // current text so the user can retry after a transient failure.
     }
   }
 

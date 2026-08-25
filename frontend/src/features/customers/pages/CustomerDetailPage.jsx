@@ -6,7 +6,8 @@ import { businessesService } from '../../../services/businesses.service'
 import { employeesService } from '../../../services/employees.service'
 import { paymentsService } from '../../../services/payments.service'
 import { installationsService } from '../../../services/installations.service'
-import { CustomerForm } from '../components/CustomerForm'
+import { CustomerForm, CustomerLocationPreview, formatAddress } from '../components/CustomerForm'
+import { CustomerWorkspace } from '../components/CustomerWorkspace'
 import { ProgramsPanel } from '../components/ProgramsPanel'
 import { CustomerGroupsField } from '../components/CustomerGroupsField'
 import { CUSTOMER_STATUS_LABELS } from '../customers.constants'
@@ -18,11 +19,14 @@ import { Badge } from '../../../components/Badge/Badge'
 import { Button } from '../../../components/Button/Button'
 import { Alert } from '../../../components/Alert/Alert'
 import { Spinner } from '../../../components/Spinner/Spinner'
+import { ErrorBoundary } from '../../../components/ErrorBoundary/ErrorBoundary'
 import { RelatedList } from '../../../components/RelatedList/RelatedList'
 import { Tabs } from '../../../components/Tabs/Tabs'
 import { Modal } from '../../../components/Modal/Modal'
 import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
 import { PermissionGate } from '../../roles/PermissionGate'
+import { usePermissions } from '../../roles/usePermissions'
+import { useAuth } from '../../auth/useAuth'
 import { ActivitiesSection } from '../../activities/ActivitiesSection'
 import { LogCallButton } from '../../activities/components/LogCallButton'
 import { CommentsSection } from '../../comments/CommentsSection'
@@ -30,6 +34,7 @@ import { AttachmentsSection } from '../../attachments/AttachmentsSection'
 import { HistorySection } from '../../timeline/HistorySection'
 import { ScheduleFollowUpButton } from '../../tasks/components/ScheduleFollowUpButton'
 import { MessagesPanel } from '../../messages/MessagesPanel'
+import { CustomerWorkPanel } from '../components/CustomerWorkActions'
 import { PaymentForm } from '../../payments/components/PaymentForm'
 import { InstallationForm } from '../../installations/components/InstallationForm'
 import { useAction } from '../../../hooks/useAction'
@@ -39,6 +44,7 @@ import { useConfirm } from '../../../store/ConfirmContext'
 import { useToast } from '../../../store/ToastContext'
 import { usePermissions } from '../../roles/usePermissions'
 import { formatDate } from '../../../utils/formatDate'
+import { canViewCustomerField, canViewCustomerFinancials } from '../financialPermissions'
 import { MoreIcon, PlusIcon } from '../../../components/icons/Icons'
 import './CustomerDetailPage.scss'
 
@@ -57,6 +63,19 @@ const TABS = [
   { id: 'comments', label: 'Izohlar' },
 ]
 
+const TAB_PERMISSIONS = {
+  programs: 'programs.view',
+  business: 'businesses.view',
+  leads: 'leads.view',
+  deals: 'deals.view',
+  payments: 'payments.view',
+  tasks: 'tasks.view',
+  activities: 'activities.view',
+  installations: 'installations.view',
+  attachments: 'attachments.create',
+  comments: 'comments.view',
+}
+
 export function CustomerDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -65,6 +84,12 @@ export function CustomerDetailPage() {
   const toast = useToast()
   const { can } = usePermissions()
   const confirm = useConfirm()
+  const { can } = usePermissions()
+  const { user } = useAuth()
+  const isPartner = user?.role === 'PARTNER'
+  const canViewFinancials = canViewCustomerFinancials(user)
+  const canViewAmount = canViewCustomerField(user, 'amount')
+  const canViewDeposit = canViewCustomerField(user, 'deposit')
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey((k) => k + 1)
@@ -73,7 +98,7 @@ export function CustomerDetailPage() {
   const updateAction = useAction((values) => customersService.update(id, values))
   const deactivateAction = useAction(() => customersService.deactivate(id))
   const [employees, setEmployees] = useState([])
-  const { data: dealsData } = useAsync(() => customersService.getDeals(id), [id, refreshKey])
+  const { data: dealsData } = useAsync(() => canViewFinancials ? customersService.getDeals(id) : Promise.resolve(null), [id, refreshKey, canViewFinancials])
   const customerDeals = dealsData?.items ?? []
 
   const paymentModal = useDisclosure()
@@ -153,11 +178,13 @@ export function CustomerDetailPage() {
 
   if (error || !customer) {
     return (
-      <Alert variant="danger" title="Mijoz topilmadi">
+      <Alert variant="danger" title={error?.status === 403 ? 'Ruxsat yo‘q' : error?.status === 404 ? 'Mijoz topilmadi' : 'Mijozni ochib bo‘lmadi'}>
         {error?.message || 'Bu mijoz mavjud emas yoki o‘chirilgan.'}
       </Alert>
     )
   }
+
+  return <ErrorBoundary><CustomerWorkspace customerId={id} initialCustomer={customer} onBack={() => navigate('/admin/crm/customers')} startEditing={isEditing} onChanged={() => { refetch(); bump() }} /></ErrorBoundary>
 
   return (
     <div className="stack">
@@ -184,15 +211,15 @@ export function CustomerDetailPage() {
               + Dastur
             </Button>
           </PermissionGate>
-          <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />
-          <LogCallButton context={{ customerId: id }} onCreated={bump} />
-          <Button variant="secondary" onClick={() => setActiveTab('messages')}>
+          {!isPartner && <ScheduleFollowUpButton entityName={customer.name} context={{ customerId: id }} label="+ Vazifa" onCreated={bump} />}
+          {!isPartner && <LogCallButton context={{ customerId: id }} onCreated={bump} />}
+          {!isPartner && <Button variant="secondary" onClick={() => setActiveTab('messages')}>
             Xabar
-          </Button>
+          </Button>}
           <PermissionGate permission="customers.edit">
             <Button onClick={() => setSearchParams({ edit: '1' })}>Tahrirlash</Button>
           </PermissionGate>
-          <Dropdown
+          {!isPartner && <Dropdown
             trigger={(toggle) => (
               <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Boshqa amallar">
                 <MoreIcon width={18} height={18} />
@@ -202,7 +229,7 @@ export function CustomerDetailPage() {
             <PermissionGate permission="customers.delete">
               <DropdownItem onClick={handleDeactivate}>{customer.status === 'active' ? 'Faolsizlantirish' : 'Faollashtirish'}</DropdownItem>
             </PermissionGate>
-          </Dropdown>
+          </Dropdown>}
         </div>
       </div>
 
@@ -215,11 +242,19 @@ export function CustomerDetailPage() {
             loading={updateAction.loading}
             onSubmit={handleUpdate}
             onCancel={() => setSearchParams({})}
+            canManageGroups={can('customers.edit')}
+            canViewFinancials={canViewFinancials}
+            canViewAmount={canViewAmount}
+            canViewDeposit={canViewDeposit}
           />
         </Card>
       ) : (
         <>
-          <Tabs items={TABS} activeId={activeTab} onChange={setActiveTab} />
+          <Tabs items={TABS.filter((tab) => {
+            if (isPartner) return tab.id === 'overview'
+            if (!canViewFinancials && ['deals', 'payments'].includes(tab.id)) return false
+            return !TAB_PERMISSIONS[tab.id] || can(TAB_PERMISSIONS[tab.id])
+          })} activeId={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'overview' && (
             <div className="stack">
@@ -243,11 +278,7 @@ export function CustomerDetailPage() {
                   </div>
                   <div className="detail-field">
                     <div className="detail-field__label">Manzil</div>
-                    <div className="detail-field__value">
-                      {[customer.address?.region, customer.address?.city, customer.address?.district, customer.address?.street, customer.address?.house]
-                        .filter(Boolean)
-                        .join(', ') || '—'}
-                    </div>
+                    <div className="detail-field__value">{formatAddress(customer.address) || '—'}</div>
                   </div>
                   <div className="detail-field">
                     <div className="detail-field__label">Mas'ul xodim</div>
@@ -262,6 +293,7 @@ export function CustomerDetailPage() {
                     <div className="detail-field__value">{formatDate(customer.createdAt)}</div>
                   </div>
                 </div>
+                <CustomerLocationPreview customer={customer} />
                 {customer.notes && (
                   <div className="detail-field" style={{ marginTop: 16 }}>
                     <div className="detail-field__label">Izoh</div>
@@ -269,10 +301,13 @@ export function CustomerDetailPage() {
                   </div>
                 )}
               </Card>
-              <Card title="Guruhlar">
-                <CustomerGroupsField customer={customer} onChanged={refetch} />
-              </Card>
-              <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
+              {!isPartner && <Card title="Guruhlar">
+                <PermissionGate permission="customers.edit"><CustomerGroupsField customer={customer} onChanged={refetch} /></PermissionGate>
+              </Card>}
+              {!isPartner && <CustomerWorkPanel customer={customer} onChanged={() => { refetch(); bump() }} />}
+              <PermissionGate permission="history.view">
+                <HistorySection entityType="customer" entityId={id} title="Mijozning to‘liq tarixi" key={`history-${refreshKey}`} />
+              </PermissionGate>
             </div>
           )}
 

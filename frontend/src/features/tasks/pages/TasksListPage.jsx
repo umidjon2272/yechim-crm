@@ -16,21 +16,33 @@ import { PermissionGate } from '../../roles/PermissionGate'
 import { useAuth } from '../../auth/useAuth'
 import { usePermissions } from '../../roles/usePermissions'
 import { useToast } from '../../../store/ToastContext'
+import { useConfirm } from '../../../store/ConfirmContext'
 import { useAction } from '../../../hooks/useAction'
 import { useDisclosure } from '../../../hooks/useDisclosure'
 import { classNames } from '../../../utils/classNames'
 import { InboxIcon, PlusIcon } from '../../../components/icons/Icons'
 
+function getTaskActionError(error, fallback) {
+  if (error?.status === 401) return 'Sessiya muddati tugagan'
+  if (error?.status === 403) return 'Bu amalni bajarishga ruxsat yo‘q'
+  if (error?.status === 404) return 'Vazifa topilmadi'
+  return fallback
+}
+
 export function TasksListPage() {
   const { tasks, total, params, canViewAll, setStatus, setPriority, setAssignedToMe, setPage, loading, error, refetch } = useTasks()
   const { user } = useAuth()
   const { can } = usePermissions()
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user?.role)
   const { isOpen, open, close } = useDisclosure()
   const [employees, setEmployees] = useState([])
   const toast = useToast()
+  const confirm = useConfirm()
 
   const createAction = useAction(tasksService.create)
   const updateStatusAction = useAction(({ id, status }) => tasksService.update(id, { status }))
+  const cancelAction = useAction((id) => tasksService.cancel(id))
+  const deleteAction = useAction((id) => tasksService.remove(id))
   const [statusLoadingId, setStatusLoadingId] = useState(null)
 
   useEffect(() => {
@@ -45,7 +57,7 @@ export function TasksListPage() {
       await createAction.run(values)
       toast.success('Vazifa qo‘shildi')
       close()
-      refetch()
+      await refetch()
     } catch (err) {
       toast.error(err.message || 'Vazifa qo‘shishda xatolik yuz berdi')
     }
@@ -65,6 +77,40 @@ export function TasksListPage() {
       toast.error(err.message || 'Vazifa holatini yangilashda xatolik yuz berdi')
     } finally {
       setStatusLoadingId(null)
+    }
+  }
+
+  const handleCancel = async (task) => {
+    const ok = await confirm({
+      title: 'Vazifani bekor qilish',
+      description: `“${task.title}” vazifasini bekor qilmoqchimisiz?`,
+      confirmLabel: 'Bekor qilish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await cancelAction.run(task.id)
+      toast.success('Vazifa bekor qilindi')
+      await refetch()
+    } catch (err) {
+      toast.error(getTaskActionError(err, 'Vazifani bekor qilib bo‘lmadi'))
+    }
+  }
+
+  const handleDelete = async (task) => {
+    const ok = await confirm({
+      title: 'Vazifani o‘chirish',
+      description: `“${task.title}” vazifasini butunlay o‘chirmoqchimisiz?`,
+      confirmLabel: 'O‘chirish',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await deleteAction.run(task.id)
+      toast.success('Vazifa o‘chirildi')
+      await refetch()
+    } catch (err) {
+      toast.error(getTaskActionError(err, 'Vazifani o‘chirib bo‘lmadi'))
     }
   }
 
@@ -143,13 +189,15 @@ export function TasksListPage() {
             canEditStatus={canEditTaskStatus}
             getStatusOptions={getStatusOptions}
             statusLoadingId={statusLoadingId}
+            onCancel={isAdmin ? handleCancel : undefined}
+            onDelete={isAdmin ? handleDelete : undefined}
           />
           <Pagination page={params.page} pageSize={params.pageSize} total={total} onPageChange={setPage} />
         </>
       )}
 
       <Modal open={isOpen} title="Yangi vazifa qo‘shish" onClose={close}>
-        <TaskForm employees={employees} submitLabel="Qo‘shish" loading={createAction.loading} onSubmit={handleCreate} onCancel={close} />
+        <TaskForm employees={employees} requireAssignee={canViewAll} submitLabel="Qo‘shish" loading={createAction.loading} onSubmit={handleCreate} onCancel={close} />
       </Modal>
     </div>
   )

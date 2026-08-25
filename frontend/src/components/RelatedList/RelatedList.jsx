@@ -17,7 +17,7 @@ import './RelatedList.scss'
 export function RelatedList({ title, fetcher, deps, renderItem, emptyHint, linkTo, action }) {
   const navigate = useNavigate()
   const { data, loading, error } = useAsync(fetcher, deps)
-  const items = data?.items ?? data ?? []
+  const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
 
   return (
     <Card title={title} actions={action}>

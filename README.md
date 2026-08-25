@@ -1,6 +1,8 @@
-# YECHIM CRM
+# YECHIM CRM Frontend
 
-Monorepo structure for the YECHIM CRM frontend and backend.
+This repository is the frontend source for YECHIM CRM. The canonical backend
+is maintained separately in `umidjon2272/yechim-backend` and is deployed to
+Render from that repository root.
 
 ## Frontend
 
@@ -10,24 +12,16 @@ npm install
 npm run dev
 ```
 
-The frontend is a React + Vite app. By default, API requests go to the Render
-backend at `https://yechim-backend.onrender.com/api`.
-
-## Backend
-
-The production backend is deployed on Render:
-`https://yechim-backend.onrender.com`.
-
-Local mock API, if needed:
-
-```bash
-cd backend/mock-server
-npm install
-npm start
-```
+The frontend is a React + Vite app. API requests go to the canonical Render
+backend at `https://yechim-backend.onrender.com/api` (or `VITE_API_URL`).
 
 ## Deployment notes
 
 - Vercel frontend project: set Root Directory to `frontend`.
-- Render backend service: set Root Directory to `backend`.
-- Legacy Vercel demo API code is kept in `backend/legacy-api` for reference.
+- Render backend service: use the separate `yechim-backend` repository root.
+- In this workspace, `backend/` is a nested clone of `umidjon2272/yechim-backend`.
+  It is ignored by this frontend repository, so backend commits never enter the
+  frontend history.
+- Production frontend authentication uses only the canonical Render API and a
+  validated access/refresh token pair. Backend source is not part of the Vercel
+  frontend build.

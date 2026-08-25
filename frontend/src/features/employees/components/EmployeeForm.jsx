@@ -1,238 +1,146 @@
 import { useState } from 'react'
 import { FormField } from '../../../components/FormField/FormField'
 import { Input } from '../../../components/Input/Input'
-import { PasswordInput } from '../../../components/PasswordInput/PasswordInput'
 import { Select } from '../../../components/Select/Select'
+import { PasswordInput } from '../../../components/PasswordInput/PasswordInput'
 import { Button } from '../../../components/Button/Button'
-import { validate, rules } from '../../../utils/validators'
-import { ROLES, ROLE_LABELS, ROLE_DEFAULT_PERMISSIONS } from '../../roles/permissions'
 import { PermissionMatrix } from '../../roles/components/PermissionMatrix'
-import { customerGroupsService } from '../../../services/customers.service'
-import { useAsync } from '../../../hooks/useAsync'
-import { RefreshIcon, ChevronDownIcon } from '../../../components/icons/Icons'
+import { ROLE_DEFAULT_PERMISSIONS } from '../../roles/permissions'
+import { validate, rules } from '../../../utils/validators'
 import './EmployeeForm.scss'
 
-const DEFAULT_VALUES = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  username: '',
-  password: '',
-  confirmPassword: '',
-  role: ROLES.SALES,
-  teamId: '',
-  status: 'active',
-  customerScope: 'ALL',
-  allowedGroupIds: [],
-  // No `permissions` key here on purpose: EmployeeForm's initial state below
-  // falls back to the selected role's defaults via `??`, which only kicks
-  // in when the field is genuinely absent (undefined) — an explicit `[]`
-  // would short-circuit that fallback and always start empty.
-}
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
-  let out = ''
-  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)]
-  return out
-}
+const DEFAULT_VALUES = { firstName: '', lastName: '', phone: '+998', username: '', password: '', role: 'EMPLOYEE', partnerGroupId: '', customerVisibility: 'ASSIGNED', allowedGroupIds: [] }
 
 function splitName(name = '') {
   const parts = name.trim().split(/\s+/)
   return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }
 }
 
-export function EmployeeForm({ initialValues = DEFAULT_VALUES, teams = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel }) {
+export function EmployeeForm({ initialValues = DEFAULT_VALUES, partnerGroups = [], submitLabel = 'Saqlash', loading, onSubmit, onCancel, canManageAccess = true }) {
   const isEditing = Boolean(initialValues?.id)
+  const name = splitName(initialValues.name)
+  const initialPermissions = Array.isArray(initialValues.permissions)
+    ? initialValues.permissions
+    : ROLE_DEFAULT_PERMISSIONS[initialValues.role] || ROLE_DEFAULT_PERMISSIONS.EMPLOYEE
   const [values, setValues] = useState(() => ({
     ...DEFAULT_VALUES,
-    ...splitName(initialValues.name),
+    ...name,
     ...initialValues,
-    permissions: initialValues.permissions ?? ROLE_DEFAULT_PERMISSIONS[initialValues.role ?? DEFAULT_VALUES.role] ?? [],
-    allowedGroupIds: initialValues.allowedGroupIds ?? [],
+    phone: initialValues.phone || '+998',
+    role: initialValues.role || 'EMPLOYEE',
+    customerVisibility: initialValues.customerVisibility || 'ASSIGNED',
+    allowedGroupIds: Array.isArray(initialValues.allowedGroupIds) ? initialValues.allowedGroupIds : [],
+    // Preserve the exact server state. A granular permission must not be
+    // promoted to the master financial permission when the form is opened.
+    permissions: initialPermissions,
   }))
   const [errors, setErrors] = useState({})
-  const [permissionsOpen, setPermissionsOpen] = useState(!isEditing)
-  const { data: groupData } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
-  const groups = groupData?.items ?? []
 
-  const handleChange = (field) => (event) => setValues((v) => ({ ...v, [field]: event.target.value }))
-
-  const handlePermissionsChange = (permissions) => setValues((v) => ({ ...v, permissions }))
-
-  const resetToRoleDefaults = () => setValues((v) => ({ ...v, permissions: ROLE_DEFAULT_PERMISSIONS[v.role] ?? [] }))
-  const toggleGroup = (groupId) =>
-    setValues((v) => ({
-      ...v,
-      allowedGroupIds: v.allowedGroupIds.includes(groupId)
-        ? v.allowedGroupIds.filter((id) => id !== groupId)
-        : [...v.allowedGroupIds, groupId],
-    }))
-
-  const handleGeneratePassword = () => {
-    const generated = generatePassword()
-    setValues((v) => ({ ...v, password: generated, confirmPassword: generated }))
+  const set = (field) => (event) => setValues((current) => ({ ...current, [field]: event.target.value }))
+  const isEmployee = values.role === 'EMPLOYEE'
+  const isPartner = values.role === 'PARTNER'
+  const toggleGroup = (groupId) => setValues((current) => ({ ...current, allowedGroupIds: current.allowedGroupIds.includes(groupId) ? current.allowedGroupIds.filter((id) => id !== groupId) : [...current.allowedGroupIds, groupId] }))
+  const handlePhone = (event) => {
+    let phone = event.target.value.replace(/[^\d+]/g, '')
+    if (!phone.startsWith('+998')) phone = `+998${phone.replace(/^\+?998/, '')}`
+    setValues((current) => ({ ...current, phone }))
   }
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const rulesMap = {
       firstName: [rules.required('Ism kiritilishi shart')],
-      lastName: [rules.required('Familiya kiritilishi shart')],
-      phone: [rules.required('Telefon raqam kiritilishi shart')],
-      email: [rules.required('Email kiritilishi shart'), rules.email()],
-      role: [rules.required('Rol tanlanishi shart')],
-      username: [rules.required('Login kiritilishi shart')],
+      phone: [rules.required('Telefon raqami kiritilishi shart')],
     }
     if (!isEditing) {
-      rulesMap.password = [rules.required('Parol kiritilishi shart')]
+      rulesMap.username = [rules.required('Login kiritilishi shart'), rules.minLength(3, 'Login kamida 3 belgidan iborat bo\'lishi kerak')]
+      rulesMap.password = [rules.required('Parol kiritilishi shart'), rules.minLength(6, 'Parol kamida 6 belgidan iborat bo\'lishi kerak')]
     }
     const nextErrors = validate(values, rulesMap)
-    if (!isEditing && values.password && values.password !== values.confirmPassword) {
-      nextErrors.confirmPassword = 'Parollar mos kelmadi'
-    }
+    if (values.phone.replace(/\D/g, '').length !== 12) nextErrors.phone = 'Telefon raqami noto\'g\'ri'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
-    const { firstName, lastName, ...rest } = values
-    const payload = { ...rest, name: `${firstName} ${lastName}`.trim() }
-    if (isEditing) {
-      // Password changes go through the dedicated "Parolni yangilash" action
-      // on the Employee detail page — never silently touched by this form.
-      delete payload.password
-      delete payload.confirmPassword
-    } else {
-      delete payload.confirmPassword
+    const payload = { name: `${values.firstName} ${values.lastName}`.trim(), phone: values.phone }
+    if (!isEditing || canManageAccess) payload.username = values.username.trim()
+    if (canManageAccess) {
+      payload.role = values.role
+      payload.partnerGroupId = isPartner ? values.partnerGroupId || null : null
+      payload.customerVisibility = isEmployee ? values.customerVisibility : 'ASSIGNED'
+      payload.allowedGroupIds = isEmployee && values.customerVisibility === 'GROUPS' ? values.allowedGroupIds : []
+      payload.permissions = values.permissions
     }
+    if (!isEditing) payload.password = values.password
     onSubmit(payload)
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <div className="employee-form__section-title">Shaxsiy ma'lumotlar</div>
       <div className="detail-grid">
-        <FormField label="Ism" required error={errors.firstName}>
-          <Input value={values.firstName} onChange={handleChange('firstName')} error={!!errors.firstName} disabled={loading} />
-        </FormField>
-        <FormField label="Familiya" required error={errors.lastName}>
-          <Input value={values.lastName} onChange={handleChange('lastName')} error={!!errors.lastName} disabled={loading} />
-        </FormField>
+        <FormField label="Ism" required error={errors.firstName}><Input value={values.firstName} onChange={set('firstName')} error={!!errors.firstName} disabled={loading} autoFocus={!isEditing} /></FormField>
+        <FormField label="Familiya"><Input value={values.lastName} onChange={set('lastName')} disabled={loading} /></FormField>
+        <FormField label="Telefon" required error={errors.phone}><Input type="tel" value={values.phone} onChange={handlePhone} error={!!errors.phone} disabled={loading} placeholder="+998 90 123 45 67" /></FormField>
       </div>
 
-      <div className="detail-grid">
-        <FormField label="Elektron pochta" required error={errors.email}>
-          <Input type="email" value={values.email} onChange={handleChange('email')} error={!!errors.email} disabled={loading} />
+      {(!isEditing || canManageAccess) && (
+        <FormField label="Login" required={!isEditing} error={errors.username}>
+          <Input value={values.username} onChange={set('username')} error={!!errors.username} disabled={loading || (isEditing && !canManageAccess)} />
         </FormField>
-        <FormField label="Telefon" required error={errors.phone}>
-          <Input value={values.phone} onChange={handleChange('phone')} error={!!errors.phone} disabled={loading} />
-        </FormField>
-      </div>
+      )}
 
-      <div className="employee-form__section-title">Kirish ma'lumotlari</div>
-      <FormField label="Login" required error={errors.username} hint="Xodim tizimga shu login bilan tanilinadi">
-        <Input value={values.username} onChange={handleChange('username')} error={!!errors.username} disabled={loading} />
-      </FormField>
-
-      {isEditing ? (
-        <p className="text-xs text-muted employee-form__password-hint">
-          Parolni o‘zgartirish uchun xodim profilidagi "Parolni yangilash" amalidan foydalaning.
-        </p>
-      ) : (
+      {canManageAccess && (
         <>
-          <div className="detail-grid">
-            <FormField label="Vaqtinchalik parol" required error={errors.password}>
-              <PasswordInput value={values.password} onChange={handleChange('password')} error={!!errors.password} disabled={loading} />
+          <FormField label="Rol">
+            <Select value={values.role || 'EMPLOYEE'} onChange={(event) => setValues((current) => ({ ...current, role: event.target.value, partnerGroupId: event.target.value === 'PARTNER' ? current.partnerGroupId : '' }))} disabled={loading}>
+              <option value="EMPLOYEE">Xodim</option>
+              <option value="PARTNER">Partner</option>
+              <option value="MANAGER">Menejer</option>
+              <option value="SALES">Sotuvchi</option>
+              <option value="SUPPORT">Qo'llab-quvvatlash</option>
+              <option value="INSTALLER">O'rnatuvchi</option>
+              <option value="DEVELOPER">Dasturchi</option>
+            </Select>
+          </FormField>
+          {isPartner && <FormField label="Partner guruhi" required hint="Partner faqat shu guruh mijozlarini ko'radi">
+            <Select value={values.partnerGroupId || ''} onChange={set('partnerGroupId')} disabled={loading}>
+              <option value="">Partner guruhi tanlang</option>
+              {partnerGroups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </Select>
+          </FormField>}
+          {isEmployee && <>
+            <FormField label="Mijozlar ko'rinishi" hint="Xodimning customer scope'i backendda ham tekshiriladi">
+              <Select value={values.customerVisibility || 'ASSIGNED'} onChange={set('customerVisibility')} disabled={loading}>
+                <option value="ALL">Barcha mijozlar</option>
+                <option value="ASSIGNED">Faqat o'ziga biriktirilgan</option>
+                <option value="GROUPS">Faqat tanlangan guruh(lar)</option>
+              </Select>
             </FormField>
-            <FormField label="Parolni tasdiqlash" error={errors.confirmPassword}>
-              <PasswordInput value={values.confirmPassword} onChange={handleChange('confirmPassword')} error={!!errors.confirmPassword} disabled={loading} />
-            </FormField>
-          </div>
-          <Button type="button" variant="ghost" size="sm" onClick={handleGeneratePassword} disabled={loading}>
-            <RefreshIcon width={14} height={14} /> Avtomatik parol yaratish
-          </Button>
+            {values.customerVisibility === 'GROUPS' && <div className="employee-form__group-access">
+              <div className="form-field__label">Ruxsat berilgan guruhlar</div>
+              {partnerGroups.length === 0 && <span className="form-field__hint">Hozircha guruhlar mavjud emas.</span>}
+              {partnerGroups.map((group) => <label key={group.id} className="employee-form__group-option"><input type="checkbox" checked={values.allowedGroupIds.includes(group.id)} onChange={() => toggleGroup(group.id)} disabled={loading} /> {group.name}</label>)}
+            </div>}
+          </>}
         </>
       )}
 
-      <div className="employee-form__section-title">Rol va jamoa</div>
-      <div className="detail-grid">
-        <FormField label="Rol" required error={errors.role}>
-          <Select value={values.role} onChange={handleChange('role')} disabled={loading}>
-            {Object.values(ROLES).map((role) => (
-              <option key={role} value={role}>
-                {ROLE_LABELS[role]}
-              </option>
-            ))}
-          </Select>
+      {!isEditing && (
+        <FormField label="Parol" required error={errors.password}>
+          <PasswordInput value={values.password} onChange={set('password')} error={!!errors.password} disabled={loading} />
         </FormField>
-        <FormField label="Jamoa">
-          <Select value={values.teamId} onChange={handleChange('teamId')} disabled={loading}>
-            <option value="">Jamoa tanlanmagan</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      </div>
-
-      <FormField label="Holat">
-        <Select value={values.status} onChange={handleChange('status')} disabled={loading}>
-          <option value="active">Faol</option>
-          <option value="inactive">Faol emas</option>
-        </Select>
-      </FormField>
-
-      <div className="employee-form__section-title">Mijozlar ko‘rinishi</div>
-      <FormField label="Mijozlar ko‘rinishi" hint="Backend API ham shu scope bilan filtrlanadi">
-        <Select value={values.customerScope} onChange={handleChange('customerScope')} disabled={loading}>
-          <option value="ALL">Barcha mijozlar</option>
-          <option value="OWN">Faqat o‘ziga biriktirilgan mijozlar</option>
-          <option value="GROUPS">Faqat tanlangan guruh(lar)</option>
-        </Select>
-      </FormField>
-      {values.customerScope === 'GROUPS' && (
-        <div className="employee-form__group-scope">
-          {groups.length === 0 && <span className="text-muted text-xs">Hali guruh yaratilmagan.</span>}
-          {groups.map((group) => (
-            <label key={group.id} className="employee-form__group-option">
-              <input type="checkbox" checked={values.allowedGroupIds.includes(group.id)} onChange={() => toggleGroup(group.id)} disabled={loading} />
-              {group.name}
-            </label>
-          ))}
-        </div>
       )}
 
-      <button
-        type="button"
-        className="employee-form__permissions-toggle"
-        onClick={() => setPermissionsOpen((v) => !v)}
-      >
-        <ChevronDownIcon width={16} height={16} style={{ transform: permissionsOpen ? 'rotate(180deg)' : 'none' }} />
-        Ruxsatlar
-      </button>
-
-      {permissionsOpen && (
-        <div className="employee-form__permissions">
-          <div className="employee-form__permissions-actions">
-            <Button type="button" variant="ghost" size="sm" onClick={resetToRoleDefaults} disabled={loading}>
-              Rol standart ruxsatlariga qaytarish
-            </Button>
-          </div>
-          <PermissionMatrix value={values.permissions} onChange={handlePermissionsChange} />
-        </div>
+      {canManageAccess && (
+        <section className="employee-form__permissions">
+          <h3 className="employee-form__section-title">Ruxsatlar</h3>
+          <PermissionMatrix value={values.permissions} onChange={(permissions) => setValues((current) => ({ ...current, permissions }))} />
+        </section>
       )}
 
+      {isEditing && !canManageAccess && <p className="text-muted text-xs">Login va parolni faqat administrator o'zgartiradi.</p>}
       <div className="card__footer" style={{ paddingLeft: 0, paddingRight: 0 }}>
-        {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
-            Bekor qilish
-          </Button>
-        )}
-        <Button type="submit" loading={loading}>
-          {submitLabel}
-        </Button>
+        {onCancel && <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>Bekor qilish</Button>}
+        <Button type="submit" loading={loading}>{submitLabel}</Button>
       </div>
     </form>
   )

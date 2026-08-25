@@ -1,4 +1,5 @@
 @use '../../../styles/abstracts/variables' as v;
+
 @use '../../../styles/abstracts/mixins' as m;
 
 .employee-form__section-title {
@@ -38,7 +39,9 @@
 }
 
 .employee-form__permissions {
+  margin-top: v.$space-5;
   padding-top: v.$space-3;
+  border-top: 1px solid v.$color-border;
 }
 
 .employee-form__group-scope {
