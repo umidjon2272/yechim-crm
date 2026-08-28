@@ -8,6 +8,12 @@ export const AUTH = {
   ME: '/auth/me',
 }
 
+// Public, DB-free endpoint used only to wait out a cold backend before the
+// real auth flow starts (see AuthContext).
+export const SYSTEM = {
+  HEALTH: '/health',
+}
+
 export const USERS = {
   ME: '/users/me',
   ME_LOGIN: '/users/me/login',

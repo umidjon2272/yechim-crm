@@ -75,7 +75,11 @@ function getRequestKey(path, options) {
   return `${buildUrl(path, options.params)}|${getAccessToken() || ''}`
 }
 
-async function refreshSession({ startupTrace = false } = {}) {
+// Exported so startup can refresh proactively when the persisted access
+// token is already expired (see features/auth/jwt.js), instead of paying for
+// a doomed auth/me request first. Still single-flight with the automatic
+// 401 -> refresh path below via the shared refreshPromise.
+export async function refreshSession({ startupTrace = false } = {}) {
   if (!refreshPromise) {
     const refreshToken = getRefreshToken()
     if (!refreshToken) {

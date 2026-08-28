@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { authService } from '../../services/auth.service'
-import { setUnauthorizedHandler } from '../../api/httpClient'
+import { httpClient, refreshSession, setUnauthorizedHandler } from '../../api/httpClient'
+import { SYSTEM } from '../../api/endpoints'
 import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTokens, writeAuthTokens } from './authStorage'
-import { restoreWithRetry } from './authStartupRetry'
+import { AUTH_WAKE_TIMEOUT_MS, restoreWithRetry } from './authStartupRetry'
+import { isAccessTokenExpired } from './jwt'
 
 const AuthContext = createContext(null)
 
@@ -52,11 +54,63 @@ export function AuthProvider({ children }) {
       try {
         setStartupStartedAt(Date.now())
         performance.mark?.('yechim:auth:restore:start')
+
+        // A sleeping Render instance can take well over 7s to wake up. Wait
+        // it out with a single long-timeout ping instead of letting the 7s
+        // per-request auth/me budget abort and restart every 7s (which just
+        // resets the wait without the server getting any closer to ready).
+        // Once this resolves, the server is warm and the normal 7s budget
+        // below is realistic again.
+        try {
+          await httpClient.get(SYSTEM.HEALTH, {
+            skipAuth: true,
+            skipRefresh: true,
+            startupTrace: true,
+            maxRetries: 0,
+            timeoutMs: AUTH_WAKE_TIMEOUT_MS,
+          })
+        } catch (wakeError) {
+          if (requestEpoch !== authEpochRef.current) return
+          if (userRef.current) {
+            setStartupStartedAt(null)
+            setStatus(AUTH_STATES.AUTHENTICATED)
+            return
+          }
+          setAuthError(wakeError)
+          setStartupStartedAt(null)
+          setStatus(AUTH_STATES.RETRYABLE_ERROR)
+          return
+        }
+        if (requestEpoch !== authEpochRef.current) return
+
+        // The access token's exp claim is decoded client-side only to avoid a
+        // doomed auth/me -> 401 round trip; the server still verifies the
+        // token itself. Skipping straight to refresh removes exactly one
+        // request from the cold-start path (previously auth/me had to fail
+        // with 401 before refresh even started).
+        if (accessToken && refreshToken && isAccessTokenExpired(accessToken)) {
+          try {
+            await refreshSession({ startupTrace: true })
+          } catch (refreshError) {
+            if (requestEpoch !== authEpochRef.current) return
+            if ([400, 401].includes(refreshError?.status)) {
+              clearAuthTokens()
+              clearLegacyAuthStorage()
+              updateUser(null)
+              setStartupStartedAt(null)
+              setStatus(AUTH_STATES.UNAUTHENTICATED)
+              return
+            }
+            // Transient refresh failure (network/timeout): fall through to
+            // auth/me below, whose own 401 handling will retry the refresh.
+          }
+        }
+
         const restoreStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
         // httpClient uses the persistent access token. If it is expired, it
         // refreshes with the persistent refresh token and retries /auth/me.
         const restoreResult = await restoreWithRetry(
-          ({ timeoutMs }) => authService.getCurrentUser({ timeoutMs, maxRetries: 0 }),
+          ({ timeoutMs, attempt }) => authService.getCurrentUser({ timeoutMs, attempt, maxRetries: 0 }),
         )
         performance.mark?.('yechim:auth:restore:end')
         if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_PERF_TIMING === 'true') {

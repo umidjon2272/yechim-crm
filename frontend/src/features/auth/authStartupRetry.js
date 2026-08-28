@@ -1,6 +1,11 @@
 export const AUTH_RETRY_DELAYS_MS = [1000, 2000, 3000, 5000, 8000, 10000]
 export const AUTH_RETRY_WINDOW_MS = 45000
 export const AUTH_REQUEST_TIMEOUT_MS = 7000
+// Render's free tier can take longer than 7s to spin a sleeping instance back
+// up. The wake ping (see AuthContext) uses this long single-attempt timeout
+// instead of the 7s per-request budget, so a cold start is waited out rather
+// than aborted and restarted every 7s.
+export const AUTH_WAKE_TIMEOUT_MS = 35000
 
 const RETRYABLE_AUTH_STATUSES = new Set([0, 408, 502, 503, 504])
 
@@ -29,7 +34,10 @@ export async function restoreWithRetry(
     attempts += 1
 
     try {
-      return { kind: 'success', value: await request({ timeoutMs }), attempts }
+      // attempts is 1-based and already reflects this call, so the request's
+      // own startup log (attempt=N retry=N-1) matches what actually happened
+      // instead of always reporting attempt=1.
+      return { kind: 'success', value: await request({ timeoutMs, attempt: attempts }), attempts }
     } catch (error) {
       lastError = error
       if (Number(error?.status) === 401) return { kind: 'unauthorized', error, attempts }

@@ -27,13 +27,15 @@ export function AuthStartupState() {
     : offline
       ? "Internet aloqasi yo'q"
       : elapsedMs >= 10000
-        ? 'Server ishga tushmoqda, biroz kuting...'
+        ? 'Server ishga tushmoqda...'
         : "Server uyg'onmoqda..."
   const description = isStartupError
     ? 'Avtomatik urinishlar tugadi. Sessiyani qayta tekshirish mumkin.'
     : offline
       ? 'Internetni tekshirish davom etmoqda.'
-      : 'Sessiya fonda tekshirilmoqda.'
+      : elapsedMs >= 10000
+        ? 'Bu odatda bir necha soniya oladi.'
+        : 'Sessiya fonda tekshirilmoqda.'
 
   return (
     <div className="full-page-loading startup-state">
