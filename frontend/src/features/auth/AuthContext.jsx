@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { authService } from '../../services/auth.service'
 import { httpClient, refreshSession, setUnauthorizedHandler } from '../../api/httpClient'
 import { SYSTEM } from '../../api/endpoints'
-import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTokens, writeAuthTokens } from './authStorage'
+import { AUTH_STORAGE_KEYS, clearAuthTokens, clearLegacyAuthStorage, readAuthTokens, readCachedAuthUser, writeAuthTokens, writeCachedAuthUser } from './authStorage'
 import { AUTH_WAKE_TIMEOUT_MS, restoreWithRetry } from './authStartupRetry'
 import { isAccessTokenExpired } from './jwt'
 
@@ -16,11 +16,17 @@ export const AUTH_STATES = Object.freeze({
   RETRYABLE_ERROR: 'retryableError',
 })
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    const { accessToken, refreshToken } = readAuthTokens()
+    return accessToken || refreshToken ? readCachedAuthUser() : null
+  })
   const userRef = useRef(null)
   const authEpochRef = useRef(0)
   const hydratePromiseRef = useRef(null)
-  const [status, setStatus] = useState(AUTH_STATES.IDLE)
+  const [status, setStatus] = useState(() => {
+    const { accessToken, refreshToken } = readAuthTokens()
+    return (accessToken || refreshToken) && readCachedAuthUser()?.id ? AUTH_STATES.AUTHENTICATED : AUTH_STATES.IDLE
+  })
   const [authError, setAuthError] = useState(null)
   const [startupStartedAt, setStartupStartedAt] = useState(null)
   const [loginError, setLoginError] = useState(null)
@@ -38,8 +44,20 @@ export function AuthProvider({ children }) {
       const requestEpoch = ++authEpochRef.current
       clearLegacyAuthStorage()
       setAuthError(null)
-      setStatus(AUTH_STATES.CHECKING)
       const { accessToken, refreshToken } = readAuthTokens()
+      const cachedUser = readCachedAuthUser()
+      const canRenderCachedShell = Boolean((accessToken || refreshToken) && cachedUser?.id)
+
+      // Returning users should not stare at a full-screen startup blocker while
+      // a sleeping backend wakes. Render the last confirmed identity/permissions
+      // immediately, then validate the session in the background. Protected API
+      // requests are still enforced server-side, so this is a UX cache only.
+      if (canRenderCachedShell) {
+        if (!userRef.current?.id) updateUser(cachedUser)
+        setStatus(AUTH_STATES.AUTHENTICATED)
+      } else {
+        setStatus(AUTH_STATES.CHECKING)
+      }
 
       // Tokens are persisted for the installed PWA, but the user identity is
       // never guessed from storage. It must be confirmed by the backend.
@@ -71,7 +89,7 @@ export function AuthProvider({ children }) {
           })
         } catch (wakeError) {
           if (requestEpoch !== authEpochRef.current) return
-          if (userRef.current) {
+          if (userRef.current || canRenderCachedShell) {
             setStartupStartedAt(null)
             setStatus(AUTH_STATES.AUTHENTICATED)
             return
@@ -141,6 +159,7 @@ export function AuthProvider({ children }) {
           setStatus(AUTH_STATES.UNAUTHENTICATED)
           return
         }
+        writeCachedAuthUser(currentUser)
         updateUser(currentUser)
         setStartupStartedAt(null)
         setStatus(AUTH_STATES.AUTHENTICATED)
@@ -198,13 +217,18 @@ export function AuthProvider({ children }) {
       // context logs out or replaces the account, immediately hide protected
       // UI here too; waiting for the next API call would leave stale account
       // content visible.
-      if (AUTH_STORAGE_KEYS.includes(event.key) && event.newValue === null) {
+      if (!AUTH_STORAGE_KEYS.includes(event.key)) return
+      if (event.newValue === null) {
         handleUnauthorized()
+        return
       }
+      // Another tab/PWA window may have switched accounts. Revalidate rather
+      // than leaving this tab with a stale cached user.
+      hydrateSession({ force: true })
     }
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
-  }, [handleUnauthorized])
+  }, [handleUnauthorized, hydrateSession])
 
   const login = useCallback(
     async (credentials) => {
@@ -229,6 +253,7 @@ export function AuthProvider({ children }) {
         const loggedInUser = await authService.getCurrentUser()
         if (requestEpoch !== authEpochRef.current) return loggedInUser
         if (!loggedInUser?.id) throw new Error('Backend foydalanuvchi sessiyasini qaytarmadi')
+        writeCachedAuthUser(loggedInUser)
         updateUser(loggedInUser)
         setStatus(AUTH_STATES.AUTHENTICATED)
         return loggedInUser

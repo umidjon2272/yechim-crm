@@ -1,7 +1,8 @@
 const ACCESS_TOKEN_KEY = 'yechim.auth.accessToken'
 const REFRESH_TOKEN_KEY = 'yechim.auth.refreshToken'
+const CACHED_USER_KEY = 'yechim.auth.cachedUser'
 
-export const AUTH_STORAGE_KEYS = [ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]
+export const AUTH_STORAGE_KEYS = [ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, CACHED_USER_KEY]
 
 // These keys belong to older/demo builds. Remove only those exact keys during
 // migration; never clear localStorage wholesale because it may contain
@@ -57,6 +58,43 @@ export function readAuthTokens() {
   }
 
   return { accessToken, refreshToken }
+}
+
+
+export function readCachedAuthUser() {
+  const storage = getPersistentStorage() || getSessionStorage()
+  if (!storage) return null
+  try {
+    const raw = storage.getItem(CACHED_USER_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' && parsed.id ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+export function writeCachedAuthUser(user) {
+  const storage = getPersistentStorage() || getSessionStorage()
+  if (!storage || !user?.id) return
+  try {
+    // Cached identity is only a fast UI snapshot. Backend auth/permissions
+    // remain authoritative for every protected API request.
+    storage.setItem(CACHED_USER_KEY, JSON.stringify(user))
+  } catch {
+    // Ignore quota/privacy mode failures; auth still works via the API.
+  }
+}
+
+export function clearCachedAuthUser() {
+  for (const storage of [getPersistentStorage(), getSessionStorage()]) {
+    if (!storage) continue
+    try {
+      storage.removeItem(CACHED_USER_KEY)
+    } catch {
+      // Storage may be unavailable.
+    }
+  }
 }
 
 export function getAccessToken() {
