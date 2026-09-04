@@ -45,6 +45,7 @@ export function useCustomers({ isMobile = false, mobileStageId = 'NEW' } = {}) {
         createdTo: params.createdTo,
         sort: params.sort,
         stage: isMobile ? mobileStageId : params.stage,
+        compact: true,
       }
       if (view !== 'kanban') return Promise.resolve(null)
       if (isMobile) return customersService.list({ ...kanbanParams, page: 1, pageSize: 50 })

@@ -2,7 +2,7 @@ import { httpClient } from '../api/httpClient'
 import { EMPLOYEES } from '../api/endpoints'
 
 export const employeesService = {
-  list: (params) => httpClient.get(EMPLOYEES.LIST, { params }),
+  list: (params) => httpClient.get(EMPLOYEES.LIST, { params, cacheTtlMs: 30000 }),
   get: (id) => httpClient.get(EMPLOYEES.DETAIL(id)),
   create: (payload) => httpClient.post(EMPLOYEES.CREATE, payload),
   update: (id, payload) => httpClient.patch(EMPLOYEES.UPDATE(id), payload),

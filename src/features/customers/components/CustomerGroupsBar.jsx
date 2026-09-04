@@ -13,7 +13,7 @@ import { MoreIcon } from '../../../components/icons/Icons'
 import './CustomerGroupsBar.scss'
 
 export function CustomerGroupsBar({ activeGroupId, onSelectGroup, showAllCustomers = true, canCreate = true, canEdit = true, canDelete = true }) {
-  const { data, loading, refetch } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
+  const { data, loading, refetch } = useAsync(() => customerGroupsService.list({ pageSize: 100, compact: true }), [])
   const [editingGroup, setEditingGroup] = useState(null)
   const groupModal = useDisclosure()
   const confirm = useConfirm()

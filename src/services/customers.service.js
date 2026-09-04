@@ -2,7 +2,7 @@ import { httpClient } from '../api/httpClient'
 import { CUSTOMERS, CUSTOMER_GROUPS, BUSINESS_TYPES, PARTNERS, CUSTOMER_FIELD_DEFS, PROGRAM_CATALOG, MESSAGES, BUSINESSES, LEADS, DEALS, PAYMENTS, INSTALLATIONS, ACTIVITIES, TASKS } from '../api/endpoints'
 
 export const customersService = {
-  list: (params) => httpClient.get(CUSTOMERS.LIST, { params }),
+  list: (params) => httpClient.get(CUSTOMERS.LIST, { params, cacheTtlMs: 2000 }),
   get: (id) => httpClient.get(CUSTOMERS.DETAIL(id)),
   create: (payload) => httpClient.post(CUSTOMERS.CREATE, payload),
   update: (id, payload) => httpClient.patch(CUSTOMERS.UPDATE(id), payload),
@@ -31,7 +31,7 @@ export const customersService = {
   bulkMove: (payload) => httpClient.post(CUSTOMERS.BULK_MOVE, payload),
 
   // Pipeline stage (Yangi -> Gaplashildi -> ... -> Tugallandi)
-  listStages: () => httpClient.get(CUSTOMERS.STAGES),
+  listStages: (params) => httpClient.get(CUSTOMERS.STAGES, { params, cacheTtlMs: 60000 }),
   createStage: (payload) => httpClient.post(CUSTOMERS.STAGES, payload),
   updateStage: (id, payload) => httpClient.patch(CUSTOMERS.STAGE_DETAIL(id), payload),
   deleteStage: (id, payload) => httpClient.delete(CUSTOMERS.STAGE_DELETE(id), { body: payload }),
@@ -47,7 +47,7 @@ export const customersService = {
 }
 
 export const customerGroupsService = {
-  list: (params) => httpClient.get(CUSTOMER_GROUPS.LIST, { params }),
+  list: (params) => httpClient.get(CUSTOMER_GROUPS.LIST, { params, cacheTtlMs: 60000 }),
   create: (payload) => httpClient.post(CUSTOMER_GROUPS.CREATE, payload),
   update: (id, payload) => httpClient.patch(CUSTOMER_GROUPS.UPDATE(id), payload),
   remove: (id) => httpClient.delete(CUSTOMER_GROUPS.DELETE(id)),
@@ -55,7 +55,7 @@ export const customerGroupsService = {
 }
 
 export const businessTypesService = {
-  list: () => httpClient.get(BUSINESS_TYPES.LIST),
+  list: () => httpClient.get(BUSINESS_TYPES.LIST, { cacheTtlMs: 60000 }),
   create: (payload) => httpClient.post(BUSINESS_TYPES.CREATE, payload),
   remove: (id) => httpClient.delete(BUSINESS_TYPES.DELETE(id)),
 }

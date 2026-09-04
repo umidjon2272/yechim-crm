@@ -27,7 +27,7 @@ function NotificationTypeIcon({ type }) {
 }
 
 export function NotificationsDropdown() {
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
+  const { notifications, unreadCount, markRead, markAllRead, loadNotifications } = useNotifications()
   const navigate = useNavigate()
 
   const handleClick = (notification) => {
@@ -39,7 +39,7 @@ export function NotificationsDropdown() {
   return (
     <Dropdown
       trigger={(toggle, isOpen) => (
-        <button type="button" className="header__icon-btn" onClick={toggle} aria-expanded={isOpen} aria-label="Bildirishnomalar">
+        <button type="button" className="header__icon-btn" onClick={() => { if (!isOpen) loadNotifications().catch(() => {}); toggle() }} aria-expanded={isOpen} aria-label="Bildirishnomalar">
           <BellIcon />
           {unreadCount > 0 && <span className="header__notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
         </button>

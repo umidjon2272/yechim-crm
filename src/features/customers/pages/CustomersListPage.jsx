@@ -130,7 +130,7 @@ function CustomerEditModal({ customerId, employees, stages, loadingStages, readO
 }
 
 function BulkMoveModal({ open, selectedCount, stages, activeGroupId, loading, onClose, onSubmit }) {
-  const { data } = useAsync(() => customerGroupsService.list({ pageSize: 100 }), [])
+  const { data } = useAsync(() => customerGroupsService.list({ pageSize: 100, compact: true }), [open], { enabled: open })
   const groups = data?.items ?? []
   const [stage, setStage] = useState('')
   const [targetGroupId, setTargetGroupId] = useState('')
@@ -445,6 +445,8 @@ export function CustomersListPage() {
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false)
   const [createStageId, setCreateStageId] = useState(null)
   const [employees, setEmployees] = useState([])
+  const [employeesLoaded, setEmployeesLoaded] = useState(false)
+  const [employeesLoading, setEmployeesLoading] = useState(false)
   const [filterOptions, setFilterOptions] = useState({ cities: [], stageCounts: {}, stageTotals: {}, stages: fallbackStages() })
   const [stageDraft, setStageDraft] = useState({ afterStageId: null })
   const [stageDelete, setStageDelete] = useState(null)
@@ -492,7 +494,7 @@ export function CustomersListPage() {
     try {
       const [res, stagesRes] = await Promise.all([
         includeFilters ? customersService.getFilterOptions() : Promise.resolve(null),
-        customersService.listStages().catch(() => ({ items: fallbackStages() })),
+        customersService.listStages({ compact: true }).catch(() => ({ items: fallbackStages() })),
       ])
       setFilterOptions((current) => ({
         cities: res?.cities ?? current.cities,
@@ -505,18 +507,31 @@ export function CustomersListPage() {
     }
   }, [])
 
+  const loadEmployees = useCallback(async () => {
+    if (!canViewEmployees || employeesLoaded || employeesLoading) return
+    setEmployeesLoading(true)
+    try {
+      const res = await employeesService.list({ pageSize: 100, compact: true })
+      setEmployees((res?.items ?? []).filter((employee) => employee.status === 'active'))
+      setEmployeesLoaded(true)
+    } catch {
+      setEmployees([])
+    } finally {
+      setEmployeesLoading(false)
+    }
+  }, [canViewEmployees, employeesLoaded, employeesLoading])
+
   useEffect(() => {
     loadFilterOptions()
     if (!canViewEmployees) {
       setEmployees([])
-      return undefined
+      setEmployeesLoaded(false)
     }
-    employeesService
-      .list({ pageSize: 100 })
-      .then((res) => setEmployees((res?.items ?? []).filter((employee) => employee.status === 'active')))
-      .catch(() => setEmployees([]))
-    return undefined
   }, [canViewEmployees, loadFilterOptions])
+
+  useEffect(() => {
+    if (installationMove) loadEmployees()
+  }, [installationMove, loadEmployees])
 
   useEffect(() => {
     if (advancedFiltersOpen) loadFilterOptions({ includeFilters: true })
@@ -586,6 +601,7 @@ export function CustomersListPage() {
 
   const openCreateForStage = (stageId) => {
     setCreateStageId(stageId)
+    loadEmployees().catch(() => {})
     createModal.open()
   }
 
@@ -810,7 +826,7 @@ export function CustomersListPage() {
           </span>
           <Input placeholder="Qidirish" value={params.search} onChange={(event) => setSearch(event.target.value)} />
         </div>
-        {!isPartner && canViewEmployees && <Select value={params.assignedEmployeeId} onChange={(event) => setAssignedEmployeeId(event.target.value)}>
+        {!isPartner && canViewEmployees && <Select value={params.assignedEmployeeId} onFocus={() => loadEmployees()} onPointerDown={() => loadEmployees()} onChange={(event) => setAssignedEmployeeId(event.target.value)}>
           <option value="">Xodim</option>
           {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
         </Select>}

@@ -1,32 +1,46 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { notificationsService } from '../../services/notifications.service'
 import { useAuth } from '../auth/useAuth'
 
 const NotificationsContext = createContext(null)
 
 const POLL_INTERVAL_MS = 30000
+const INITIAL_DELAY_MS = 700
 
 /**
- * Polling-based notifications (no WebSocket yet — see Phase 2 plan). Only
- * polls while authenticated, and skips fetches while the tab is hidden to
- * avoid hammering the backend from background tabs.
+ * Notifications should never compete with the CRM's first useful paint.
+ * Startup only refreshes the unread badge in the background; the heavier
+ * notification list is fetched lazily the first time the dropdown opens.
  */
 export function NotificationsProvider({ children }) {
   const { isAuthenticated, user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const listLoadedAtRef = useRef(0)
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (document.hidden) return
     try {
-      const [list, unread] = await Promise.all([
-        notificationsService.list({ pageSize: 20 }),
-        notificationsService.getUnreadCount(),
-      ])
-      setNotifications(list?.items ?? [])
+      const unread = await notificationsService.getUnreadCount()
       setUnreadCount(unread?.count ?? 0)
+      setError(null)
+    } catch (err) {
+      setError(err)
+    }
+  }, [])
+
+  const fetchNotifications = useCallback(async ({ force = false } = {}) => {
+    if (document.hidden) return
+    if (!force && listLoadedAtRef.current && Date.now() - listLoadedAtRef.current < 5000) return
+    setLoading(true)
+    try {
+      const list = await notificationsService.list({ pageSize: 20 })
+      const items = list?.items ?? []
+      setNotifications(items)
+      setUnreadCount(items.filter((item) => !item.isRead).length)
+      listLoadedAtRef.current = Date.now()
       setError(null)
     } catch (err) {
       setError(err)
@@ -41,13 +55,21 @@ export function NotificationsProvider({ children }) {
       setNotifications([])
       setUnreadCount(0)
       setLoading(false)
+      listLoadedAtRef.current = 0
       return undefined
     }
 
-    fetchNotifications()
-    const interval = setInterval(fetchNotifications, POLL_INTERVAL_MS)
-    return () => clearInterval(interval)
-  }, [isAuthenticated, user?.partnerGroupId, user?.role, fetchNotifications])
+    const initialTimer = window.setTimeout(() => {
+      fetchUnreadCount().catch(() => {})
+    }, INITIAL_DELAY_MS)
+    const interval = window.setInterval(() => {
+      fetchUnreadCount().catch(() => {})
+    }, POLL_INTERVAL_MS)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(interval)
+    }
+  }, [isAuthenticated, user?.id, user?.role, fetchUnreadCount])
 
   const markRead = useCallback(async (id) => {
     setNotifications((current) => current.map((n) => (n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n)))
@@ -55,8 +77,7 @@ export function NotificationsProvider({ children }) {
     try {
       await notificationsService.markRead(id)
     } catch {
-      // Optimistic update stands even if the backend call fails silently —
-      // the next poll cycle will reconcile with server state.
+      // Next poll/list load reconciles server state.
     }
   }, [])
 
@@ -66,12 +87,21 @@ export function NotificationsProvider({ children }) {
     try {
       await notificationsService.markAllRead()
     } catch {
-      // see markRead
+      // Next poll/list load reconciles server state.
     }
   }, [])
 
   const value = useMemo(
-    () => ({ notifications, unreadCount, loading, error, markRead, markAllRead, refetch: fetchNotifications }),
+    () => ({
+      notifications,
+      unreadCount,
+      loading,
+      error,
+      markRead,
+      markAllRead,
+      refetch: () => fetchNotifications({ force: true }),
+      loadNotifications: fetchNotifications,
+    }),
     [notifications, unreadCount, loading, error, markRead, markAllRead, fetchNotifications]
   )
 

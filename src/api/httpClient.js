@@ -14,6 +14,7 @@ let unauthorizedHandler = null
 let refreshPromise = null
 let requestSequence = 0
 const inFlightGetRequests = new Map()
+const responseCache = new Map()
 const startupTraceStartedAt = Date.now()
 const STARTUP_TRACE_WINDOW_MS = 120000
 
@@ -71,8 +72,19 @@ function logRequestTiming(path, method, duration, status, attempt = 1, trace = f
 }
 
 function getRequestKey(path, options) {
-  if ((options.method || 'GET').toUpperCase() !== 'GET' || options.signal) return null
+  if ((options.method || 'GET').toUpperCase() !== 'GET' || options.signal || options.dedupe === false) return null
   return `${buildUrl(path, options.params)}|${getAccessToken() || ''}`
+}
+
+function readCachedResponse(key, ttlMs) {
+  if (!key || !ttlMs || ttlMs <= 0) return undefined
+  const cached = responseCache.get(key)
+  if (!cached) return undefined
+  if (Date.now() - cached.at > ttlMs) {
+    responseCache.delete(key)
+    return undefined
+  }
+  return cached.value
 }
 
 // Exported so startup can refresh proactively when the persisted access
@@ -266,14 +278,23 @@ async function request(path, options = {}) {
   // The map only deduplicates GETs that are currently in flight. A mutation
   // makes every such response stale, so a following refetch must go to the
   // API instead of receiving the pre-mutation response.
-  if (method !== 'GET') inFlightGetRequests.clear()
+  if (method !== 'GET') {
+    inFlightGetRequests.clear()
+    responseCache.clear()
+  }
 
   const key = getRequestKey(path, normalizedOptions)
+  const cached = readCachedResponse(key, Number(normalizedOptions.cacheTtlMs || 0))
+  if (cached !== undefined) return cached
   if (key && inFlightGetRequests.has(key)) return inFlightGetRequests.get(key)
 
   const run = (async () => {
     try {
-      return await performRequest(path, normalizedOptions)
+      const value = await performRequest(path, normalizedOptions)
+      if (key && Number(normalizedOptions.cacheTtlMs || 0) > 0) {
+        responseCache.set(key, { at: Date.now(), value })
+      }
+      return value
     } catch (error) {
       const retryCount = Number(normalizedOptions.retryCount || 0)
       const maxRetries = Number(normalizedOptions.maxRetries ?? (method === 'GET' ? 3 : 0))
@@ -286,7 +307,7 @@ async function request(path, options = {}) {
           console.info(`[YECHIM startup] ${tracePath(path)} retry ${retryCount + 1} in ${delay}ms reason=${error?.code || error?.status || 'network'}`)
         }
         await new Promise((resolve) => window.setTimeout(resolve, delay))
-        return request(path, { ...normalizedOptions, retryCount: retryCount + 1, attempt: retryCount + 2 })
+        return request(path, { ...normalizedOptions, retryCount: retryCount + 1, attempt: retryCount + 2, dedupe: false })
       }
       throw error
     }
