@@ -15,6 +15,7 @@ let refreshPromise = null
 let requestSequence = 0
 const inFlightGetRequests = new Map()
 const responseCache = new Map()
+let cacheGeneration = 0
 const startupTraceStartedAt = Date.now()
 const STARTUP_TRACE_WINDOW_MS = 120000
 
@@ -85,6 +86,45 @@ function readCachedResponse(key, ttlMs) {
     return undefined
   }
   return cached.value
+}
+
+function cachePathFromKey(key) {
+  try {
+    const urlPart = String(key).split('|')[0]
+    const url = new URL(urlPart)
+    return url.pathname.replace(/^\/api/, '') || '/'
+  } catch {
+    return ''
+  }
+}
+
+function mutationNamespaces(path) {
+  const normalized = `/${String(path || '').replace(/^\/+/, '')}`
+  if (normalized.startsWith('/auth/')) return ['*']
+  if (normalized.startsWith('/notifications')) return ['/notifications']
+  if (normalized.startsWith('/customer-groups')) return ['/customer-groups', '/customers']
+  if (normalized.startsWith('/meta/customer-stages')) return ['/meta/customer-stages', '/customers']
+  if (normalized.startsWith('/customers')) return ['/customers', '/notifications']
+  if (normalized.startsWith('/employees')) return ['/employees', '/customers']
+  if (normalized.startsWith('/reminders') || normalized.startsWith('/tasks') || normalized.startsWith('/installations')) {
+    return [normalized.split('/').slice(0, 2).join('/'), '/notifications', '/customers']
+  }
+  return [normalized.split('/').slice(0, 2).join('/')]
+}
+
+function invalidateCachedResponsesForMutation(path) {
+  const namespaces = mutationNamespaces(path)
+  if (namespaces.includes('*')) {
+    responseCache.clear()
+    inFlightGetRequests.clear()
+    return
+  }
+  for (const key of responseCache.keys()) {
+    const cachedPath = cachePathFromKey(key)
+    if (namespaces.some((namespace) => cachedPath.startsWith(namespace))) responseCache.delete(key)
+  }
+  // Do not kill unrelated in-flight GETs. Requests that began before this
+  // mutation are prevented from entering the cache by cacheGeneration below.
 }
 
 // Exported so startup can refresh proactively when the persisted access
@@ -275,12 +315,12 @@ async function request(path, options = {}) {
   const normalizedOptions = { method: 'GET', ...options }
   const method = normalizedOptions.method.toUpperCase()
 
-  // The map only deduplicates GETs that are currently in flight. A mutation
-  // makes every such response stale, so a following refetch must go to the
-  // API instead of receiving the pre-mutation response.
+  // Mutations invalidate cached GET data, but clearing the *entire* cache
+  // made unrelated metadata (employees/groups/stages) refetch after every
+  // notification read, customer edit, etc. Keep invalidation resource-scoped.
   if (method !== 'GET') {
-    inFlightGetRequests.clear()
-    responseCache.clear()
+    cacheGeneration += 1
+    invalidateCachedResponsesForMutation(path)
   }
 
   const key = getRequestKey(path, normalizedOptions)
@@ -288,10 +328,11 @@ async function request(path, options = {}) {
   if (cached !== undefined) return cached
   if (key && inFlightGetRequests.has(key)) return inFlightGetRequests.get(key)
 
+  const requestCacheGeneration = cacheGeneration
   const run = (async () => {
     try {
       const value = await performRequest(path, normalizedOptions)
-      if (key && Number(normalizedOptions.cacheTtlMs || 0) > 0) {
+      if (key && Number(normalizedOptions.cacheTtlMs || 0) > 0 && requestCacheGeneration === cacheGeneration) {
         responseCache.set(key, { at: Date.now(), value })
       }
       return value

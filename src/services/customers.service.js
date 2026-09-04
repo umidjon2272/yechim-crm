@@ -31,7 +31,7 @@ export const customersService = {
   bulkMove: (payload) => httpClient.post(CUSTOMERS.BULK_MOVE, payload),
 
   // Pipeline stage (Yangi -> Gaplashildi -> ... -> Tugallandi)
-  listStages: (params) => httpClient.get(CUSTOMERS.STAGES, { params, cacheTtlMs: 60000 }),
+  listStages: (params) => httpClient.get(CUSTOMERS.STAGES, { params, cacheTtlMs: 300000 }),
   createStage: (payload) => httpClient.post(CUSTOMERS.STAGES, payload),
   updateStage: (id, payload) => httpClient.patch(CUSTOMERS.STAGE_DETAIL(id), payload),
   deleteStage: (id, payload) => httpClient.delete(CUSTOMERS.STAGE_DELETE(id), { body: payload }),
@@ -47,7 +47,7 @@ export const customersService = {
 }
 
 export const customerGroupsService = {
-  list: (params) => httpClient.get(CUSTOMER_GROUPS.LIST, { params, cacheTtlMs: 60000 }),
+  list: (params) => httpClient.get(CUSTOMER_GROUPS.LIST, { params, cacheTtlMs: 300000 }),
   create: (payload) => httpClient.post(CUSTOMER_GROUPS.CREATE, payload),
   update: (id, payload) => httpClient.patch(CUSTOMER_GROUPS.UPDATE(id), payload),
   remove: (id) => httpClient.delete(CUSTOMER_GROUPS.DELETE(id)),
@@ -55,7 +55,7 @@ export const customerGroupsService = {
 }
 
 export const businessTypesService = {
-  list: () => httpClient.get(BUSINESS_TYPES.LIST, { cacheTtlMs: 60000 }),
+  list: () => httpClient.get(BUSINESS_TYPES.LIST, { cacheTtlMs: 300000 }),
   create: (payload) => httpClient.post(BUSINESS_TYPES.CREATE, payload),
   remove: (id) => httpClient.delete(BUSINESS_TYPES.DELETE(id)),
 }
