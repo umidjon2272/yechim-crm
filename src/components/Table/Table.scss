@@ -1,0 +1,73 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.table-wrapper {
+  @include m.card-surface;
+  @include m.custom-scrollbar;
+  overflow-x: auto;
+  border-radius: v.$radius-xl;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.table {
+  width: 100%;
+  font-size: v.$font-size-sm;
+
+  thead {
+    background: rgba(255, 255, 255, 0.48);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.68);
+  }
+
+  th {
+    text-align: left;
+    padding: v.$space-3 v.$space-4;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-secondary;
+    white-space: nowrap;
+    font-size: v.$font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  td {
+    padding: v.$space-3 v.$space-4;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    color: v.$color-text-primary;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background-color v.$transition-fast;
+    &:hover {
+      background: rgba(245, 243, 255, 0.62);
+    }
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  &--clickable tbody tr {
+    cursor: pointer;
+  }
+
+  &__cell-primary {
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+  }
+
+  &__cell-muted {
+    color: v.$color-text-secondary;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: v.$space-2;
+  }
+}
+
+.table-user {
+  @include m.flex(center, flex-start, v.$space-3);
+}

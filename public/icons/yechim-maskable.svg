@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">YECHIM CRM</title>
+  <rect width="512" height="512" fill="#071d41" />
+  <circle cx="256" cy="256" r="202" fill="#0b3d78" />
+  <path d="M127 145h66l63 111 63-111h66L256 368 127 145Z" fill="#fff" />
+  <path d="M215 256h82l-41 73-41-73Z" fill="#2b83e8" />
+  <path d="M256 329v-67M256 286l-33-33M256 300l36-36" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="11" />
+  <circle cx="223" cy="253" r="11" fill="#fff" />
+  <circle cx="292" cy="264" r="11" fill="#fff" />
+  <path d="M307 203c31-20 52-13 68 3 15 15 30 17 47 4" fill="none" stroke="#63b9ff" stroke-linecap="round" stroke-width="12" />
+  <circle cx="307" cy="203" r="11" fill="#63b9ff" />
+  <circle cx="375" cy="206" r="11" fill="#63b9ff" />
+</svg>

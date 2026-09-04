@@ -1,0 +1,351 @@
+// Cross-feature utility classes only — anything owned by a single
+// component/page lives colocated with that file instead (see each
+// ComponentName.scss / PageName.scss).
+@use '../abstracts/variables' as v;
+@use '../abstracts/mixins' as m;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: transparent;
+  color: v.$color-text-primary;
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 v.$space-6;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// Layout primitives reused across nearly every page
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-4;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: v.$space-6;
+
+  @include m.respond-up(v.$breakpoint-lg) {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: v.$space-4;
+
+  @include m.respond-up(v.$breakpoint-sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.detail-field {
+  &__label {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    margin-bottom: 2px;
+  }
+  &__value {
+    font-size: v.$font-size-sm;
+    color: v.$color-text-primary;
+    font-weight: v.$font-weight-medium;
+  }
+}
+
+// Page header — title/subtitle/actions row, used by every list/detail page
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: v.$space-5;
+  gap: v.$space-4;
+  flex-wrap: wrap;
+
+  &__title {
+    font-size: v.$font-size-2xl;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-gray-900;
+    line-height: 1.08;
+  }
+
+  &__subtitle {
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-xs;
+    margin-top: v.$space-2;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: v.$space-3;
+    flex-wrap: wrap;
+  }
+}
+
+.section-title {
+  font-size: v.$font-size-md;
+  font-weight: v.$font-weight-semibold;
+  margin-bottom: v.$space-3;
+}
+
+// List-page filter row (search + selects) — reused by every module's list
+// page (Customers/Businesses/Leads/Deals/Payments/Tasks/Installations/...).
+.filters-row {
+  @include m.flex(center, flex-start, v.$space-3);
+  margin-bottom: v.$space-5;
+  flex-wrap: wrap;
+  padding: v.$space-3;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: v.$radius-xl;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.32)),
+    rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76), v.$shadow-sm;
+
+  &__search {
+    max-width: 420px;
+    flex: 1;
+    min-width: 260px;
+  }
+}
+
+.kanban-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: v.$space-3;
+  margin-top: v.$space-4;
+  padding: v.$space-3;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: v.$radius-xl;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76), v.$shadow-sm;
+}
+
+.kanban-summary-bar__item {
+  min-width: 0;
+  padding: v.$space-2 v.$space-3;
+  border-radius: v.$radius-lg;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+}
+
+.kanban-summary-bar__label {
+  display: block;
+  font-size: v.$font-size-xs;
+  color: v.$color-text-muted;
+}
+
+.kanban-summary-bar__value {
+  display: block;
+  margin-top: 2px;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-semibold;
+  color: v.$color-text-primary;
+  @include m.truncate;
+}
+
+@include m.respond-down(v.$breakpoint-lg) {
+  .kanban-summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@include m.respond-down(v.$breakpoint-sm) {
+  .page-header__title {
+    font-size: v.$font-size-xl;
+  }
+
+  .filters-row__search {
+    min-width: 100%;
+  }
+
+  .kanban-summary-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-row {
+    align-items: stretch;
+
+    > .select,
+    > .input,
+    > .input-group,
+    > .btn {
+      width: 100%;
+      max-width: none !important;
+      min-width: 0;
+    }
+
+    > .view-toggle {
+      width: 100%;
+      justify-content: stretch;
+
+      .view-toggle__btn {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .page-header__actions {
+    width: 100%;
+
+    > .btn {
+      width: 100%;
+    }
+  }
+
+  .card__footer {
+    flex-wrap: wrap;
+
+    .btn {
+      flex: 1 1 140px;
+    }
+  }
+}
+
+// Price/total summary block — reused verbatim by Deal/Business/Quotation
+// detail pages (subtotal/discount/grand-total, total/paid/remaining, ...).
+// Class name kept as `deal-totals` (not renamed) even though it's used
+// beyond deals now, to avoid touching every call site for a cosmetic rename.
+.deal-totals {
+  margin-top: v.$space-4;
+  padding-top: v.$space-4;
+  border-top: 1px solid v.$color-border;
+}
+
+.deal-totals__row {
+  @include m.flex(center, space-between);
+  font-size: v.$font-size-sm;
+  padding: v.$space-1 0;
+  color: v.$color-text-secondary;
+
+  &--grand {
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+    padding-top: v.$space-2;
+    margin-top: v.$space-1;
+    border-top: 1px solid v.$color-border;
+  }
+}
+
+// Loading / skeleton states, used everywhere via useAsync's loading branch
+.page-loading {
+  @include m.flex(center, center);
+  min-height: 240px;
+  color: v.$color-text-muted;
+}
+
+.full-page-loading {
+  @include m.flex(center, center);
+  height: 100vh;
+  color: v.$color-text-muted;
+}
+
+.route-recovery {
+  @include m.flex(center, center);
+  min-height: 320px;
+  width: 100%;
+}
+
+.startup-state__card {
+  width: min(420px, calc(100vw - 32px));
+  padding: v.$space-6;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: v.$radius-xl;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: v.$shadow-md;
+
+  p {
+    margin: v.$space-2 0 v.$space-4;
+    color: v.$color-text-secondary;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, v.$color-gray-100 25%, v.$color-gray-200 37%, v.$color-gray-100 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: v.$radius-sm;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+// Plain checkbox — no dedicated Checkbox component exists yet, used inline
+// (e.g. PermissionMatrix).
+.checkbox {
+  @include m.flex(center, flex-start, v.$space-2);
+  cursor: pointer;
+  font-size: v.$font-size-sm;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: v.$color-primary-500;
+    cursor: pointer;
+  }
+}
+
+// Simple page-level fade-in — applied once per route's top-level page div
+// (see PageTransition usage in feature pages). Subtle, not flashy.
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .ambient-background::before,
+  .ambient-background__accent {
+    filter: blur(24px);
+  }
+
+  .ambient-background::after {
+    display: none;
+  }
+
+  .filters-row,
+  .kanban-summary-bar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.page-enter {
+  animation: page-fade-in v.$transition-slow;
+}

@@ -1,0 +1,50 @@
+@use '../abstracts/variables' as v;
+
+body {
+  font-family: v.$font-family-base;
+  font-size: v.$font-size-base;
+  color: v.$color-text-primary;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: v.$font-weight-semibold;
+  line-height: 1.25;
+  color: v.$color-text-primary;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: v.$font-size-2xl;
+}
+h2 {
+  font-size: v.$font-size-xl;
+}
+h3 {
+  font-size: v.$font-size-lg;
+}
+h4 {
+  font-size: v.$font-size-md;
+}
+
+.text-muted {
+  color: v.$color-text-secondary;
+}
+
+.text-xs {
+  font-size: v.$font-size-xs;
+}
+
+// KPI / large numeric emphasis — used by StatCard and detail-page totals.
+.stat-value {
+  font-size: v.$font-size-3xl;
+  font-weight: v.$font-weight-bold;
+  letter-spacing: 0;
+  color: v.$color-text-primary;
+  font-variant-numeric: tabular-nums;
+}

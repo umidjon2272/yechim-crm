@@ -1,0 +1,62 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.settings-layout {
+  display: flex;
+  gap: v.$space-8;
+  align-items: flex-start;
+  flex-direction: column;
+
+  @include m.respond-up(v.$breakpoint-md) {
+    flex-direction: row;
+  }
+}
+
+.settings-nav {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: v.$space-2;
+  border-radius: v.$radius-xl;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68), v.$shadow-sm;
+
+  @include m.respond-up(v.$breakpoint-md) {
+    width: 220px;
+  }
+
+  &__item {
+    @include m.focus-ring;
+    text-align: left;
+    padding: v.$space-2 v.$space-3;
+    border-radius: v.$radius-md;
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-medium;
+    color: v.$color-text-secondary;
+    transition: background-color v.$transition-fast, color v.$transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.62);
+      color: v.$color-text-primary;
+    }
+
+    &--active {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(245, 243, 255, 0.56)),
+        rgba(125, 92, 246, 0.12);
+      color: v.$color-primary-700;
+      box-shadow: v.$shadow-sm;
+    }
+  }
+}
+
+.settings-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}

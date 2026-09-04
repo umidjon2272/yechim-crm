@@ -1,0 +1,34 @@
+@use '../../styles/abstracts/variables' as v;
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__content {
+    flex: 1;
+    padding: v.$space-8 calc(v.$space-6 + v.$sidebar-margin) v.$space-8;
+    overflow-x: hidden;
+
+    &--no-header {
+      padding-top: v.$sidebar-margin;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-layout__content {
+    padding: v.$space-4 v.$space-3 v.$space-6;
+    max-width: 100vw;
+  }
+
+  .admin-layout__content--no-header {
+    padding-top: v.$space-3;
+  }
+}

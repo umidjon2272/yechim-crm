@@ -1,0 +1,18 @@
+@use '../styles/abstracts/variables' as v;
+@use '../styles/abstracts/mixins' as m;
+
+.dashboard-welcome {
+  &__title {
+    margin-bottom: v.$space-2;
+  }
+
+  &__text {
+    max-width: 560px;
+    margin-bottom: v.$space-5;
+  }
+
+  &__actions {
+    @include m.flex(center, flex-start, v.$space-3);
+    flex-wrap: wrap;
+  }
+}

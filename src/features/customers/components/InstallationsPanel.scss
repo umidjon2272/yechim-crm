@@ -1,0 +1,26 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.installation-row {
+  display: flex;
+  align-items: center;
+  gap: v.$space-3;
+  padding: v.$space-3;
+  border-radius: v.$radius-md;
+  border: 1px solid v.$color-border;
+
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: v.$space-2;
+  }
+
+  &__address {
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+  }
+
+  &__meta {
+    flex: 1;
+  }
+}

@@ -1,0 +1,57 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.quotation-print__header {
+  @include m.flex(flex-start, space-between);
+  margin-bottom: v.$space-6;
+}
+
+.quotation-print__brand {
+  font-size: v.$font-size-lg;
+  font-weight: v.$font-weight-bold;
+  background: linear-gradient(135deg, v.$color-primary-600, v.$color-primary-400);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.quotation-print__meta {
+  text-align: right;
+  font-size: v.$font-size-sm;
+  color: v.$color-text-secondary;
+}
+
+// Real PDF generation is a backend concern (server-rendered/emailed) — this
+// print stylesheet is the honest, dependency-free stand-in: the browser's
+// native print/save-as-PDF dialog against a clean, chrome-free layout.
+@media print {
+  .no-print,
+  .sidebar,
+  .header,
+  .sidebar-backdrop,
+  .ambient-background {
+    display: none !important;
+  }
+
+  .admin-layout__content {
+    padding: 0;
+  }
+
+  .quotation-print {
+    color: #000;
+  }
+
+  .quotation-print__brand {
+    -webkit-text-fill-color: #000;
+    color: #000;
+  }
+
+  .card,
+  .surface-card,
+  .glass-panel {
+    backdrop-filter: none !important;
+    box-shadow: none;
+    border-color: #ddd;
+    break-inside: avoid;
+  }
+}

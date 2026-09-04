@@ -1,0 +1,335 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.customer-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+
+  &__header {
+    @include m.flex(center, space-between, v.$space-4);
+    flex-wrap: wrap;
+    padding: v.$space-4 v.$space-5;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.58);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(245, 243, 255, 0.22)),
+      rgba(255, 255, 255, 0.22);
+    flex-shrink: 0;
+  }
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    gap: v.$space-3;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: v.$font-size-xl;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+    line-height: 1.1;
+  }
+
+  &__meta {
+    margin-top: 3px;
+    font-size: v.$font-size-sm;
+    color: v.$color-text-secondary;
+
+    a {
+      color: v.$color-primary-700;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__facts {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: v.$space-2;
+    margin-top: v.$space-3;
+    font-size: v.$font-size-xs;
+    color: v.$color-text-secondary;
+
+    strong {
+      color: v.$color-text-primary;
+      font-weight: v.$font-weight-semibold;
+    }
+
+    span {
+      padding: 5px v.$space-3;
+      border-radius: v.$radius-full;
+      background: rgba(255, 255, 255, 0.54);
+      border: 1px solid rgba(255, 255, 255, 0.64);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+    }
+  }
+
+  &__created-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: v.$space-2 v.$space-4;
+    margin-top: v.$space-2;
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+
+    strong {
+      color: v.$color-text-secondary;
+      font-weight: v.$font-weight-semibold;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: v.$space-2;
+    flex-wrap: wrap;
+  }
+
+  &__edit-button {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    color: v.$color-primary-700;
+    font-size: 22px;
+    line-height: 1;
+    background: rgba(125, 92, 246, 0.1);
+    border: 1px solid rgba(125, 92, 246, 0.18);
+    border-radius: v.$radius-md;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(125, 92, 246, 0.18);
+      outline: none;
+    }
+  }
+
+  &__compact-overview {
+    display: flex;
+    flex-direction: column;
+    gap: v.$space-4;
+    width: 100%;
+    padding: v.$space-4;
+  }
+
+  &__number-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: v.$space-3;
+  }
+
+  &__number-card,
+  &__next-work,
+  &__latest-activity {
+    padding: v.$space-3;
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    border-radius: v.$radius-lg;
+  }
+
+  &__number-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span,
+    .customer-workspace__section-label {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    strong {
+      color: v.$color-text-primary;
+      font-size: v.$font-size-base;
+    }
+  }
+
+  &__section-label {
+    margin-bottom: v.$space-2;
+    color: v.$color-primary-700;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+  }
+
+  &__next-work-item {
+    display: grid;
+    gap: 4px;
+
+    span,
+    small {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    &--overdue strong {
+      color: #b42318;
+    }
+  }
+
+  &__short-info {
+    display: grid;
+    gap: v.$space-3;
+
+    div {
+      display: grid;
+      gap: 3px;
+    }
+
+    span {
+      color: v.$color-text-secondary;
+      font-size: v.$font-size-xs;
+    }
+
+    strong {
+      color: v.$color-text-primary;
+      font-size: v.$font-size-sm;
+      font-weight: v.$font-weight-medium;
+    }
+  }
+
+  &__latest-activity {
+    color: v.$color-text-primary;
+    font-size: v.$font-size-sm;
+    line-height: 1.5;
+  }
+
+  &__stage-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 5px 2px 7px;
+    cursor: pointer;
+    border-radius: v.$radius-full;
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    transition: transform v.$transition-fast;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  &__stage-trigger-label {
+    color: v.$color-text-muted;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-medium;
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: v.$space-4;
+    padding: v.$space-4;
+    overflow-y: auto;
+    @include m.custom-scrollbar;
+  }
+
+  &__main {
+    border-radius: v.$radius-xl;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.22)),
+      rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68), v.$shadow-sm;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__main {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__edit {
+    flex: 1;
+    overflow-y: auto;
+    padding: v.$space-6;
+    @include m.custom-scrollbar;
+  }
+
+  @include m.respond-down(v.$breakpoint-lg) {
+    &__main {
+      min-height: 360px;
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  .customer-workspace {
+    &__header {
+      align-items: flex-start;
+      padding: v.$space-4;
+    }
+
+    &__identity {
+      width: 100%;
+    }
+
+    &__name {
+      font-size: v.$font-size-lg;
+    }
+
+    &__actions {
+      width: 100%;
+      flex-wrap: wrap;
+      padding-bottom: 0;
+
+      .btn,
+      > a,
+      > button {
+        flex: 0 0 auto;
+        justify-content: center;
+      }
+    }
+
+    &__body {
+      padding: v.$space-2;
+      gap: v.$space-2;
+    }
+
+    &__edit {
+      padding: v.$space-3;
+    }
+
+    &__facts {
+      align-items: stretch;
+
+      span {
+        flex: 1 1 140px;
+      }
+    }
+
+    &__number-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__compact-overview {
+      padding: v.$space-3;
+    }
+
+    &__main {
+      border-radius: v.$radius-lg;
+    }
+
+    &__header {
+      gap: v.$space-3;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .customer-workspace__number-grid {
+    grid-template-columns: 1fr;
+  }
+}

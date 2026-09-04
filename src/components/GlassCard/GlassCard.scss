@@ -1,0 +1,21 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.glass-card {
+  @include m.glass-panel;
+  padding: v.$space-6;
+
+  &--elevated {
+    @include m.glass-panel($blur: v.$glass-blur-lg, $bg: v.$glass-bg-strong);
+  }
+
+  &--interactive {
+    @include m.glass-hover;
+    cursor: pointer;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+  }
+}

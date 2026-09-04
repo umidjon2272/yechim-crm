@@ -1,0 +1,29 @@
+@use '../../styles/abstracts/variables' as v;
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-1;
+  margin-bottom: v.$space-4;
+
+  &__label {
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-medium;
+    color: v.$color-text-primary;
+  }
+
+  &__required {
+    color: v.$color-danger-500;
+    margin-left: 2px;
+  }
+
+  &__hint {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+  }
+
+  &__error {
+    font-size: v.$font-size-xs;
+    color: v.$color-danger-700;
+  }
+}

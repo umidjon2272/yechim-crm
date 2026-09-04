@@ -1,0 +1,137 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.btn {
+  @include m.flex(center, center, v.$space-2);
+  @include m.focus-ring;
+  height: 40px;
+  padding: 0 v.$space-4;
+  border-radius: v.$radius-lg;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-medium;
+  border: 1px solid transparent;
+  transition: transform v.$transition-fast, box-shadow v.$transition-fast, background-color v.$transition-fast,
+    border-color v.$transition-fast, opacity v.$transition-fast;
+  white-space: nowrap;
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--sm {
+    height: 34px;
+    padding: 0 v.$space-3;
+    font-size: v.$font-size-xs;
+  }
+
+  &--lg {
+    height: 46px;
+    padding: 0 v.$space-5;
+  }
+
+  &--block {
+    width: 100%;
+  }
+
+  // Premium accent — gradient + soft tinted shadow, subtle lift on hover
+  &--primary {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
+      linear-gradient(135deg, v.$color-primary-700, v.$color-primary-500 58%, #9e87ff);
+    color: v.$color-white;
+    box-shadow: 0 14px 28px -16px rgba(86, 48, 184, 0.72), 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 18px 36px -18px rgba(86, 48, 184, 0.8), 0 0 22px rgba(125, 92, 246, 0.2);
+      transform: translateY(-1px);
+    }
+  }
+
+  // Glass — translucent soft surface (no backdrop-filter: buttons repeat too
+  // densely for that cost to be worth it, but the visual language matches)
+  &--secondary {
+    background: rgba(255, 255, 255, 0.52);
+    border-color: rgba(255, 255, 255, 0.68);
+    color: v.$color-text-primary;
+    box-shadow: v.$shadow-sm;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.78);
+      border-color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: v.$color-text-secondary;
+
+    &:hover:not(:disabled) {
+      background: rgba(125, 92, 246, 0.1);
+      color: v.$color-primary-700;
+    }
+  }
+
+  &--danger {
+    background: v.$color-danger-500;
+    color: v.$color-white;
+    box-shadow: 0 6px 16px -6px rgba(209, 85, 79, 0.45);
+
+    &:hover:not(:disabled) {
+      background: v.$color-danger-700;
+    }
+  }
+
+  &--danger-ghost {
+    background: transparent;
+    color: v.$color-danger-500;
+
+    &:hover:not(:disabled) {
+      background: v.$color-danger-50;
+    }
+  }
+
+  &__spinner {
+    margin-right: v.$space-1;
+  }
+}
+
+@media (max-width: 767px) {
+  .btn {
+    min-height: 44px;
+
+    &--sm {
+      min-height: 40px;
+    }
+  }
+}
+
+// Segmented view-toggle (List/Kanban, My Tasks/All Tasks, ...)
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: v.$radius-full;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.view-toggle__btn {
+  height: 34px;
+  padding: 0 v.$space-4;
+  border-radius: v.$radius-full;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-medium;
+  color: v.$color-text-secondary;
+  transition: background-color v.$transition-fast, color v.$transition-fast, box-shadow v.$transition-fast;
+
+  &--active {
+    background: rgba(255, 255, 255, 0.82);
+    color: v.$color-text-primary;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 10px 22px -16px rgba(64, 45, 128, 0.42);
+  }
+}

@@ -1,27 +1,25 @@
 # YECHIM CRM Frontend
 
-This repository is the frontend source for YECHIM CRM. The canonical backend
-is maintained separately in `umidjon2272/yechim-backend` and is deployed to
-Render from that repository root.
-
-## Frontend
+React + Vite frontend for YECHIM CRM.
 
 ```bash
-cd frontend
 npm install
 npm run dev
+npm run build
 ```
 
-The frontend is a React + Vite app. API requests go to the canonical Render
-backend at `https://yechim-backend.onrender.com/api` (or `VITE_API_URL`).
+By default, API requests go to the Render backend:
+`https://yechim-backend.onrender.com/api`.
 
-## Deployment notes
+Set the Vercel environment variable below to the Render API origin, including
+the `/api` prefix:
 
-- Vercel frontend project: set Root Directory to `frontend`.
-- Render backend service: use the separate `yechim-backend` repository root.
-- In this workspace, `backend/` is a nested clone of `umidjon2272/yechim-backend`.
-  It is ignored by this frontend repository, so backend commits never enter the
-  frontend history.
-- Production frontend authentication uses only the canonical Render API and a
-  validated access/refresh token pair. Backend source is not part of the Vercel
-  frontend build.
+```env
+VITE_API_URL=https://yechim-backend.onrender.com/api
+```
+
+Authentication stores only the access/refresh token pair in `localStorage` so
+the installed PWA can reopen without asking for credentials again. The
+frontend never trusts a stored user object: it refreshes the access token when
+needed and restores the current identity and permissions through
+`/api/auth/me`. Logout or a revoked/expired refresh session clears the tokens.

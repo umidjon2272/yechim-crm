@@ -1,0 +1,45 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.pagination {
+  @include m.flex(center, space-between, v.$space-4);
+  padding-top: v.$space-4;
+  flex-wrap: wrap;
+
+  &__info {
+    font-size: v.$font-size-sm;
+    color: v.$color-text-secondary;
+  }
+
+  &__controls {
+    @include m.flex(center, flex-end, v.$space-2);
+  }
+
+  &__btn {
+    @include m.flex(center, center);
+    @include m.focus-ring;
+    width: 34px;
+    height: 34px;
+    border-radius: v.$radius-lg;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    background: rgba(255, 255, 255, 0.48);
+    font-size: v.$font-size-sm;
+    color: v.$color-text-primary;
+    transition: background-color v.$transition-fast, border-color v.$transition-fast, color v.$transition-fast;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.76);
+      border-color: v.$color-primary-300;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    &--active {
+      background: linear-gradient(135deg, v.$color-primary-700, v.$color-primary-500);
+      border-color: transparent;
+      color: v.$color-white;
+      box-shadow: 0 12px 24px -16px rgba(86, 48, 184, 0.54);
+    }
+  }
+}

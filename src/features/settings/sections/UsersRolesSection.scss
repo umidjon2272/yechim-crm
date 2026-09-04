@@ -1,0 +1,15 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.role-row {
+  @include m.flex(center, space-between, v.$space-2);
+}
+
+.role-row__toggle {
+  flex: 1;
+}
+
+.role-row__actions {
+  @include m.flex(center, flex-end, v.$space-1);
+  flex-shrink: 0;
+}

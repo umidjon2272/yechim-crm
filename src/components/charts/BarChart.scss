@@ -1,0 +1,41 @@
+@use '../../styles/abstracts/variables' as v;
+
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-3;
+}
+
+.bar-chart__row {
+  display: grid;
+  grid-template-columns: 110px 1fr 46px;
+  align-items: center;
+  gap: v.$space-3;
+}
+
+.bar-chart__label {
+  font-size: v.$font-size-xs;
+  color: v.$color-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-chart__track {
+  background: v.$color-gray-100;
+  border-radius: v.$radius-sm;
+  overflow: hidden;
+}
+
+.bar-chart__fill {
+  height: 100%;
+  border-radius: v.$radius-sm;
+  transition: width v.$transition-slow;
+}
+
+.bar-chart__value {
+  font-size: v.$font-size-xs;
+  font-weight: v.$font-weight-semibold;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,37 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.empty-state {
+  @include m.flex(center, center);
+  flex-direction: column;
+  text-align: center;
+  padding: v.$space-12 v.$space-6;
+  color: v.$color-text-secondary;
+
+  &__icon {
+    @include m.flex(center, center);
+    width: 52px;
+    height: 52px;
+    border-radius: v.$radius-full;
+    background: linear-gradient(135deg, v.$color-primary-50, v.$color-gray-50);
+    color: v.$color-primary-400;
+    margin-bottom: v.$space-4;
+  }
+
+  &__title {
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+    margin-bottom: v.$space-1;
+  }
+
+  &__description {
+    font-size: v.$font-size-sm;
+    max-width: 360px;
+    margin-bottom: v.$space-4;
+  }
+
+  &--compact {
+    padding: v.$space-6 v.$space-4;
+  }
+}

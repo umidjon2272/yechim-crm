@@ -1,0 +1,25 @@
+@use '../../styles/abstracts/variables' as v;
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-2;
+}
+
+.related-list__item {
+  padding: v.$space-3;
+  border-radius: v.$radius-md;
+  border: 1px solid v.$color-border;
+  background: v.$color-gray-25;
+
+  &--clickable {
+    cursor: pointer;
+    transition: background-color v.$transition-fast, border-color v.$transition-fast, transform v.$transition-fast;
+
+    &:hover {
+      background: v.$color-primary-50;
+      border-color: v.$color-primary-200;
+      transform: translateX(2px);
+    }
+  }
+}

@@ -1,0 +1,40 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.notifications-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-2;
+  margin-top: v.$space-5;
+}
+
+.notifications-page__item {
+  @include m.flex(flex-start, flex-start, v.$space-3);
+  width: 100%;
+  padding: v.$space-4;
+  border: 1px solid v.$color-border;
+  border-radius: v.$radius-md;
+  background: v.$color-bg-surface;
+  text-align: left;
+  transition: background-color v.$transition-fast, border-color v.$transition-fast;
+
+  &:hover { background: v.$color-gray-50; }
+  &--unread { border-color: v.$color-primary-200; background: v.$color-primary-50; }
+  &--overdue { border-color: v.$color-danger-500; }
+}
+
+.notifications-page__icon {
+  @include m.flex(center, center);
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: v.$radius-full;
+  color: v.$color-primary-600;
+  background: v.$color-gray-100;
+}
+
+.notifications-page__body { min-width: 0; flex: 1; }
+.notifications-page__topline { @include m.flex(flex-start, center, v.$space-2); flex-wrap: wrap; }
+.notifications-page__title { color: v.$color-text-primary; font-weight: v.$font-weight-semibold; }
+.notifications-page__message { display: block; margin-top: v.$space-1; color: v.$color-text-secondary; white-space: pre-line; }
+.notifications-page__date { display: block; margin-top: v.$space-2; color: v.$color-text-muted; font-size: v.$font-size-xs; }

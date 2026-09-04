@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" role="img" aria-labelledby="title">
+  <title id="title">YECHIM CRM</title>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#f0f6ff" />
+    </linearGradient>
+    <linearGradient id="icon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071d41" />
+      <stop offset="1" stop-color="#0d4c92" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1800" fill="url(#surface)" />
+  <circle cx="600" cy="770" r="290" fill="#e6f0ff" />
+  <rect x="380" y="550" width="440" height="440" rx="100" fill="url(#icon)" />
+  <path d="M465 640h64l71 125 71-125h64L600 900 465 640Z" fill="#fff" />
+  <path d="M555 765h90l-45 81-45-81Z" fill="#2b83e8" />
+  <path d="M600 846v-71M600 800l-34-34M600 815l38-38" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="12" />
+  <circle cx="566" cy="766" r="12" fill="#fff" />
+  <circle cx="638" cy="777" r="12" fill="#fff" />
+  <path d="M654 706c35-23 58-15 76 3 17 17 34 19 53 4" fill="none" stroke="#63b9ff" stroke-linecap="round" stroke-width="13" />
+  <circle cx="654" cy="706" r="12" fill="#63b9ff" />
+  <circle cx="730" cy="709" r="12" fill="#63b9ff" />
+  <text x="600" y="1160" fill="#071d41" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="800" letter-spacing="18" text-anchor="middle">YECHIM</text>
+  <text x="600" y="1240" fill="#2b83e8" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700" letter-spacing="8" text-anchor="middle">CRM</text>
+</svg>

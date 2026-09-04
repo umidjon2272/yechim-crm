@@ -1,0 +1,79 @@
+import { useNavigate } from 'react-router-dom'
+import { Table } from '../../../components/Table/Table'
+import { TaskPriorityBadge, TaskStatusBadge } from './TaskBadges'
+import { Select } from '../../../components/Select/Select'
+import { formatDate, formatDateTime } from '../../../utils/formatDate'
+import { TASK_STATUSES, TASK_STATUS_LABELS } from '../tasks.constants'
+import { Dropdown, DropdownItem } from '../../../components/Dropdown/Dropdown'
+import { MoreIcon } from '../../../components/icons/Icons'
+
+function relatedLabel(row) {
+  if (row.program?.name) return `Dastur: ${row.program.name}`
+  if (row.deal?.name) return `Savdo: ${row.deal.name}`
+  if (row.lead?.title) return `Murojaat: ${row.lead.title}`
+  if (row.business?.name) return `Biznes: ${row.business.name}`
+  if (row.customer?.name) return `Mijoz: ${row.customer.name}`
+  return '—'
+}
+
+function formatTaskDueDate(value) {
+  if (!value) return formatDate(value)
+  return String(value).includes('T') ? formatDateTime(value) : formatDate(value)
+}
+
+export function TaskTable({ tasks, onStatusChange, canEditStatus, getStatusOptions, statusLoadingId, onCancel, onDelete }) {
+  const navigate = useNavigate()
+
+  const columns = [
+    { key: 'title', header: 'Sarlavha', render: (row) => <span className="table__cell-primary">{row.title}</span> },
+    { key: 'assignedEmployee', header: 'Mas’ul xodim', render: (row) => row.assignedEmployee?.name || '—' },
+    { key: 'related', header: 'Bog‘liq', render: relatedLabel },
+    { key: 'dueDate', header: 'Muddat', render: (row) => formatTaskDueDate(row.dueDate) },
+    { key: 'priority', header: 'Muhimlik', render: (row) => <TaskPriorityBadge priority={row.priority} /> },
+    {
+      key: 'status',
+      header: 'Holat',
+      render: (row) =>
+        onStatusChange && canEditStatus?.(row) ? (
+          <div onClick={(event) => event.stopPropagation()}>
+            <Select
+              value={row.status}
+              onChange={(event) => onStatusChange(row, event.target.value)}
+              disabled={statusLoadingId === row.id}
+              style={{ minWidth: 150 }}
+            >
+              {(getStatusOptions?.(row) ?? TASK_STATUSES).map((status) => (
+                <option key={status} value={status}>
+                  {TASK_STATUS_LABELS[status]}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : (
+          <TaskStatusBadge status={row.status} />
+        ),
+    },
+    ...((onCancel || onDelete) ? [{
+      key: 'actions',
+      header: '',
+      width: 56,
+      render: (row) => (
+        <div className="table__actions" onClick={(event) => event.stopPropagation()}>
+          <Dropdown
+            trigger={(toggle) => (
+              <button type="button" className="header__icon-btn" onClick={toggle} aria-label="Vazifa amallari">
+                <MoreIcon width={16} height={16} />
+              </button>
+            )}
+          >
+            {onCancel && row.status !== 'CANCELLED' && <DropdownItem danger onClick={() => onCancel(row)}>Bekor qilish</DropdownItem>}
+            {onDelete && <DropdownItem danger onClick={() => onDelete(row)}>O‘chirish</DropdownItem>}
+          </Dropdown>
+        </div>
+      ),
+    }] : []),
+  ]
+
+  // Vazifani bosganda bog'langan mijozga o'tish (mijoz ish oynasi ochiladi).
+  return <Table columns={columns} data={tasks} onRowClick={(row) => row.customer?.id && navigate(`/admin/crm/customers/${row.customer.id}`)} />
+}

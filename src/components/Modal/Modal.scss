@@ -1,0 +1,112 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 21, 49, 0.34);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: v.$z-modal-backdrop;
+  @include m.flex(center, center);
+  padding: v.$space-4;
+  animation: modal-backdrop-in v.$transition-base;
+}
+
+.modal {
+  @include m.glass-panel($blur: v.$glass-blur-lg, $bg: rgba(255, 255, 255, 0.66), $radius: v.$radius-xl);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: v.$z-modal;
+  animation: modal-in v.$transition-slow;
+
+  &__header {
+    @include m.flex(center, space-between);
+    padding: v.$space-5 v.$space-6;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.58);
+  }
+
+  &__title {
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-semibold;
+  }
+
+  &__close {
+    @include m.flex(center, center);
+    width: 30px;
+    height: 30px;
+    border-radius: v.$radius-lg;
+    color: v.$color-text-muted;
+    transition: background-color v.$transition-fast, color v.$transition-fast;
+    &:hover {
+      background: rgba(255, 255, 255, 0.56);
+      color: v.$color-text-primary;
+    }
+  }
+
+  &__body {
+    padding: v.$space-6;
+    position: relative;
+  }
+
+  &__footer {
+    @include m.flex(center, flex-end, v.$space-3);
+    padding: v.$space-4 v.$space-6;
+    border-top: 1px solid rgba(255, 255, 255, 0.58);
+  }
+
+  &--danger &__title {
+    color: v.$color-danger-700;
+  }
+}
+
+@media (max-width: 767px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 16px);
+    border-radius: v.$radius-xl;
+
+    &__header {
+      padding: v.$space-4;
+    }
+
+    &__body {
+      padding: v.$space-4;
+    }
+
+    &__footer {
+      flex-wrap: wrap;
+      padding: v.$space-3 v.$space-4;
+
+      .btn {
+        flex: 1 1 140px;
+      }
+    }
+  }
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

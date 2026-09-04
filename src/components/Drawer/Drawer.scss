@@ -1,0 +1,102 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 21, 49, 0.34);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: v.$z-modal-backdrop;
+  display: flex;
+  justify-content: flex-end;
+  animation: drawer-backdrop-in v.$transition-base;
+}
+
+.drawer {
+  @include m.glass-panel($blur: v.$glass-blur-lg, $bg: rgba(255, 255, 255, 0.64), $radius: 0);
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: v.$radius-xl 0 0 v.$radius-xl;
+  z-index: v.$z-modal;
+  animation: drawer-in v.$transition-slow;
+
+  &--xl {
+    max-width: min(1180px, calc(100vw - 56px));
+  }
+
+  &__header {
+    @include m.flex(flex-start, space-between);
+    padding: v.$space-5 v.$space-6;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.58);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-semibold;
+  }
+
+  &__subtitle {
+    margin-top: v.$space-1;
+    font-size: v.$font-size-sm;
+    color: v.$color-text-muted;
+  }
+
+  &__close {
+    @include m.flex(center, center);
+    width: 30px;
+    height: 30px;
+    border-radius: v.$radius-lg;
+    color: v.$color-text-muted;
+    transition: background-color v.$transition-fast, color v.$transition-fast;
+    &:hover {
+      background: rgba(255, 255, 255, 0.56);
+      color: v.$color-text-primary;
+    }
+  }
+
+  &__body {
+    padding: v.$space-6;
+    overflow-y: auto;
+    flex: 1;
+    position: relative;
+    @include m.custom-scrollbar;
+
+    &--flush {
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+    }
+  }
+
+  &__footer {
+    @include m.flex(center, flex-end, v.$space-3);
+    padding: v.$space-4 v.$space-6;
+    border-top: 1px solid rgba(255, 255, 255, 0.58);
+    flex-shrink: 0;
+  }
+}
+
+@keyframes drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

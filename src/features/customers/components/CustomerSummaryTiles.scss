@@ -1,0 +1,31 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.customer-summary-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: v.$space-2;
+  padding: v.$space-3 v.$space-4 0;
+  flex-shrink: 0;
+
+  &__tile {
+    @include m.card-surface;
+    padding: v.$space-2 v.$space-3;
+    border-radius: v.$radius-lg;
+  }
+
+  &__label {
+    font-size: v.$font-size-xs;
+    color: v.$color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  &__value {
+    margin-top: 2px;
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-semibold;
+    color: v.$color-text-primary;
+    @include m.truncate;
+  }
+}

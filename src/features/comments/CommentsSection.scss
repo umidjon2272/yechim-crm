@@ -1,0 +1,48 @@
+@use '../../styles/abstracts/variables' as v;
+@use '../../styles/abstracts/mixins' as m;
+
+.comment-form {
+  @include m.flex(flex-start, flex-start, v.$space-3);
+  margin-bottom: v.$space-4;
+
+  .textarea {
+    flex: 1;
+  }
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: v.$space-4;
+}
+
+.comment-list__item {
+  @include m.flex(flex-start, flex-start, v.$space-3);
+}
+
+.comment-list__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-list__meta {
+  @include m.flex(center, flex-start, v.$space-2);
+}
+
+.comment-list__author {
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-medium;
+  color: v.$color-text-primary;
+}
+
+.comment-list__date {
+  font-size: v.$font-size-xs;
+  color: v.$color-text-muted;
+}
+
+.comment-list__text {
+  font-size: v.$font-size-sm;
+  color: v.$color-text-primary;
+  margin-top: 2px;
+  white-space: pre-wrap;
+}

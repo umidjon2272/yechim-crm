@@ -1,0 +1,27 @@
+@use '../../../styles/abstracts/variables' as v;
+@use '../../../styles/abstracts/mixins' as m;
+
+.profile-header {
+  @include m.card-surface;
+  @include m.flex(center, flex-start, v.$space-4);
+  padding: v.$space-5 v.$space-6;
+  margin-bottom: v.$space-6;
+
+  &__name {
+    font-size: v.$font-size-xl;
+    font-weight: v.$font-weight-bold;
+    color: v.$color-text-primary;
+  }
+
+  &__role {
+    color: v.$color-text-secondary;
+    font-size: v.$font-size-sm;
+  }
+}
+
+.profile-form__section-title {
+  margin: v.$space-5 0 v.$space-3;
+  font-size: v.$font-size-sm;
+  font-weight: v.$font-weight-semibold;
+  color: v.$color-text-primary;
+}

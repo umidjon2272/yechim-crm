@@ -1,0 +1,7 @@
+// Global entry point — tokens + base + cross-feature utilities only.
+// Every component/page owns its own SCSS file, imported directly from its
+// .jsx (e.g. `import './Button.scss'`), so nothing else is listed here.
+@use './base/reset';
+@use './base/typography';
+@use './base/globals';
+@use './abstracts/glass';
